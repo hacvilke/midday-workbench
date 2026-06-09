@@ -111,6 +111,7 @@ class Handler(BaseHTTPRequestHandler):
                 "health": health,
                 "metrics": metrics,
                 "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics, index=index),
+                "route_decision_summary": route_decision_summary(session_id=session_id),
                 "index": index,
                 "policy": policy_manifest(),
                 "quality_gates": quality_gate_manifest(),

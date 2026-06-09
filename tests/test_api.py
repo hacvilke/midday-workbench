@@ -118,6 +118,12 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertIn("results", data)
         self.assertEqual([item["name"] for item in data["results"]], ["diff_stat"])
 
+    def test_quality_history_endpoint_shape(self):
+        data = _get("/api/quality/history?session_id=nonexistent-session-xyz")
+        self.assertIn("count", data)
+        self.assertIn("latest", data)
+        self.assertIsInstance(data["latest"], list)
+
 
 class PolicyEndpointTests(unittest.TestCase):
     def test_policy_returns_categories(self):
@@ -307,6 +313,7 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("index", data)
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)
+        self.assertIn("quality_history", data)
         self.assertIn("routing_audit", data)
         self.assertIn("delegation", data)
         self.assertIn("context_window", data)

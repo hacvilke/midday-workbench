@@ -69,3 +69,4 @@
 2026-06-09: [UPGRADE] Added memory telemetry with message counts, session counts, summary readiness, scorecard risks for missing/large summaries, metrics API exposure, sidebar display, and tests.
 2026-06-09: [UPGRADE] Added raw memory pruning with summary preservation, `/api/memory/prune`, and regression tests so long-running sessions can compact transcript rows without losing durable memory.
 2026-06-09: [HARDENING] Cached deterministic routing audits behind mutation-safe copies to reduce repeated control-plane, health, and prompt-guardrail work while preserving API behavior.
+2026-06-09: [UPGRADE] Added quality gate history summaries with persisted quality-command extraction, `/api/quality/history`, pass/fail counts, latest gate metadata, and regression tests.

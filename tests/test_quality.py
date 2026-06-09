@@ -1,7 +1,7 @@
 import unittest
 
-from agent_core.quality import quality_gate_manifest, required_quality_commands, run_quality_gates
-from agent_core.run_log import clear_command_runs, recent_command_runs
+from agent_core.quality import quality_gate_manifest, quality_history, required_quality_commands, run_quality_gates
+from agent_core.run_log import add_command_run, clear_command_runs, recent_command_runs
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.config import PROJECT_ROOT, get_config
 
@@ -58,6 +58,25 @@ class QualityGateTests(unittest.TestCase):
         self.assertGreaterEqual(len(rows), 1)
         self.assertTrue(any(row["verified"]["summary"].startswith("quality:diff_stat") for row in rows))
         self.assertTrue(any(row["policy_decision"].get("allowed") for row in rows))
+        clear_command_runs(session_id)
+
+    def test_quality_history_summarizes_persisted_gate_runs(self):
+        """Verify quality command audits can be summarized separately."""
+
+        session_id = "quality-history-test"
+        clear_command_runs(session_id)
+        add_command_run(
+            session_id,
+            "git diff --stat",
+            0,
+            "",
+            {"passed": True, "issues": [], "summary": "quality:diff_stat exit=0"},
+            3,
+        )
+        history = quality_history(session_id=session_id)
+        self.assertEqual(history["count"], 1)
+        self.assertEqual(history["passed"], 1)
+        self.assertEqual(history["latest"][0]["gate"], "diff_stat")
         clear_command_runs(session_id)
 
 

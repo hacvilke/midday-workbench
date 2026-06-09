@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 import time
 
 from .config import PROJECT_ROOT
-from .run_log import add_command_run
+from .run_log import add_command_run, recent_command_runs
 from .sandbox import ExecutionSandbox
 from .verifier import ReActVerifier
 
@@ -162,4 +162,38 @@ def run_quality_gates(
         "gate_names": gate_names or [],
         "duration_ms": int((time.perf_counter() - started_all) * 1000),
         "results": results,
+    }
+
+
+def quality_history(session_id: str | None = None, limit: int = 50) -> dict[str, object]:
+    """Summarize persisted quality-gate command runs."""
+
+    rows = []
+    passed = 0
+    failed = 0
+    for command in recent_command_runs(session_id=session_id, limit=limit):
+        verified = command.get("verified") or {}
+        summary = str(verified.get("summary") or "")
+        if not summary.startswith("quality:"):
+            continue
+        gate = summary.split(" ", 1)[0].removeprefix("quality:")
+        ok = bool(verified.get("passed"))
+        passed += 1 if ok else 0
+        failed += 0 if ok else 1
+        rows.append(
+            {
+                "gate": gate,
+                "command": command.get("command"),
+                "passed": ok,
+                "summary": summary,
+                "duration_ms": command.get("duration_ms"),
+                "created_at": command.get("created_at"),
+            }
+        )
+    return {
+        "session_id": session_id,
+        "count": len(rows),
+        "passed": passed,
+        "failed": failed,
+        "latest": rows[:10],
     }

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from .context_window import ContextWindow
 from .oss_tools import OssToolRegistry, ToolResult
-from .router import IntentRoute, IntentRouter
+from .router import IntentRouter
 from .session import load_session_state, save_session_state
 from .verifier import ReActVerifier, VerifierReport
 
@@ -17,7 +17,7 @@ class ReactStep:
     Args:
         thought: Planning rationale for the action.
         action: Tool name that was executed.
-        observation: Summary of the tool result (may include VERIFY status).
+        observation: Summary of the tool result, including VERIFY status.
 
     Returns:
         Immutable ReAct step metadata.
@@ -32,12 +32,12 @@ class ReactPlanner:
     """ReAct-style planner: one tool per turn, with post-step self-verification.
 
     Roles:
-    - **Manager** (IntentRouter): classifies intent and selects the right tool chain.
-    - **Planner** (ReactPlanner.run): builds the thought for each step and sequences execution.
-    - **Verifier** (ReActVerifier): inspects each result before moving to the next step.
+    - Manager (IntentRouter): classifies intent and selects the right tool chain.
+    - Planner (ReactPlanner.run): builds the thought for each step and sequences execution.
+    - Verifier (ReActVerifier): inspects each result before moving to the next step.
 
     The model still writes the final answer, but this planner gives it a visible
-    Thought → Action → Observation → Verify trace over local OSS tools first.
+    Thought -> Action -> Observation -> Verify trace over local OSS tools first.
     """
 
     def __init__(self, registry: OssToolRegistry):
@@ -54,9 +54,10 @@ class ReactPlanner:
             prompt: User prompt.
 
         Returns:
-            Tuple of (ReAct steps, tool results, verifier reports). One entry per
-            tool invoked. Empty lists when no tool is needed (greeting / plain chat).
+            Tuple of (ReAct steps, tool results, verifier reports). Empty lists
+            when no tool is needed, such as greeting/plain chat.
         """
+
         route = self.router.classify(prompt)
         selected = [self.registry.get_tool(name) for name in route.tools]
         context_window = load_session_state()
@@ -66,13 +67,11 @@ class ReactPlanner:
         reports: list[VerifierReport] = []
 
         for tool in selected:
-            # PLAN: build a rich thought from route metadata
             thought = (
                 f"[{route.intent.upper()}] {route.rationale} "
-                f"→ selecting {tool.name} (confidence {route.confidence:.2f})"
+                f"-> selecting {tool.name} (confidence {route.confidence:.2f})"
             )
 
-            # One tool per turn
             chained_prompt = (
                 prompt
                 if route.intent == "visualize"
@@ -81,7 +80,6 @@ class ReactPlanner:
             result = self.registry.run_tool(tool, chained_prompt)
             context_window.add_tool_result(result)
 
-            # VERIFY: self-check the result before recording the step.
             report = self.verifier.verify_tool_result(len(steps), tool.name, result)
             reports.append(report)
             recovery = self.verifier.recovery_action(tool.name, report)
@@ -110,23 +108,27 @@ def format_react_trace(
     steps: list[ReactStep],
     verifier_reports: list[VerifierReport] | None = None,
 ) -> str:
-    """Format ReAct steps as a Thought/Action/Observation/Verify trace for model context.
+    """Format ReAct steps as a Thought/Action/Observation/Verify trace.
 
     Args:
         steps: ReAct steps from the planner.
-        verifier_reports: Optional verifier reports aligned with each step.
+        verifier_reports: Optional verifier reports from the run. When a retry
+            occurred, every report is preserved but the trace shows the final
+            report for each visible step.
 
     Returns:
         Markdown-style trace text.
     """
+
     if not steps:
         return ""
     blocks = []
+    aligned_reports = align_final_verifier_reports(steps, verifier_reports or [])
     for index, step in enumerate(steps, start=1):
         verify_line = ""
-        if verifier_reports and index - 1 < len(verifier_reports):
-            report = verifier_reports[index - 1]
-            status = "PASS" if report.passed else f"FAIL — {'; '.join(report.issues)}"
+        if index - 1 < len(aligned_reports):
+            report = aligned_reports[index - 1]
+            status = "PASS" if report.passed else f"FAIL: {'; '.join(report.issues)}"
             verify_line = f"\nVerify: {status}"
         blocks.append(
             f"Step {index}\n"
@@ -136,3 +138,22 @@ def format_react_trace(
             f"{verify_line}"
         )
     return "\n\n".join(blocks)
+
+
+def align_final_verifier_reports(
+    steps: list[ReactStep],
+    verifier_reports: list[VerifierReport],
+) -> list[VerifierReport]:
+    """Align visible ReAct steps with their final verifier report.
+
+    Recoverable tools can produce multiple reports for one visible step: a
+    failed first attempt and a final retry. Operator traces should display the
+    final state for each action while run metadata still preserves every report.
+    """
+
+    aligned: list[VerifierReport] = []
+    for step in steps:
+        matching = [report for report in verifier_reports if report.action == step.action]
+        if matching:
+            aligned.append(matching[-1])
+    return aligned

@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agent_core.config import get_config
 from agent_core.oss_tools import OssToolRegistry, ToolResult
 from agent_core.oss_tools import OssTool
-from agent_core.react_loop import ReactPlanner
+from agent_core.react_loop import ReactPlanner, align_final_verifier_reports, format_react_trace
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.verifier import ReActVerifier
 from agent_core.react_loop import ReactStep
@@ -222,6 +222,31 @@ class ReactRecoveryTests(unittest.TestCase):
         self.assertEqual(len(reports), 2)
         self.assertTrue(reports[-1].passed)
         self.assertIn("Recovery:", steps[0].observation)
+
+    def test_recovered_trace_uses_final_verifier_report(self):
+        """Verify traces show recovered PASS while retaining all reports."""
+
+        class FakeRegistry:
+            def __init__(self):
+                self.calls = 0
+                self.tool = OssTool("rich_output_template_tool", "fake", "fake", ("graph",))
+
+            def get_tool(self, name):
+                return self.tool
+
+            def run_tool(self, tool, prompt):
+                self.calls += 1
+                if self.calls == 1:
+                    return ToolResult(tool.name, "bad visual", "plain text without a diagram")
+                return ToolResult(tool.name, "fixed visual", "```mermaid\ngraph TD\nA --> B\n```")
+
+        steps, _, reports = ReactPlanner(FakeRegistry()).run("show graph")
+        aligned = align_final_verifier_reports(steps, reports)
+        trace = format_react_trace(steps, reports)
+        self.assertEqual(len(aligned), 1)
+        self.assertTrue(aligned[0].passed)
+        self.assertIn("Verify: PASS", trace)
+        self.assertNotIn("Verify: FAIL", trace)
 
 
 if __name__ == "__main__":

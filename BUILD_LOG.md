@@ -39,3 +39,4 @@
 2026-06-09: [UPGRADE] Added route alternative metadata across routing, planning, and route diagnostics so Midday Workbench can audit why a tool was selected over other matching candidates.
 2026-06-09: [UI] Exposed route alternatives in chat run metadata, run-detail inspection, and the Route Inspector so operators can see ranked routing candidates without leaving the workbench.
 2026-06-09: [UPGRADE] Added routing contract audits with `/api/routing-audit`, health/control-plane inclusion, sidebar status, and tests for greeting, visual, graph, code, system-design, and ambiguous route probes.
+2026-06-09: [HARDENING] Normalized the ReAct loop and aligned formatted traces to the final verifier report after automatic recovery retries, so recovered tool runs display PASS while preserving all verifier reports.

@@ -167,9 +167,15 @@ def format_operational_guardrails(config: AgentConfig) -> str:
     providers = provider_diagnostics(config)
     delegation = DelegationPlanner().manifest()
     route_summary = route_decision_summary(limit=50)
-    quality = operational_metrics().get("quality_history", {})
+    metrics = operational_metrics()
+    quality = metrics.get("quality_history", {})
+    commands = metrics.get("commands", {})
     latest_failed = quality.get("latest_failed") or {}
     latest_failed_gate = latest_failed.get("gate") if isinstance(latest_failed, dict) else None
+    latest_failed_command = commands.get("latest_failed") or {}
+    latest_failed_command_name = (
+        latest_failed_command.get("command") if isinstance(latest_failed_command, dict) else None
+    )
     failed = [
         str(result.get("name"))
         for result in audit.get("results", [])
@@ -186,6 +192,8 @@ def format_operational_guardrails(config: AgentConfig) -> str:
         f"from `{route_summary.get('count', 0)}` inspected route(s); top intents: `{top_intents}`\n"
         f"- Quality Action: `{quality.get('failed', 0)}` failed gate(s); "
         f"latest failed: `{latest_failed_gate or 'none'}`\n"
+        f"- Command Action: `{commands.get('failures', 0)}` failed command(s); "
+        f"latest failed: `{latest_failed_command_name or 'none'}`\n"
         "- Command Sandbox: `read-only allowlist` with blocked shell metacharacters and destructive/network commands.\n"
         f"- Allowed Command Prefixes: `{', '.join(sandbox.allowed_commands()[:12])}`\n"
         f"- Blocked Command Patterns: `{', '.join(sandbox.BLOCKED_PATTERNS[:12])}`\n"

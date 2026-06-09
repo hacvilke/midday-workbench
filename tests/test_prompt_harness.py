@@ -32,6 +32,7 @@ class PromptHarnessTests(unittest.TestCase):
         self.assertIn("Parallel Policy", prompt)
         self.assertIn("Route Decision Drift", prompt)
         self.assertIn("Quality Action", prompt)
+        self.assertIn("Command Action", prompt)
         self.assertIn("Route Confidence Policy", prompt)
         self.assertIn("Verification Rule", prompt)
 
@@ -42,6 +43,7 @@ class PromptHarnessTests(unittest.TestCase):
         self.assertLess(len(guardrails), 1700)
         self.assertIn("Allowed Command Prefixes", guardrails)
         self.assertIn("latest failed", guardrails)
+        self.assertIn("failed command", guardrails)
         self.assertIn("below 0.75 confidence", guardrails)
         self.assertIn("remote ready", guardrails)
 

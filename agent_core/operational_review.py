@@ -83,6 +83,16 @@ def operational_review(
         score -= min(18, int(runs["low_confidence_routes"]) * 3)
         risks.append(f"{runs['low_confidence_routes']} low-confidence route decision(s) recorded")
         recommendations.append("Add routing probes or specialized tool schemas for low-confidence request patterns.")
+    route_decisions = metrics.get("route_decisions", {})
+    inspected_route_review = int(route_decisions.get("ambiguous") or 0) + int(
+        route_decisions.get("low_confidence") or 0
+    )
+    if inspected_route_review:
+        score -= min(12, inspected_route_review * 2)
+        risks.append(f"{inspected_route_review} inspected route decision(s) need review")
+        recommendations.append(
+            "Use route inspector history to tune router keywords or tool schemas before those patterns become failed runs."
+        )
 
     usage = metrics.get("usage", {})
     average_answer_chars = int(usage.get("average_answer_chars") or 0)

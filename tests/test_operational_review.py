@@ -125,6 +125,45 @@ class OperationalReviewTests(unittest.TestCase):
         self.assertTrue(any("ambiguous route" in risk for risk in review["risks"]))
         self.assertTrue(any("low-confidence route" in risk for risk in review["risks"]))
 
+    def test_inspected_route_decisions_reduce_score(self):
+        """Verify route-inspector telemetry influences the operational scorecard."""
+
+        health = {"passed": True, "checks": [], "tools": []}
+        metrics = {
+            "runs": {
+                "count": 0,
+                "fallback_count": 0,
+                "ambiguous_routes": 0,
+                "low_confidence_routes": 0,
+                "average_duration_ms": 0,
+                "providers": {},
+                "tools": {},
+            },
+            "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
+            "provider_routes": {"count": 0, "failed": 0, "degraded": 0},
+            "route_decisions": {
+                "count": 2,
+                "ambiguous": 1,
+                "low_confidence": 1,
+                "intents": {"visualize": 1},
+                "tools": {"rich_output_template_tool": 1},
+            },
+            "quality_history": {"count": 0, "passed": 0, "failed": 0},
+            "commands": {"count": 0, "failures": 0, "successes": 0},
+            "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
+            "files": {"count": 0, "created": 0, "patched": 0, "written": 0},
+            "decisions": {"count": 0, "kinds": {}},
+            "memory": {"message_count": 0, "has_summary": False, "summary_chars": 0},
+            "context_window": {"item_count": 0, "content_chars": 0},
+        }
+        review = operational_review(
+            health=health,
+            metrics=metrics,
+            index={"chunk_count": 10, "repo_count": 1, "age_seconds": 0},
+        )
+        self.assertLess(review["score"], 100)
+        self.assertTrue(any("inspected route decision" in risk for risk in review["risks"]))
+
     def test_usage_bloat_reduces_score(self):
         """Verify oversized answers and context become operational risks."""
 

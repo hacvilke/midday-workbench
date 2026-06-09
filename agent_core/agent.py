@@ -20,6 +20,7 @@ from .rich_output_template_tool.render import extract_mermaid_blocks, is_valid_m
 from .router import IntentRouter
 from .tool_schemas import schema_markdown
 from .tools import ToolBox
+from .verifier import ReActVerifier
 
 
 CASUAL_PATTERNS = {
@@ -64,6 +65,7 @@ class Agent:
         self.router = IntentRouter()
         self.planner = AgentPlanner()
         self.editor = FileEditorTool(self.config.workspace_root)
+        self.verifier = ReActVerifier()
 
     # ------------------------------------------------------------------
     # Public API
@@ -177,6 +179,7 @@ class Agent:
                 oss_block = self.format_tool_results(tool_results)
                 answer = f"Provider failed: {exc}\n\nFallback:\n{oss_block or context}"
 
+        v_reports = [*v_reports, self.verifier.verify_provider_attempts(provider_attempts)]
         answer, file_writes = self._maybe_write_file_with_metadata(prompt, tool_results, answer)
 
         return AgentRun(
@@ -321,6 +324,8 @@ class Agent:
                 full_answer = f"Provider failed: {exc}\n\nFallback:\n{oss_block or context}"
                 for word in full_answer.split(" "):
                     yield {"type": "token", "token": word + " "}
+
+        v_reports = [*v_reports, self.verifier.verify_provider_attempts(provider_attempts)]
 
         # Auto file-write post-processing
         write_result, file_writes = self._maybe_write_file_with_metadata(prompt, tool_results, full_answer)

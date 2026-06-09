@@ -151,6 +151,25 @@ class ReActVerifier:
         summary = "policy=allowed" if passed and allowed else "policy=blocked" if passed else "; ".join(issues)
         return VerifierReport(0, command[:60], passed, issues, summary)
 
+    def verify_provider_attempts(self, attempts: list[dict[str, object]]) -> VerifierReport:
+        """Verify provider failover metadata has at least one successful route."""
+
+        issues: list[str] = []
+        if not attempts:
+            issues.append("no provider attempts recorded")
+        ok_attempts = [attempt for attempt in attempts if attempt.get("ok")]
+        if attempts and not ok_attempts:
+            issues.append("all provider attempts failed")
+        failed = [str(attempt.get("provider", "unknown")) for attempt in attempts if not attempt.get("ok")]
+        provider = str(ok_attempts[-1].get("provider", "unknown")) if ok_attempts else "none"
+        passed = len(issues) == 0
+        summary = (
+            f"provider={provider}; failed={','.join(failed) if failed else 'none'}"
+            if passed
+            else "; ".join(issues)
+        )
+        return VerifierReport(0, "provider_route", passed, issues, summary)
+
     def verify_all(
         self,
         step_actions: list[str],

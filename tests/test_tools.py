@@ -209,6 +209,27 @@ class VerifierTests(unittest.TestCase):
         self.assertFalse(report.passed)
         self.assertIn("matched allowlist prefix", report.summary)
 
+    def test_provider_attempt_verifier_passes_with_successful_fallback(self):
+        attempts = [
+            {"provider": "openrouter", "ok": False, "duration_ms": 10, "error": "timeout"},
+            {"provider": "groq", "ok": True, "duration_ms": 20, "error": None},
+        ]
+        report = self.verifier.verify_provider_attempts(attempts)
+        self.assertTrue(report.passed)
+        self.assertIn("provider=groq", report.summary)
+        self.assertIn("failed=openrouter", report.summary)
+
+    def test_provider_attempt_verifier_fails_without_success(self):
+        attempts = [{"provider": "openrouter", "ok": False, "duration_ms": 10, "error": "timeout"}]
+        report = self.verifier.verify_provider_attempts(attempts)
+        self.assertFalse(report.passed)
+        self.assertIn("all provider attempts failed", report.summary)
+
+    def test_provider_attempt_verifier_fails_when_missing(self):
+        report = self.verifier.verify_provider_attempts([])
+        self.assertFalse(report.passed)
+        self.assertIn("no provider attempts recorded", report.summary)
+
     def test_verify_all_length_matches(self):
         steps_actions = ["tool_a", "tool_b"]
         results = [

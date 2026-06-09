@@ -62,3 +62,4 @@
 2026-06-09: [UPGRADE] Added safe provider diagnostics with provider route readiness, redacted provider metadata, status/control-plane API exposure, UI display, health coverage, and regression tests.
 2026-06-09: [UPGRADE] Added delegation concurrency planning with serial ordering, safe parallel-candidate grouping, blocked parallel rationale, API exposure, route-inspector UI display, and tests.
 2026-06-09: [UPGRADE] Added provider readiness and parallel-candidate policy to the live prompt guardrails so model calls receive current routing, sandbox, concurrency, and verification constraints.
+2026-06-09: [UPGRADE] Added provider-route verification reports for model failover metadata so streamed and non-streamed runs explicitly record provider success, fallback failures, or missing attempt data.

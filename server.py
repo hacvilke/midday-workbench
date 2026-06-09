@@ -27,6 +27,7 @@ from agent_core.output_templates import template_registry
 from agent_core.prompt_harness import prompt_registry
 from agent_core.quality import quality_gate_manifest, run_quality_gates
 from agent_core.repo_graph import build_repo_graph
+from agent_core.routing_audit import routing_audit
 from agent_core.tool_schemas import oss_tool_schemas
 from agent_core.providers import configured_providers
 from agent_core.run_log import (
@@ -101,6 +102,7 @@ class Handler(BaseHTTPRequestHandler):
                     "sessions": get_sessions(limit=10),
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),
+                    "routing_audit": routing_audit(),
                     "delegation": DelegationPlanner().manifest(),
                     "context_window": session_state_snapshot(),
                     "prompts": {
@@ -155,6 +157,9 @@ class Handler(BaseHTTPRequestHandler):
             }
             add_decision(session_id, "route", message, payload)
             return self.send_json(payload)
+
+        if parsed.path == "/api/routing-audit":
+            return self.send_json(routing_audit())
 
         if parsed.path == "/api/graph":
             return self.send_json(build_repo_graph(get_config().workspace_root).to_dict())

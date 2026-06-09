@@ -8,6 +8,7 @@ const healthStatus = document.querySelector("#healthStatus");
 const toolHealthStatus = document.querySelector("#toolHealthStatus");
 const metricsPanel = document.querySelector("#metricsPanel");
 const operationalReview = document.querySelector("#operationalReview");
+const routingAudit = document.querySelector("#routingAudit");
 const activityTimeline = document.querySelector("#activityTimeline");
 const clearMemoryButton = document.querySelector("#clearMemory");
 const toolSelect = document.querySelector("#toolSelect");
@@ -891,6 +892,22 @@ async function loadOperationalReview() {
   }
 }
 
+async function loadRoutingAudit() {
+  try {
+    const response = await fetch("/api/routing-audit");
+    const data = await response.json();
+    const failed = (data.results || []).filter((result) => !result.passed);
+    const ambiguous = (data.results || []).find((result) => result.name === "ambiguous_visual_design");
+    routingAudit.textContent = [
+      `routing ${data.passed ? "passed" : "review"} - ${Number(data.probe_count || 0)} probes`,
+      `ambiguous ${formatRouteAlternatives(ambiguous?.alternatives || [])}`,
+      failed.length ? `failed ${failed.map((result) => result.name).join(", ")}` : "failed none",
+    ].join("\n");
+  } catch {
+    routingAudit.textContent = "Routing audit unavailable.";
+  }
+}
+
 async function loadActivityTimeline() {
   try {
     const response = await fetch(`/api/timeline?session_id=${encodeURIComponent(sessionId)}`);
@@ -974,6 +991,7 @@ showStatus()
   .then(loadRecentDecisions)
   .then(loadMetrics)
   .then(loadOperationalReview)
+  .then(loadRoutingAudit)
   .then(loadActivityTimeline)
   .then(loadQualityGates);
 
@@ -1065,6 +1083,7 @@ inspectRouteButton.addEventListener("click", async () => {
     loadRecentDecisions();
     loadMetrics();
     loadOperationalReview();
+    loadRoutingAudit();
     loadActivityTimeline();
   } catch {
     routeOutput.textContent = "Route inspector unavailable.";
@@ -1091,6 +1110,7 @@ runCommandButton.addEventListener("click", async () => {
     loadRecentCommands();
     loadMetrics();
     loadOperationalReview();
+    loadRoutingAudit();
     loadActivityTimeline();
   } catch {
     commandOutput.textContent = "Command runner unavailable.";

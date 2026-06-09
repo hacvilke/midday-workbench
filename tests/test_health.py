@@ -28,6 +28,7 @@ class HealthTests(unittest.TestCase):
         self.assertIn("execution_policy", names)
         self.assertIn("policy_manifest", names)
         self.assertIn("quality_gates_allowlisted", names)
+        self.assertIn("routing_audit", names)
 
 
 if __name__ == "__main__":

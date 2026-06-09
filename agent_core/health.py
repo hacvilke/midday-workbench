@@ -12,6 +12,7 @@ from .output_templates import TEMPLATES
 from .prompt_harness import build_system_prompt, prompt_registry
 from .react_loop import ReactPlanner
 from .repo_graph import build_repo_graph
+from .routing_audit import routing_audit
 from .router import IntentRouter
 from .session import load_session_state
 from .run_log import recent_runs
@@ -122,6 +123,11 @@ def run_health_checks() -> list[HealthCheck]:
             "intent_router_visual_graph",
             IntentRouter().classify("show me a graph").tools == ["rich_output_template_tool"],
             "visual graph requests route to renderable templates",
+        ),
+        HealthCheck(
+            "routing_audit",
+            bool(routing_audit()["passed"]),
+            "routing contract probes pass",
         ),
         HealthCheck(
             "session_state_load",

@@ -245,12 +245,22 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("sessions", data)
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)
+        self.assertIn("routing_audit", data)
         self.assertIn("delegation", data)
         self.assertIn("context_window", data)
         self.assertIn("prompts", data)
         self.assertIn("tools", data)
         self.assertIn("coordinator", data["prompts"]["names"])
         self.assertIn("parallel_candidate", data["delegation"]["modes"])
+        self.assertTrue(data["routing_audit"]["passed"])
+
+
+class RoutingAuditEndpointTests(unittest.TestCase):
+    def test_routing_audit_endpoint_shape(self):
+        data = _get("/api/routing-audit")
+        self.assertTrue(data["passed"])
+        self.assertIn("results", data)
+        self.assertGreaterEqual(data["probe_count"], 6)
 
 
 class DelegationEndpointTests(unittest.TestCase):

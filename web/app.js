@@ -49,6 +49,7 @@ const writeFileButton = document.querySelector("#writeFileButton");
 const sessionId = getSessionId();
 
 let isStreaming = false;
+let commandPolicyTimer = null;
 
 function getSessionId() {
   const existing = localStorage.getItem("mw-session");
@@ -915,15 +916,20 @@ async function loadIndexStats() {
   }
 }
 
-async function loadSandboxPolicy() {
+async function loadSandboxPolicy(command = "") {
   try {
-    const response = await fetch("/api/sandbox");
+    const query = command ? `?command=${encodeURIComponent(command)}` : "";
+    const response = await fetch(`/api/sandbox${query}`);
     const data = await response.json();
-    commandPolicy.textContent = [
+    const lines = [
       `Allowed: ${(data.allowed_commands || []).join(", ")}`,
       `Blocked patterns: ${(data.blocked_patterns || []).join(" ")}`,
       `Default timeout: ${Number(data.default_timeout_seconds || 0)}s`,
-    ].join("\n");
+    ];
+    if (data.decision) {
+      lines.push(`Current command: ${formatSandboxDecision(data.decision)}`);
+    }
+    commandPolicy.textContent = lines.join("\n");
   } catch {
     commandPolicy.textContent = "Sandbox policy unavailable.";
   }
@@ -1141,7 +1147,7 @@ showStatus()
   .then(loadPromptHarness)
   .then(loadContextWindow)
   .then(loadIndexStats)
-  .then(loadSandboxPolicy)
+  .then(() => loadSandboxPolicy(commandInput.value.trim()))
   .then(loadRecentCommands)
   .then(loadRecentDecisions)
   .then(loadMetrics)
@@ -1307,6 +1313,13 @@ runCommandButton.addEventListener("click", async () => {
   } catch {
     commandOutput.textContent = "Command runner unavailable.";
   }
+});
+
+commandInput.addEventListener("input", () => {
+  clearTimeout(commandPolicyTimer);
+  commandPolicyTimer = setTimeout(() => {
+    loadSandboxPolicy(commandInput.value.trim());
+  }, 250);
 });
 
 runQualityGatesButton.addEventListener("click", async () => {

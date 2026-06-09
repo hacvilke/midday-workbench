@@ -85,3 +85,4 @@
 2026-06-09: [UPGRADE] Injected compact route-decision drift telemetry into provider prompt guardrails so live model calls receive current routing health context.
 2026-06-09: [UPGRADE] Expanded the safe command sandbox with common project health commands and clearer blocked-pattern diagnostics for install/network/destructive command attempts.
 2026-06-09: [UPGRADE] Added route-decision summary telemetry to the control-plane API, including light mode, so operators can fetch route drift with the rest of system state.
+2026-06-09: [UPGRADE] Added live sandbox policy preview in the command runner so typed commands show allow/block status before execution.

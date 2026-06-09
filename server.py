@@ -332,8 +332,27 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 result = sandbox.run_read_only(command, timeout=20)
             except Exception as exc:
+                verifier = ReActVerifier()
+                report = verifier.verify_sandbox_policy(decision)
+                duration_ms = int((time.perf_counter() - started) * 1000)
+                verified = {"passed": report.passed, "issues": report.issues, "summary": report.summary}
+                policy_decision = _sandbox_decision_payload(decision)
+                add_command_run(
+                    session_id,
+                    command,
+                    -1,
+                    str(exc),
+                    verified,
+                    duration_ms,
+                    policy_decision,
+                )
                 return self.send_json(
-                    {"error": str(exc), "policy_decision": _sandbox_decision_payload(decision)},
+                    {
+                        "error": str(exc),
+                        "verified": verified,
+                        "duration_ms": duration_ms,
+                        "policy_decision": policy_decision,
+                    },
                     status=400,
                 )
             verifier = ReActVerifier()

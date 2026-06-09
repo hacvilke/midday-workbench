@@ -188,6 +188,24 @@ class VerifierTests(unittest.TestCase):
         self.assertFalse(report.passed)
         self.assertGreater(len(report.issues), 0)
 
+    def test_sandbox_policy_verifier_accepts_consistent_block(self):
+        decision = ExecutionSandbox(get_config().workspace_root).decide("rm -rf /")
+        report = self.verifier.verify_sandbox_policy(decision)
+        self.assertTrue(report.passed)
+        self.assertEqual(report.summary, "policy=blocked")
+
+    def test_sandbox_policy_verifier_rejects_inconsistent_allow(self):
+        class BadDecision:
+            command = "git status"
+            allowed = True
+            reason = "allowed"
+            matched_prefix = None
+            blocked_pattern = None
+
+        report = self.verifier.verify_sandbox_policy(BadDecision())
+        self.assertFalse(report.passed)
+        self.assertIn("matched allowlist prefix", report.summary)
+
     def test_verify_all_length_matches(self):
         steps_actions = ["tool_a", "tool_b"]
         results = [

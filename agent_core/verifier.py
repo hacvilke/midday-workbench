@@ -128,6 +128,29 @@ class ReActVerifier:
         summary = f"exit={exit_code}" if passed else "; ".join(issues)
         return VerifierReport(0, command[:60], passed, issues, summary)
 
+    def verify_sandbox_policy(self, decision) -> VerifierReport:
+        """Verify a sandbox allow/block decision is internally consistent."""
+
+        issues: list[str] = []
+        command = str(getattr(decision, "command", ""))
+        allowed = bool(getattr(decision, "allowed", False))
+        reason = str(getattr(decision, "reason", ""))
+        matched_prefix = getattr(decision, "matched_prefix", None)
+        blocked_pattern = getattr(decision, "blocked_pattern", None)
+
+        if not command.strip():
+            issues.append("sandbox decision has empty command")
+        if not reason:
+            issues.append("sandbox decision has no reason")
+        if allowed and not matched_prefix:
+            issues.append("allowed command has no matched allowlist prefix")
+        if allowed and blocked_pattern:
+            issues.append("allowed command still has a blocked pattern")
+
+        passed = len(issues) == 0
+        summary = "policy=allowed" if passed and allowed else "policy=blocked" if passed else "; ".join(issues)
+        return VerifierReport(0, command[:60], passed, issues, summary)
+
     def verify_all(
         self,
         step_actions: list[str],

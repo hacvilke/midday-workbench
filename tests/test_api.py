@@ -162,10 +162,17 @@ class SandboxEndpointTests(unittest.TestCase):
         self.assertIn("duration_ms", data)
 
     def test_run_blocked_command_returns_400(self):
-        status, data = _post("/api/sandbox/run", {"command": "rm -rf /"})
+        session_id = "api-blocked-command"
+        _post("/api/commands/clear", {"session_id": session_id})
+        status, data = _post("/api/sandbox/run", {"command": "rm -rf /", "session_id": session_id})
         self.assertEqual(status, 400)
         self.assertIn("error", data)
+        self.assertIn("verified", data)
         self.assertFalse(data["policy_decision"]["allowed"])
+        self.assertEqual(data["verified"]["summary"], "policy=blocked")
+        history = _get(f"/api/commands?session_id={session_id}")
+        self.assertEqual(history["commands"][0]["exit_code"], -1)
+        self.assertEqual(history["commands"][0]["verified"]["summary"], "policy=blocked")
 
     def test_verified_field_present(self):
         _, data = _post("/api/sandbox/run", {"command": "git status"})

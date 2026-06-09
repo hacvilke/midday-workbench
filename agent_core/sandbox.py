@@ -48,6 +48,7 @@ class ExecutionSandbox:
         "pytest",
         # Node version check
         "node --version",
+        "node --check",
         "npm --version",
         "npm test",
         "npm run test",

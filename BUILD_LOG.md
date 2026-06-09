@@ -88,3 +88,4 @@
 2026-06-09: [UPGRADE] Added live sandbox policy preview in the command runner so typed commands show allow/block status before execution.
 2026-06-09: [DOCS] Updated README API and safety sections with control-plane, route-decision summary, quality history, timeline, and command sandbox preview features.
 2026-06-09: [HARDENING] Increased API smoke-test timeouts through a named constant so heavy control-plane tests remain stable during parallel verification.
+2026-06-09: [UPGRADE] Added a required frontend syntax quality gate using `node --check web/app.js` with sandbox allowlist coverage for JavaScript verification.

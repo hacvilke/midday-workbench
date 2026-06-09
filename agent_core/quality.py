@@ -32,6 +32,7 @@ class QualityGate:
 
 QUALITY_GATES: tuple[QualityGate, ...] = (
     QualityGate("compile", "python -m compileall agent_core", "Python source compiles."),
+    QualityGate("frontend_syntax", "node --check web/app.js", "Frontend JavaScript syntax is valid."),
     QualityGate("unit_tests", "python -m unittest discover tests", "Full test suite passes."),
     QualityGate("evals", "python -m agent_core.evals", "Agent routing, tools, health, memory, and run log evals pass."),
     QualityGate("secret_scan", "python -m agent_core.secret_scan", "Configured provider key patterns are absent from the workspace."),

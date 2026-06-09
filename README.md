@@ -215,7 +215,7 @@ Good next layers for a Codex agent or contributor:
 
 - Shell commands go through an explicit allowlist in `agent_core/sandbox.py`
 - The command runner previews allow/block status before execution
-- Common health commands such as `python -m unittest`, `python -m agent_core.evals`, `python -m agent_core.secret_scan`, `pytest`, `npm test`, and `npm run build` are allowed
+- Common health commands such as `python -m unittest`, `python -m agent_core.evals`, `python -m agent_core.secret_scan`, `node --check`, `pytest`, `npm test`, and `npm run build` are allowed
 - Install, network, destructive, chained, redirected, and privilege-escalation commands are blocked
 - File writes are blocked for `.env`, `*secret*`, `*token*`, `*credential*`, `*.key`, `*.pem`
 - Max file write: 200 KB

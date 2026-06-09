@@ -20,6 +20,7 @@ class QualityGateTests(unittest.TestCase):
         gates = quality_gate_manifest()
         self.assertGreaterEqual(len(gates), 3)
         self.assertIn("secret_scan", [gate["name"] for gate in gates])
+        self.assertIn("frontend_syntax", [gate["name"] for gate in gates])
         first = gates[0]
         self.assertIn("name", first)
         self.assertIn("command", first)

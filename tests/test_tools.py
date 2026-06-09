@@ -132,6 +132,7 @@ class SandboxTests(unittest.TestCase):
         self.assertTrue(self.sandbox.is_allowed("python -m agent_core.secret_scan"))
 
     def test_project_health_commands_allowed(self):
+        self.assertTrue(self.sandbox.is_allowed("node --check web/app.js"))
         self.assertTrue(self.sandbox.is_allowed("pytest tests"))
         self.assertTrue(self.sandbox.is_allowed("npm test"))
         self.assertTrue(self.sandbox.is_allowed("npm run build"))

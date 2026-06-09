@@ -96,6 +96,16 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(done["metadata"]["tools_used"], [])
         self.assertEqual(done["metadata"]["plan"]["intent"], "plain_chat")
 
+    def test_agent_streaming_general_has_provider_attempts(self):
+        """Verify streamed general runs expose provider attempt metadata."""
+
+        events = list(Agent().stream_with_events("explain Midday Workbench briefly"))
+        done = events[-1]
+        self.assertEqual(done["type"], "done")
+        self.assertGreaterEqual(len(done["metadata"]["provider_attempts"]), 1)
+        self.assertIn("provider", done["metadata"]["provider_attempts"][0])
+        self.assertIn("ok", done["metadata"]["provider_attempts"][0])
+
     def test_agent_visual_answer_is_mermaid_only(self):
         """Verify visual requests return a single Mermaid fence."""
 

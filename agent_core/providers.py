@@ -233,6 +233,59 @@ class ProviderRouter(ChatProvider):
                 continue
         yield from OfflineProvider().stream(messages)
 
+    def stream_with_metadata(self, messages: list[Message]) -> Iterator[dict[str, object]]:
+        """Stream token events and finish with provider attempt metadata.
+
+        Args:
+            messages: Conversation messages.
+
+        Yields:
+            Token events followed by one metadata event containing provider,
+            attempts, fallback_used, and error.
+        """
+
+        attempts: list[ProviderAttempt] = []
+        first_provider = self.providers[0].name
+        last_error = None
+        for provider in self.providers:
+            started = time.perf_counter()
+            emitted = False
+            try:
+                for token in provider.stream(messages):
+                    emitted = True
+                    yield {"type": "token", "token": token}
+                attempts.append(
+                    ProviderAttempt(provider.name, True, int((time.perf_counter() - started) * 1000))
+                )
+                yield {
+                    "type": "metadata",
+                    "provider": provider.name,
+                    "attempts": attempts,
+                    "fallback_used": provider.name != first_provider,
+                    "error": last_error,
+                }
+                return
+            except ProviderError as exc:
+                last_error = str(exc)
+                attempts.append(
+                    ProviderAttempt(provider.name, False, int((time.perf_counter() - started) * 1000), str(exc))
+                )
+                if emitted:
+                    yield {"type": "token", "token": f"\n\nProvider stream failed: {exc}\n"}
+                continue
+        offline = OfflineProvider()
+        started = time.perf_counter()
+        for token in offline.stream(messages):
+            yield {"type": "token", "token": token}
+        attempts.append(ProviderAttempt(offline.name, True, int((time.perf_counter() - started) * 1000)))
+        yield {
+            "type": "metadata",
+            "provider": offline.name,
+            "attempts": attempts,
+            "fallback_used": True,
+            "error": last_error,
+        }
+
 
 def configured_providers(config: AgentConfig) -> list[ChatProvider]:
     providers: list[ChatProvider] = []

@@ -282,24 +282,36 @@ class Agent:
         error = None
         provider_attempts = []
 
-        try:
-            t0 = time.perf_counter()
-            for token in self.provider.stream(messages):
-                full_answer += token
-                yield {"type": "token", "token": token}
-            latency = int((time.perf_counter() - t0) * 1000)
-            pname = getattr(self.provider, "name", self.config.provider)
-            provider_name = pname
-            provider_attempts = [{"provider": pname, "ok": True, "duration_ms": latency, "error": None}]
-        except ProviderError as exc:
-            error = str(exc)
-            fallback_used = True
-            provider_name = "offline"
-            provider_attempts = [{"provider": self.config.provider, "ok": False, "duration_ms": 0, "error": error}]
-            oss_block = self.format_tool_results(tool_results)
-            full_answer = f"Provider failed: {exc}\n\nFallback:\n{oss_block or context}"
-            for word in full_answer.split(" "):
-                yield {"type": "token", "token": word + " "}
+        if hasattr(self.provider, "stream_with_metadata"):
+            for event in self.provider.stream_with_metadata(messages):
+                if event.get("type") == "token":
+                    token = str(event.get("token", ""))
+                    full_answer += token
+                    yield {"type": "token", "token": token}
+                elif event.get("type") == "metadata":
+                    provider_name = str(event.get("provider", "offline"))
+                    fallback_used = bool(event.get("fallback_used"))
+                    error = event.get("error")
+                    provider_attempts = [asdict(attempt) for attempt in event.get("attempts", [])]
+        else:
+            try:
+                t0 = time.perf_counter()
+                for token in self.provider.stream(messages):
+                    full_answer += token
+                    yield {"type": "token", "token": token}
+                latency = int((time.perf_counter() - t0) * 1000)
+                pname = getattr(self.provider, "name", self.config.provider)
+                provider_name = pname
+                provider_attempts = [{"provider": pname, "ok": True, "duration_ms": latency, "error": None}]
+            except ProviderError as exc:
+                error = str(exc)
+                fallback_used = True
+                provider_name = "offline"
+                provider_attempts = [{"provider": self.config.provider, "ok": False, "duration_ms": 0, "error": error}]
+                oss_block = self.format_tool_results(tool_results)
+                full_answer = f"Provider failed: {exc}\n\nFallback:\n{oss_block or context}"
+                for word in full_answer.split(" "):
+                    yield {"type": "token", "token": word + " "}
 
         # Auto file-write post-processing
         write_result = self._maybe_write_file(prompt, tool_results, full_answer)

@@ -796,6 +796,21 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
                     provider_route_degraded += 1
 
     command_failures = sum(1 for command in commands if int(command.get("exit_code") or 0) != 0)
+    latest_failed_command = next(
+        (
+            {
+                "command": command.get("command"),
+                "exit_code": command.get("exit_code"),
+                "summary": (command.get("verified") or {}).get("summary"),
+                "policy_decision": command.get("policy_decision") or {},
+                "duration_ms": command.get("duration_ms"),
+                "created_at": command.get("created_at"),
+            }
+            for command in commands
+            if int(command.get("exit_code") or 0) != 0
+        ),
+        None,
+    )
     quality_total = 0
     quality_failed = 0
     quality_passed = 0
@@ -879,6 +894,7 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "count": len(commands),
             "failures": command_failures,
             "successes": max(0, len(commands) - command_failures),
+            "latest_failed": latest_failed_command,
         },
         "quality_history": {
             "count": quality_total,

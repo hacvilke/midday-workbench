@@ -272,6 +272,43 @@ class OperationalReviewTests(unittest.TestCase):
         self.assertEqual(review["action_items"][0]["priority"], 1)
         self.assertIn("frontend_syntax", review["action_items"][0]["recommendation"])
 
+    def test_command_failure_recommendation_names_latest_command(self):
+        """Verify command failures identify the newest failed command."""
+
+        health = {"passed": True, "checks": [], "tools": []}
+        metrics = {
+            "runs": {
+                "count": 0,
+                "fallback_count": 0,
+                "ambiguous_routes": 0,
+                "low_confidence_routes": 0,
+                "average_duration_ms": 0,
+                "providers": {},
+                "tools": {},
+            },
+            "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
+            "provider_routes": {"count": 0, "failed": 0, "degraded": 0},
+            "quality_history": {"count": 0, "passed": 0, "failed": 0},
+            "commands": {
+                "count": 1,
+                "failures": 1,
+                "successes": 0,
+                "latest_failed": {"command": "python -m unittest missing"},
+            },
+            "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
+            "files": {"count": 0, "created": 0, "patched": 0, "written": 0},
+            "decisions": {"count": 0, "kinds": {}},
+            "memory": {"message_count": 0, "has_summary": False, "summary_chars": 0},
+            "context_window": {"item_count": 0, "content_chars": 0},
+        }
+        review = operational_review(
+            health=health,
+            metrics=metrics,
+            index={"chunk_count": 10, "repo_count": 1, "age_seconds": 0},
+        )
+        self.assertLess(review["score"], 100)
+        self.assertTrue(any("python -m unittest missing" in item for item in review["recommendations"]))
+
     def test_context_window_bloat_reduces_score(self):
         """Verify oversized context windows are operationally visible."""
 

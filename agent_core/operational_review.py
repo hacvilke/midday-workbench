@@ -54,7 +54,12 @@ def operational_review(
     if commands["failures"]:
         score -= min(15, int(commands["failures"]) * 3)
         risks.append(f"{commands['failures']} sandbox command run(s) failed")
-        recommendations.append("Inspect command history and convert repeated failures into quality gates or fixes.")
+        latest_failed = commands.get("latest_failed") or {}
+        command = latest_failed.get("command") if isinstance(latest_failed, dict) else None
+        if command:
+            recommendations.append(f"Inspect the latest failed command `{command}` and convert repeated failures into quality gates or fixes.")
+        else:
+            recommendations.append("Inspect command history and convert repeated failures into quality gates or fixes.")
     quality = metrics.get("quality_history", {})
     if quality.get("failed"):
         score -= min(24, int(quality["failed"]) * 6)

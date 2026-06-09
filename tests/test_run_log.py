@@ -191,6 +191,15 @@ class RunLogTests(unittest.TestCase):
             5,
             {"allowed": True, "matched_prefix": "node --check"},
         )
+        add_command_run(
+            session_id,
+            "python -m unittest missing",
+            1,
+            "ImportError",
+            {"passed": False, "issues": ["exit=1"], "summary": "exit=1"},
+            7,
+            {"allowed": True, "matched_prefix": "python -m unittest"},
+        )
         metrics = operational_metrics(session_id=session_id)
         self.assertIn("runs", metrics)
         self.assertIn("commands", metrics)
@@ -203,6 +212,8 @@ class RunLogTests(unittest.TestCase):
         self.assertIn("quality_history", metrics)
         self.assertIn("context_window", metrics)
         self.assertIn("route_decisions", metrics)
+        self.assertEqual(metrics["commands"]["latest_failed"]["command"], "python -m unittest missing")
+        self.assertEqual(metrics["commands"]["latest_failed"]["policy_decision"]["matched_prefix"], "python -m unittest")
         self.assertEqual(metrics["runs"]["count"], 1)
         self.assertEqual(metrics["runs"]["ambiguous_routes"], 1)
         self.assertEqual(metrics["runs"]["low_confidence_routes"], 1)

@@ -14,6 +14,16 @@ class SandboxResult:
     output: str
 
 
+@dataclass(frozen=True)
+class SandboxDecision:
+    command: str
+    allowed: bool
+    reason: str
+    matched_prefix: str | None = None
+    blocked_pattern: str | None = None
+    timeout_seconds: int = 30
+
+
 class ExecutionSandbox:
     """Conservative local sandbox facade with an explicit command allowlist.
 
@@ -107,12 +117,47 @@ class ExecutionSandbox:
         Returns:
             True when the command is safe to run.
         """
+        return self.decide(command).allowed
+
+    def decide(self, command: str, timeout: int = 30) -> SandboxDecision:
+        """Return a structured sandbox policy decision for a command.
+
+        Args:
+            command: Raw command string.
+            timeout: Proposed execution timeout in seconds.
+
+        Returns:
+            SandboxDecision with allow/block reason and matched policy details.
+        """
+
         stripped = command.strip()
-        if not stripped.startswith(self.READ_ONLY_PREFIXES):
-            return False
-        if any(pattern in stripped for pattern in self.BLOCKED_PATTERNS):
-            return False
-        return True
+        if not stripped:
+            return SandboxDecision(command, False, "empty command", timeout_seconds=timeout)
+        matched_prefix = next((prefix for prefix in self.READ_ONLY_PREFIXES if stripped.startswith(prefix)), None)
+        if matched_prefix is None:
+            return SandboxDecision(
+                command,
+                False,
+                "command prefix is not allowlisted",
+                timeout_seconds=timeout,
+            )
+        blocked_pattern = next((pattern for pattern in self.BLOCKED_PATTERNS if pattern in stripped), None)
+        if blocked_pattern is not None:
+            return SandboxDecision(
+                command,
+                False,
+                "command contains a blocked shell pattern",
+                matched_prefix=matched_prefix,
+                blocked_pattern=blocked_pattern,
+                timeout_seconds=timeout,
+            )
+        return SandboxDecision(
+            command,
+            True,
+            "command is allowlisted and passed blocklist checks",
+            matched_prefix=matched_prefix,
+            timeout_seconds=timeout,
+        )
 
     def run_read_only(self, command: str, timeout: int = 30) -> SandboxResult:
         """Execute an allowlisted command in the workspace.
@@ -127,9 +172,10 @@ class ExecutionSandbox:
         Raises:
             ValueError: If the command is outside the sandbox policy.
         """
-        if not self.is_allowed(command):
+        decision = self.decide(command, timeout=timeout)
+        if not decision.allowed:
             raise ValueError(
-                f"Command is outside the read-only sandbox policy: {command!r}. "
+                f"Command blocked by sandbox policy: {decision.reason}. "
                 f"Allowed prefixes: {', '.join(self.READ_ONLY_PREFIXES[:6])} ..."
             )
         runnable = self._platform_command(command)

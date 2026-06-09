@@ -214,7 +214,15 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/sandbox":
             sandbox = ExecutionSandbox(get_config().workspace_root)
-            return self.send_json({"allowed_commands": sandbox.allowed_commands()})
+            command = _query_param(parsed.query, "command")
+            payload = {
+                "allowed_commands": sandbox.allowed_commands(),
+                "blocked_patterns": list(sandbox.BLOCKED_PATTERNS),
+                "default_timeout_seconds": 30,
+            }
+            if command is not None:
+                payload["decision"] = _sandbox_decision_payload(sandbox.decide(command))
+            return self.send_json(payload)
 
         if parsed.path == "/api/files/read":
             path = _query_param(parsed.query, "path") or ""
@@ -302,10 +310,14 @@ class Handler(BaseHTTPRequestHandler):
             command = str(body.get("command", ""))
             session_id = str(body.get("session_id", "default"))
             started = time.perf_counter()
+            decision = sandbox.decide(command, timeout=20)
             try:
                 result = sandbox.run_read_only(command, timeout=20)
             except Exception as exc:
-                return self.send_json({"error": str(exc)}, status=400)
+                return self.send_json(
+                    {"error": str(exc), "policy_decision": _sandbox_decision_payload(decision)},
+                    status=400,
+                )
             verifier = ReActVerifier()
             report = verifier.verify_command_result(result.command, result.exit_code, result.output)
             duration_ms = int((time.perf_counter() - started) * 1000)
@@ -318,6 +330,7 @@ class Handler(BaseHTTPRequestHandler):
                     "output": result.output,
                     "verified": verified,
                     "duration_ms": duration_ms,
+                    "policy_decision": _sandbox_decision_payload(decision),
                 }
             )
 
@@ -512,6 +525,17 @@ def _query_param(query_string: str, key: str) -> str | None:
             if k == key:
                 return unquote_plus(v)
     return None
+
+
+def _sandbox_decision_payload(decision) -> dict[str, object]:
+    return {
+        "command": decision.command,
+        "allowed": decision.allowed,
+        "reason": decision.reason,
+        "matched_prefix": decision.matched_prefix,
+        "blocked_pattern": decision.blocked_pattern,
+        "timeout_seconds": decision.timeout_seconds,
+    }
 
 
 if __name__ == "__main__":

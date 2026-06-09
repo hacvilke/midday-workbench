@@ -128,6 +128,18 @@ class SandboxTests(unittest.TestCase):
     def test_is_allowed_git_log_true(self):
         self.assertTrue(self.sandbox.is_allowed("git log --oneline -5"))
 
+    def test_decide_allowed_command_explains_prefix(self):
+        decision = self.sandbox.decide("git status")
+        self.assertTrue(decision.allowed)
+        self.assertEqual(decision.matched_prefix, "git status")
+        self.assertIsNone(decision.blocked_pattern)
+
+    def test_decide_blocked_command_explains_pattern(self):
+        decision = self.sandbox.decide("cat README.md | grep foo")
+        self.assertFalse(decision.allowed)
+        self.assertEqual(decision.matched_prefix, "cat ")
+        self.assertEqual(decision.blocked_pattern, "|")
+
     def test_is_allowed_sudo_false(self):
         self.assertFalse(self.sandbox.is_allowed("sudo git status"))
 

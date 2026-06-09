@@ -40,3 +40,4 @@
 2026-06-09: [UI] Exposed route alternatives in chat run metadata, run-detail inspection, and the Route Inspector so operators can see ranked routing candidates without leaving the workbench.
 2026-06-09: [UPGRADE] Added routing contract audits with `/api/routing-audit`, health/control-plane inclusion, sidebar status, and tests for greeting, visual, graph, code, system-design, and ambiguous route probes.
 2026-06-09: [HARDENING] Normalized the ReAct loop and aligned formatted traces to the final verifier report after automatic recovery retries, so recovered tool runs display PASS while preserving all verifier reports.
+2026-06-09: [HARDENING] Added structured sandbox command decisions with allow/block reasons, matched prefixes, blocked patterns, timeout metadata, API exposure, command-run responses, UI display, and regression tests.

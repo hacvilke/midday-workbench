@@ -831,10 +831,26 @@ async function loadSandboxPolicy() {
   try {
     const response = await fetch("/api/sandbox");
     const data = await response.json();
-    commandPolicy.textContent = `Allowed: ${(data.allowed_commands || []).join(", ")}`;
+    commandPolicy.textContent = [
+      `Allowed: ${(data.allowed_commands || []).join(", ")}`,
+      `Blocked patterns: ${(data.blocked_patterns || []).join(" ")}`,
+      `Default timeout: ${Number(data.default_timeout_seconds || 0)}s`,
+    ].join("\n");
   } catch {
     commandPolicy.textContent = "Sandbox policy unavailable.";
   }
+}
+
+function formatSandboxDecision(decision) {
+  if (!decision) return "policy unknown";
+  const parts = [
+    `policy ${decision.allowed ? "allowed" : "blocked"}`,
+    decision.reason || "no reason",
+  ];
+  if (decision.matched_prefix) parts.push(`prefix ${decision.matched_prefix}`);
+  if (decision.blocked_pattern) parts.push(`blocked ${decision.blocked_pattern}`);
+  if (decision.timeout_seconds) parts.push(`timeout ${Number(decision.timeout_seconds)}s`);
+  return parts.join(" - ");
 }
 
 async function loadRecentCommands() {
@@ -1103,10 +1119,10 @@ runCommandButton.addEventListener("click", async () => {
     });
     const data = await response.json();
     if (!response.ok) {
-      commandOutput.textContent = data.error || "Command blocked.";
+      commandOutput.textContent = `${data.error || "Command blocked."}\n${formatSandboxDecision(data.policy_decision)}`;
       return;
     }
-    commandOutput.textContent = `$ ${data.command}\nexit ${data.exit_code} - ${Number(data.duration_ms || 0)}ms\nverify ${data.verified?.summary || "unknown"}\n\n${data.output || "(no output)"}`;
+    commandOutput.textContent = `$ ${data.command}\n${formatSandboxDecision(data.policy_decision)}\nexit ${data.exit_code} - ${Number(data.duration_ms || 0)}ms\nverify ${data.verified?.summary || "unknown"}\n\n${data.output || "(no output)"}`;
     loadRecentCommands();
     loadMetrics();
     loadOperationalReview();

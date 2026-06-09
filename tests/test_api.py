@@ -140,8 +140,15 @@ class SandboxEndpointTests(unittest.TestCase):
     def test_allowed_commands_returned(self):
         data = _get("/api/sandbox")
         self.assertIn("allowed_commands", data)
+        self.assertIn("blocked_patterns", data)
+        self.assertIn("default_timeout_seconds", data)
         self.assertIsInstance(data["allowed_commands"], list)
         self.assertGreater(len(data["allowed_commands"]), 5)
+
+    def test_sandbox_decision_preview(self):
+        data = _get("/api/sandbox?command=git%20status")
+        self.assertTrue(data["decision"]["allowed"])
+        self.assertEqual(data["decision"]["matched_prefix"], "git status")
 
     def test_run_allowed_command(self):
         status, data = _post("/api/sandbox/run", {"command": "python --version", "session_id": "api-command-test"})
@@ -149,6 +156,8 @@ class SandboxEndpointTests(unittest.TestCase):
         self.assertIn("exit_code", data)
         self.assertEqual(data["exit_code"], 0)
         self.assertIn("verified", data)
+        self.assertIn("policy_decision", data)
+        self.assertTrue(data["policy_decision"]["allowed"])
         self.assertTrue(data["verified"]["passed"])
         self.assertIn("duration_ms", data)
 
@@ -156,6 +165,7 @@ class SandboxEndpointTests(unittest.TestCase):
         status, data = _post("/api/sandbox/run", {"command": "rm -rf /"})
         self.assertEqual(status, 400)
         self.assertIn("error", data)
+        self.assertFalse(data["policy_decision"]["allowed"])
 
     def test_verified_field_present(self):
         _, data = _post("/api/sandbox/run", {"command": "git status"})

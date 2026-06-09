@@ -205,9 +205,11 @@ def health_report(include_tools: bool = True) -> dict[str, object]:
     """
 
     checks = run_health_checks()
+    providers = provider_diagnostics(get_config())
     return {
         "passed": all(check.passed for check in checks),
         "checks": [asdict(check) for check in checks],
+        "provider_diagnostics": providers,
         "tools": [asdict(tool) for tool in run_tool_health_checks()] if include_tools else [],
         "tool_health_included": include_tools,
     }

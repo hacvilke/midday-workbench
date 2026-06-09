@@ -125,6 +125,13 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertIsInstance(data["latest"], list)
 
 
+class HealthEndpointTests(unittest.TestCase):
+    def test_health_exposes_safe_provider_diagnostics(self):
+        data = _get("/api/health")
+        self.assertIn("provider_diagnostics", data)
+        self.assertIn("route", data["provider_diagnostics"])
+
+
 class PolicyEndpointTests(unittest.TestCase):
     def test_policy_returns_categories(self):
         data = _get("/api/policy")

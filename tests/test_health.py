@@ -29,6 +29,17 @@ class HealthTests(unittest.TestCase):
         self.assertFalse(report["tool_health_included"])
         self.assertEqual(report["tools"], [])
         self.assertGreater(len(report["checks"]), 1)
+        self.assertIn("provider_diagnostics", report)
+        self.assertIn("route", report["provider_diagnostics"])
+
+    def test_health_provider_diagnostics_are_redacted(self):
+        """Verify health provider metadata never exposes key fields."""
+
+        report = health_report(include_tools=False)
+        payload = str(report["provider_diagnostics"])
+        self.assertNotIn("api_key", payload)
+        self.assertNotIn("secret", payload)
+        self.assertNotIn("token", payload)
 
     def test_control_plane_health_checks_exist(self):
         """Verify health checks cover policy and quality gates."""

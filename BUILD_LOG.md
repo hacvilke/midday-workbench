@@ -73,3 +73,4 @@
 2026-06-09: [UPGRADE] Surfaced quality gate history in the command runner panel with pass/fail counts, latest gate summaries, refresh after gate runs, and UI regression coverage.
 2026-06-09: [UPGRADE] Added quality gate history metrics and operational scorecard penalties so failed verification gates are visible as first-class shipping risks in APIs and the sidebar.
 2026-06-09: [UPGRADE] Added persisted run concurrency-plan display in run details so serial order and safe parallel candidate groups remain auditable after execution.
+2026-06-09: [UPGRADE] Added redacted provider diagnostics to health reports and API tests so provider route readiness is observable from `/api/health` without exposing secrets.

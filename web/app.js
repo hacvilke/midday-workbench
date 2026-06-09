@@ -2,6 +2,7 @@ const form = document.querySelector("#composer");
 const promptInput = document.querySelector("#prompt");
 const messages = document.querySelector("#messages");
 const providerStatus = document.querySelector("#providerStatus");
+const providerPanel = document.querySelector("#providerPanel");
 const toolList = document.querySelector("#toolList");
 const topbarBadge = document.querySelector("#topbarBadge");
 const healthStatus = document.querySelector("#healthStatus");
@@ -659,6 +660,19 @@ async function showStatus() {
     const providerReadiness = providerDiag.remote_ready ? "remote ready" : "local/offline";
     providerStatus.textContent = `Provider: ${provider} (${providerReadiness})`;
     topbarBadge.textContent = `${status.tools.length} tools · ${providerRoute} · ${providerReadiness}`;
+    providerPanel.innerHTML = "";
+    (providerDiag.providers || []).forEach((entry) => {
+      const row = document.createElement("div");
+      row.innerHTML = `
+        <strong>${escapeHtml(entry.name || "unknown")}${entry.selected ? " selected" : ""}</strong>
+        <span>${escapeHtml(entry.kind || "provider")} - ${entry.configured ? "configured" : "not configured"}</span>
+        <em>${escapeHtml(entry.model || "no model")}</em>
+      `;
+      providerPanel.appendChild(row);
+    });
+    if (!providerPanel.children.length) {
+      providerPanel.textContent = "No provider diagnostics available.";
+    }
     toolList.innerHTML = "";
     status.tools.forEach((entry) => {
       const clean = entry.replace(/^- /, "");

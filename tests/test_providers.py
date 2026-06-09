@@ -43,6 +43,7 @@ def _config(**overrides: object) -> AgentConfig:
         "openrouter_model": "openrouter-test-model",
         "local_base_url": "http://127.0.0.1:11434/v1",
         "local_model": "local-test-model",
+        "provider_max_tokens": 512,
     }
     values.update(overrides)
     return AgentConfig(**values)
@@ -76,6 +77,15 @@ class ProviderDiagnosticsTests(unittest.TestCase):
             self.assertNotIn("api_key", record)
             self.assertNotIn("secret", record)
             self.assertNotIn("token", record)
+
+    def test_diagnostics_expose_safe_output_limit(self):
+        diagnostics = provider_diagnostics(
+            _config(provider="openrouter", openrouter_api_key="fake-openrouter-key", provider_max_tokens=384)
+        )
+
+        selected = diagnostics["providers"][0]
+        self.assertEqual(selected["name"], "openrouter")
+        self.assertEqual(selected["output_limit"], 384)
 
     def test_remote_ready_tracks_configured_remote_provider(self):
         diagnostics = provider_diagnostics(

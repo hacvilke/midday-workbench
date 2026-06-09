@@ -38,12 +38,15 @@ GROQ_MODEL=llama-3.3-70b-versatile
 AGENT_PROVIDER=openrouter
 OPENROUTER_API_KEY=sk-or-...
 OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct
+PROVIDER_MAX_TOKENS=512
 
 # Local Ollama
 AGENT_PROVIDER=local
 LOCAL_BASE_URL=http://127.0.0.1:11434/v1
 LOCAL_MODEL=llama3.1
 ```
+
+If OpenRouter reports a credit error for `max_tokens`, lower `PROVIDER_MAX_TOKENS` in `.env` to a value your account can afford, such as `256` or `512`.
 
 No keys = offline mode. Local tools and repo context still work.
 

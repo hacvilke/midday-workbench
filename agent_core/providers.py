@@ -61,12 +61,14 @@ class OpenAICompatibleProvider(ChatProvider):
         base_url: str,
         api_key: str,
         model: str,
+        max_tokens: int,
         extra_headers: dict[str, str] | None = None,
     ):
         self.name = name
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
+        self.max_tokens = max_tokens
         self.extra_headers = extra_headers or {}
 
     def _build_headers(self) -> dict[str, str]:
@@ -81,7 +83,7 @@ class OpenAICompatibleProvider(ChatProvider):
             "model": self.model,
             "messages": [message.__dict__ for message in messages],
             "temperature": 0.2,
-            "max_tokens": 4096,
+            "max_tokens": self.max_tokens,
         }
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
@@ -120,7 +122,7 @@ class OpenAICompatibleProvider(ChatProvider):
             "model": self.model,
             "messages": [message.__dict__ for message in messages],
             "temperature": 0.2,
-            "max_tokens": 4096,
+            "max_tokens": self.max_tokens,
             "stream": True,
         }
         data = json.dumps(payload).encode("utf-8")
@@ -296,6 +298,7 @@ def configured_providers(config: AgentConfig) -> list[ChatProvider]:
                 "https://openrouter.ai/api/v1",
                 config.openrouter_api_key,
                 config.openrouter_model,
+                config.provider_max_tokens,
                 {"HTTP-Referer": "http://127.0.0.1:8765", "X-Title": "Midday Workbench"},
             )
         )
@@ -306,9 +309,12 @@ def configured_providers(config: AgentConfig) -> list[ChatProvider]:
                 "https://api.groq.com/openai/v1",
                 config.groq_api_key,
                 config.groq_model,
+                config.provider_max_tokens,
             )
         )
-    providers.append(OpenAICompatibleProvider("local", config.local_base_url, "local", config.local_model))
+    providers.append(
+        OpenAICompatibleProvider("local", config.local_base_url, "local", config.local_model, config.provider_max_tokens)
+    )
     providers.append(OfflineProvider())
     order = [config.provider] + [provider.name for provider in providers if provider.name != config.provider]
     by_name = {provider.name: provider for provider in providers}
@@ -331,6 +337,7 @@ def provider_diagnostics(config: AgentConfig) -> dict[str, object]:
         if isinstance(provider, OpenAICompatibleProvider):
             record["model"] = provider.model
             record["base_url"] = provider.base_url
+            record["output_limit"] = provider.max_tokens
             record["configured"] = provider.name == "local" or bool(provider.api_key)
         if provider.name == "offline":
             record["model"] = "offline-fallback"

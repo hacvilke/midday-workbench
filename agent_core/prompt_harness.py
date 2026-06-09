@@ -172,6 +172,7 @@ def format_operational_guardrails(config: AgentConfig) -> str:
     readiness = quality_readiness()
     quality = metrics.get("quality_history", {})
     commands = metrics.get("commands", {})
+    completion = metrics.get("completion_evidence", {})
     latest_failed = quality.get("latest_failed") or {}
     latest_failed_gate = latest_failed.get("gate") if isinstance(latest_failed, dict) else None
     latest_failed_command = commands.get("latest_failed") or {}
@@ -200,6 +201,8 @@ def format_operational_guardrails(config: AgentConfig) -> str:
         f"missing {len(readiness.get('missing_required', []))}; failed {len(readiness.get('failed_required', []))})\n"
         f"- Command Action: `{commands.get('failures', 0)}` failed command(s); "
         f"latest failed: `{latest_failed_command_name or 'none'}`\n"
+        f"- Completion Evidence: `{completion.get('needs_review', 0)}` run(s) need review; "
+        f"quality-ready runs: `{completion.get('quality_ready', 0)}`\n"
         f"- Top Operational Action: `{top_action_label}`\n"
         "- Command Sandbox: `read-only allowlist` with blocked shell metacharacters and destructive/network commands.\n"
         f"- Allowed Command Prefixes: `{', '.join(sandbox.allowed_commands()[:12])}`\n"
@@ -235,6 +238,10 @@ def _top_operational_action(metrics: dict[str, object]) -> str:
         command = latest_failed.get("command") if isinstance(latest_failed, dict) else None
         detail = f" {command}" if command else ""
         return _compact_text(f"commands/medium: inspect latest failed command{detail} and convert repeats into fixes", 140)
+
+    completion = metrics.get("completion_evidence", {})
+    if isinstance(completion, dict) and int(completion.get("needs_review") or 0):
+        return "evidence/medium: inspect run completion evidence before claiming work is fully verified"
 
     runs = metrics.get("runs", {})
     if isinstance(runs, dict) and int(runs.get("low_confidence_routes") or 0):

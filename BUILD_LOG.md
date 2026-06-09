@@ -37,6 +37,8 @@
 2026-06-09: [UPGRADE] Added per-run completion evidence metadata with provider/tool verification, file-write counts, and quality readiness flags persisted in SQLite and rendered in run details.
 2026-06-09: [UPGRADE] Aggregated completion evidence into operational metrics and surfaced evidence-review counts in the sidebar metrics panel.
 2026-06-09: [UPGRADE] Added completion-evidence review signals to operational scorecard scoring and categorized action items.
+2026-06-09: [UPGRADE] Added completion-evidence review counts to provider guardrails and top-action selection.
+2026-06-09: [FIX] Replaced hardcoded 4096 provider max_tokens with configurable `PROVIDER_MAX_TOKENS` defaulting to 512 so low-credit OpenRouter accounts can avoid immediate 402 fallback.
 2026-06-09: [UPGRADE] Added single-run detail lookup with `get_run(run_id)` and `/api/runs/{run_id}` so plan/delegation/verifier metadata can be inspected directly by UI and external agents.
 2026-06-09: [UPGRADE] Added Recent Runs UI detail inspection: run rows are clickable/keyboard accessible and fetch `/api/runs/{run_id}` to show intent, tool, provider, delegation, and verifier summary.
 2026-06-09: [UPGRADE] Added ReAct context-window observability with snapshot/clear helpers, `/api/context-window`, `/api/context-window/clear`, control-plane inclusion, tests, and a sidebar panel for inspecting chained tool observations.

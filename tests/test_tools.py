@@ -131,6 +131,16 @@ class SandboxTests(unittest.TestCase):
     def test_secret_scan_allowed(self):
         self.assertTrue(self.sandbox.is_allowed("python -m agent_core.secret_scan"))
 
+    def test_project_health_commands_allowed(self):
+        self.assertTrue(self.sandbox.is_allowed("pytest tests"))
+        self.assertTrue(self.sandbox.is_allowed("npm test"))
+        self.assertTrue(self.sandbox.is_allowed("npm run build"))
+
+    def test_npm_install_blocked(self):
+        self.assertFalse(self.sandbox.is_allowed("npm install"))
+        decision = self.sandbox.decide("npm install")
+        self.assertEqual(decision.blocked_pattern, "npm install")
+
     def test_decide_allowed_command_explains_prefix(self):
         decision = self.sandbox.decide("git status")
         self.assertTrue(decision.allowed)

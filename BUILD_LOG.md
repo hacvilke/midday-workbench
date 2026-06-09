@@ -83,3 +83,4 @@
 2026-06-09: [UPGRADE] Added a canonical route-decision summary API with top intents/tools and review-worthy examples, then surfaced the summary in the decision sidebar.
 2026-06-09: [UPGRADE] Marked ambiguous or low-confidence route decisions as review events in the activity timeline so routing drift is visible in operator history.
 2026-06-09: [UPGRADE] Injected compact route-decision drift telemetry into provider prompt guardrails so live model calls receive current routing health context.
+2026-06-09: [UPGRADE] Expanded the safe command sandbox with common project health commands and clearer blocked-pattern diagnostics for install/network/destructive command attempts.

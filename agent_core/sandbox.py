@@ -45,8 +45,14 @@ class ExecutionSandbox:
         "python -m agent_core.evals",
         "python -m agent_core.secret_scan",
         "python -c \"import",
+        "pytest",
         # Node version check
         "node --version",
+        "npm --version",
+        "npm test",
+        "npm run test",
+        "npm run lint",
+        "npm run build",
         # Git read-only
         "git status",
         "git diff --stat",
@@ -96,6 +102,9 @@ class ExecutionSandbox:
         "wget",   # network
         "nc ",    # netcat
         "ssh",    # remote shell
+        "npm install",
+        "npm add",
+        "npm publish",
     )
 
     def __init__(self, workspace_root: Path):
@@ -134,22 +143,23 @@ class ExecutionSandbox:
         stripped = command.strip()
         if not stripped:
             return SandboxDecision(command, False, "empty command", timeout_seconds=timeout)
-        matched_prefix = next((prefix for prefix in self.READ_ONLY_PREFIXES if stripped.startswith(prefix)), None)
-        if matched_prefix is None:
-            return SandboxDecision(
-                command,
-                False,
-                "command prefix is not allowlisted",
-                timeout_seconds=timeout,
-            )
         blocked_pattern = next((pattern for pattern in self.BLOCKED_PATTERNS if pattern in stripped), None)
         if blocked_pattern is not None:
+            matched_prefix = next((prefix for prefix in self.READ_ONLY_PREFIXES if stripped.startswith(prefix)), None)
             return SandboxDecision(
                 command,
                 False,
                 "command contains a blocked shell pattern",
                 matched_prefix=matched_prefix,
                 blocked_pattern=blocked_pattern,
+                timeout_seconds=timeout,
+            )
+        matched_prefix = next((prefix for prefix in self.READ_ONLY_PREFIXES if stripped.startswith(prefix)), None)
+        if matched_prefix is None:
+            return SandboxDecision(
+                command,
+                False,
+                "command prefix is not allowlisted",
                 timeout_seconds=timeout,
             )
         return SandboxDecision(

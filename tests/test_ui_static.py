@@ -40,6 +40,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("data.provider_routes?.degraded", app_js)
         self.assertIn("data.memory?.message_count", app_js)
         self.assertIn("data.quality_history?.failed", app_js)
+        self.assertIn("data.commands?.latest_failed?.command", app_js)
+        self.assertIn("Command Fails", app_js)
         self.assertIn("data.context_window?.item_count", app_js)
         self.assertIn("data.route_decisions?.ambiguous", app_js)
         self.assertIn("frontend_syntax_gate", app_js)

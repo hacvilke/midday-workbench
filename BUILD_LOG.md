@@ -102,3 +102,4 @@
 2026-06-09: [UPGRADE] Added sandbox policy details to operational metrics latest-failed quality gate telemetry for consistent quality audit payloads.
 2026-06-09: [UPGRADE] Promoted persisted quality-gate command runs to first-class `quality` activity timeline events with gate names and sandbox policy details.
 2026-06-09: [UPGRADE] Added latest failed command telemetry to operational metrics and named the failed command in operational-review recommendations.
+2026-06-09: [UPGRADE] Surfaced command failure counts in the sidebar metrics panel with a latest-failed-command tooltip for faster operator triage.

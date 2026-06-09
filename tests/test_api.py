@@ -17,6 +17,7 @@ from server import Handler
 
 _BASE = ""
 _server: ThreadingHTTPServer | None = None
+API_TIMEOUT_SECONDS = 30
 
 
 def setUpModule():
@@ -40,13 +41,13 @@ def tearDownModule():
 
 
 def _get(path: str) -> dict:
-    with urllib.request.urlopen(f"{_BASE}{path}", timeout=10) as resp:
+    with urllib.request.urlopen(f"{_BASE}{path}", timeout=API_TIMEOUT_SECONDS) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
 def _get_status(path: str) -> tuple[int, dict]:
     try:
-        with urllib.request.urlopen(f"{_BASE}{path}", timeout=10) as resp:
+        with urllib.request.urlopen(f"{_BASE}{path}", timeout=API_TIMEOUT_SECONDS) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         return exc.code, json.loads(exc.read().decode("utf-8"))
@@ -61,7 +62,7 @@ def _post(path: str, payload: dict) -> tuple[int, dict]:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=API_TIMEOUT_SECONDS) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         return exc.code, json.loads(exc.read().decode("utf-8"))

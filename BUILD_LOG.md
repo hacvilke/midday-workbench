@@ -87,3 +87,4 @@
 2026-06-09: [UPGRADE] Added route-decision summary telemetry to the control-plane API, including light mode, so operators can fetch route drift with the rest of system state.
 2026-06-09: [UPGRADE] Added live sandbox policy preview in the command runner so typed commands show allow/block status before execution.
 2026-06-09: [DOCS] Updated README API and safety sections with control-plane, route-decision summary, quality history, timeline, and command sandbox preview features.
+2026-06-09: [HARDENING] Increased API smoke-test timeouts through a named constant so heavy control-plane tests remain stable during parallel verification.

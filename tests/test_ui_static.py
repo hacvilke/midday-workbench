@@ -27,6 +27,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("file writes ${fileWrites", app_js)
         self.assertIn("metadata.usage", app_js)
         self.assertIn("data.usage?.average_answer_chars", app_js)
+        self.assertIn("(data.risks || []).slice(0, 2)", app_js)
 
 
 if __name__ == "__main__":

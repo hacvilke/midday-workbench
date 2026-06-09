@@ -121,6 +121,39 @@ class OperationalReviewTests(unittest.TestCase):
         self.assertTrue(any("ambiguous route" in risk for risk in review["risks"]))
         self.assertTrue(any("low-confidence route" in risk for risk in review["risks"]))
 
+    def test_usage_bloat_reduces_score(self):
+        """Verify oversized answers and context become operational risks."""
+
+        health = {"passed": True, "checks": [], "tools": []}
+        metrics = {
+            "runs": {
+                "count": 2,
+                "fallback_count": 0,
+                "ambiguous_routes": 0,
+                "low_confidence_routes": 0,
+                "average_duration_ms": 2,
+                "providers": {"local": 2},
+                "tools": {},
+            },
+            "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
+            "commands": {"count": 0, "failures": 0, "successes": 0},
+            "usage": {
+                "average_prompt_chars": 100,
+                "average_answer_chars": 7000,
+                "average_context_chars": 13000,
+            },
+            "files": {"count": 0, "created": 0, "patched": 0, "written": 0},
+            "decisions": {"count": 0, "kinds": {}},
+        }
+        review = operational_review(
+            health=health,
+            metrics=metrics,
+            index={"chunk_count": 10, "repo_count": 1, "age_seconds": 0},
+        )
+        self.assertLess(review["score"], 100)
+        self.assertTrue(any("Average answer size is high" in risk for risk in review["risks"]))
+        self.assertTrue(any("Average attached context is high" in risk for risk in review["risks"]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -70,6 +70,18 @@ def operational_review(
         risks.append(f"{runs['low_confidence_routes']} low-confidence route decision(s) recorded")
         recommendations.append("Add routing probes or specialized tool schemas for low-confidence request patterns.")
 
+    usage = metrics.get("usage", {})
+    average_answer_chars = int(usage.get("average_answer_chars") or 0)
+    average_context_chars = int(usage.get("average_context_chars") or 0)
+    if average_answer_chars > 6000:
+        score -= 8
+        risks.append(f"Average answer size is high ({average_answer_chars} chars)")
+        recommendations.append("Tighten response formatting and summarization rules for verbose answer patterns.")
+    if average_context_chars > 12000:
+        score -= 10
+        risks.append(f"Average attached context is high ({average_context_chars} chars)")
+        recommendations.append("Reduce retrieval limits or improve context ranking before provider calls.")
+
     chunk_count = int(index.get("chunk_count") or 0)
     age_seconds = index.get("age_seconds")
     if chunk_count <= 0:

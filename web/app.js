@@ -955,12 +955,12 @@ async function loadOperationalReview() {
   try {
     const response = await fetch(`/api/operational-review?session_id=${encodeURIComponent(sessionId)}`);
     const data = await response.json();
-    const risk = (data.risks || [])[0] || "No risk summary.";
-    const next = (data.recommendations || [])[0] || "No recommendation.";
+    const risks = (data.risks || []).slice(0, 2);
+    const recommendations = (data.recommendations || []).slice(0, 2);
     operationalReview.textContent = [
       `score ${Number(data.score || 0)}/100 (${data.grade || "unknown"})`,
-      `risk ${risk}`,
-      `next ${next}`,
+      `risk ${risks.join(" | ") || "No risk summary."}`,
+      `next ${recommendations.join(" | ") || "No recommendation."}`,
     ].join("\n");
   } catch {
     operationalReview.textContent = "Operational review unavailable.";

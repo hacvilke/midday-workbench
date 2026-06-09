@@ -11,6 +11,7 @@ A local-first AI coding agent. No SaaS. No cloud lock-in. Runs on your machine w
 - **Runs tools** for ERPNext, Julia, cuGraph, System Design, repo maps, context packing, and research
 - **Verifies results** with a self-verifier on every ReAct step
 - **Persists sessions** in SQLite — memory and run logs survive restarts
+- **Shows operator telemetry** for route drift, provider readiness, command history, quality gates, and control-plane health
 - **Zero dependencies** — pure Python stdlib + vanilla HTML/CSS/JS
 
 ## Quick Start
@@ -140,9 +141,18 @@ No API key. No rate limits beyond DuckDuckGo's anonymous tier.
 | POST | `/api/chat/stream` | Streaming SSE chat |
 | GET | `/api/status` | Provider route, tools, schemas |
 | GET | `/api/health` | Platform + per-tool health checks |
+| GET | `/api/control-plane` | Aggregated health, metrics, policy, routing, provider, prompt, and tool state |
+| GET | `/api/control-plane?light=1` | Faster control-plane probe without heavy history payloads |
 | GET | `/api/runs` | Recent run log |
 | GET | `/api/sessions` | All sessions |
 | GET | `/api/memory` | Conversation memory |
+| GET | `/api/metrics` | Operational metrics and route-decision counters |
+| GET | `/api/operational-review` | Scorecard with risks and recommendations |
+| GET | `/api/timeline` | Unified run, command, file, and decision activity |
+| GET | `/api/decisions` | Recent policy and route decisions |
+| GET | `/api/decisions/routes` | Route-decision summary with drift/review examples |
+| GET | `/api/routing-audit` | Deterministic routing contract audit |
+| GET | `/api/quality/history` | Persisted quality gate history |
 | GET | `/api/graph` | Workspace dependency graph |
 | GET | `/api/files/read` | Read a workspace file |
 | POST | `/api/files/write` | Write a workspace file |
@@ -150,6 +160,7 @@ No API key. No rate limits beyond DuckDuckGo's anonymous tier.
 | GET | `/api/files/list` | List files by glob pattern |
 | POST | `/api/tools/run` | Run any tool directly |
 | POST | `/api/sandbox/run` | Run an allowed shell command |
+| POST | `/api/quality/run` | Run required quality gates through the sandbox |
 
 ## Health Checks
 
@@ -203,6 +214,9 @@ Good next layers for a Codex agent or contributor:
 ## Safety
 
 - Shell commands go through an explicit allowlist in `agent_core/sandbox.py`
+- The command runner previews allow/block status before execution
+- Common health commands such as `python -m unittest`, `python -m agent_core.evals`, `python -m agent_core.secret_scan`, `pytest`, `npm test`, and `npm run build` are allowed
+- Install, network, destructive, chained, redirected, and privilege-escalation commands are blocked
 - File writes are blocked for `.env`, `*secret*`, `*token*`, `*credential*`, `*.key`, `*.pem`
 - Max file write: 200 KB
 - No secrets committed — use `.env` (gitignored)

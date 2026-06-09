@@ -86,3 +86,4 @@
 2026-06-09: [UPGRADE] Expanded the safe command sandbox with common project health commands and clearer blocked-pattern diagnostics for install/network/destructive command attempts.
 2026-06-09: [UPGRADE] Added route-decision summary telemetry to the control-plane API, including light mode, so operators can fetch route drift with the rest of system state.
 2026-06-09: [UPGRADE] Added live sandbox policy preview in the command runner so typed commands show allow/block status before execution.
+2026-06-09: [DOCS] Updated README API and safety sections with control-plane, route-decision summary, quality history, timeline, and command sandbox preview features.

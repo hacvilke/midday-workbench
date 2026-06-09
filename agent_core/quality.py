@@ -51,7 +51,13 @@ def quality_gate_manifest() -> list[dict[str, object]]:
         List of quality gate dictionaries.
     """
 
-    return [asdict(gate) for gate in QUALITY_GATES]
+    sandbox = ExecutionSandbox(PROJECT_ROOT)
+    records = []
+    for gate in QUALITY_GATES:
+        record = asdict(gate)
+        record["policy_decision"] = _policy_decision_payload(sandbox.decide(gate.command, timeout=60))
+        records.append(record)
+    return records
 
 
 def required_quality_commands() -> list[str]:

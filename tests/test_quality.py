@@ -26,6 +26,8 @@ class QualityGateTests(unittest.TestCase):
         self.assertIn("command", first)
         self.assertIn("purpose", first)
         self.assertIn("required", first)
+        self.assertIn("policy_decision", first)
+        self.assertTrue(first["policy_decision"]["allowed"])
 
     def test_run_quality_gates_shape(self):
         """Verify batch quality runner returns verifier-backed results."""

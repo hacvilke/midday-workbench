@@ -110,6 +110,7 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertIn("gates", data)
         self.assertIsInstance(data["gates"], list)
         self.assertGreater(len(data["gates"]), 0)
+        self.assertIn("policy_decision", data["gates"][0])
 
     def test_quality_run_returns_results(self):
         status, data = _post("/api/quality/run", {"required_only": False, "dry_run": True, "gate_names": ["diff_stat"]})

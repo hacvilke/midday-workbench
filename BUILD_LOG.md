@@ -97,3 +97,4 @@
 2026-06-09: [UPGRADE] Added structured operational-review action items with priority, severity, risk, and recommendation fields for planner/UI consumers.
 2026-06-09: [UPGRADE] Added latest failed quality-gate telemetry to operational metrics and injected compact quality-action status into provider prompt guardrails.
 2026-06-09: [HARDENING] Added structured sandbox policy decisions to quality-gate dry runs so planned verification commands explain allow/block status before execution.
+2026-06-09: [UPGRADE] Added sandbox policy decisions to quality gate manifests and surfaced them as command-runner gate tooltips.

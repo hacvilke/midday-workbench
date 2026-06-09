@@ -1111,6 +1111,7 @@ async function loadQualityGates() {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "quality-gate";
+      button.title = formatSandboxDecision(gate.policy_decision);
       button.innerHTML = `<strong>${escapeHtml(gate.name)}</strong><span>${escapeHtml(gate.purpose)}</span>`;
       button.addEventListener("click", () => {
         commandInput.value = gate.command;

@@ -85,6 +85,11 @@ def operational_review(
         score -= min(12, int(provider_routes["degraded"]) * 3)
         risks.append(f"{provider_routes['degraded']} provider route(s) used fallback after failed attempts")
         recommendations.append("Review provider diagnostics for missing keys, unreachable local models, or rate-limited remote providers.")
+    completion = metrics.get("completion_evidence", {})
+    if completion.get("needs_review"):
+        score -= min(18, int(completion["needs_review"]) * 3)
+        risks.append(f"{completion['needs_review']} run completion evidence record(s) need review")
+        recommendations.append("Inspect run completion evidence for failed verifier counts, missing provider proof, or unverified tool output.")
     if runs.get("ambiguous_routes"):
         score -= min(12, int(runs["ambiguous_routes"]) * 2)
         risks.append(f"{runs['ambiguous_routes']} ambiguous route decision(s) need review")
@@ -217,6 +222,8 @@ def _risk_category(risk: str) -> str:
         return "tools"
     if "verifier" in text:
         return "verifier"
+    if "completion evidence" in text:
+        return "evidence"
     if "provider" in text:
         return "provider"
     if "route" in text:

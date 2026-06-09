@@ -654,8 +654,11 @@ async function showStatus() {
     const response = await fetch("/api/status");
     const status = await response.json();
     const provider = status.provider === "offline" ? "offline retrieval" : status.provider;
-    providerStatus.textContent = `Provider: ${provider}`;
-    topbarBadge.textContent = `${status.tools.length} tools · ${status.provider_route?.join(" → ") || provider}`;
+    const providerDiag = status.provider_diagnostics || {};
+    const providerRoute = status.provider_route?.join(" -> ") || provider;
+    const providerReadiness = providerDiag.remote_ready ? "remote ready" : "local/offline";
+    providerStatus.textContent = `Provider: ${provider} (${providerReadiness})`;
+    topbarBadge.textContent = `${status.tools.length} tools · ${providerRoute} · ${providerReadiness}`;
     toolList.innerHTML = "";
     status.tools.forEach((entry) => {
       const clean = entry.replace(/^- /, "");

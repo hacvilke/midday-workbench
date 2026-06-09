@@ -88,6 +88,20 @@ class StatusEndpointTests(unittest.TestCase):
         self.assertIn("provider_route", data)
         self.assertIsInstance(data["provider_route"], list)
 
+    def test_returns_safe_provider_diagnostics(self):
+        data = _get("/api/status")
+        self.assertIn("provider_diagnostics", data)
+        diagnostics = data["provider_diagnostics"]
+        self.assertIn("selected_provider", diagnostics)
+        self.assertIn("route", diagnostics)
+        self.assertIn("providers", diagnostics)
+        self.assertIn("remote_ready", diagnostics)
+        self.assertIsInstance(diagnostics["providers"], list)
+        for record in diagnostics["providers"]:
+            self.assertNotIn("api_key", record)
+            self.assertNotIn("secret", record)
+            self.assertNotIn("token", record)
+
 
 class QualityEndpointTests(unittest.TestCase):
     def test_quality_returns_gates(self):
@@ -282,6 +296,8 @@ class ControlPlaneEndpointTests(unittest.TestCase):
     def test_control_plane_endpoint_aggregates_operational_state(self):
         data = _get("/api/control-plane?session_id=nonexistent-session-xyz")
         self.assertIn("health", data)
+        self.assertIn("provider_diagnostics", data)
+        self.assertIn("route", data["provider_diagnostics"])
         self.assertIn("metrics", data)
         self.assertIn("operational_review", data)
         self.assertIn("timeline", data)

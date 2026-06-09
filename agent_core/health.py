@@ -10,6 +10,7 @@ from .delegation import DelegationPlanner
 from .oss_tools import TOOLS, OssToolRegistry
 from .output_templates import TEMPLATES
 from .prompt_harness import build_system_prompt, prompt_registry
+from .providers import provider_diagnostics
 from .react_loop import ReactPlanner
 from .repo_graph import build_repo_graph
 from .routing_audit import routing_audit
@@ -81,6 +82,7 @@ def run_health_checks() -> list[HealthCheck]:
     prompts = prompt_registry()
     sandbox = ExecutionSandbox(config.workspace_root)
     stats = index_stats(config.index_path)
+    providers = provider_diagnostics(config)
 
     checks = [
         HealthCheck("tool_count", len(TOOLS) >= 9, f"{len(TOOLS)} tools registered"),
@@ -88,6 +90,7 @@ def run_health_checks() -> list[HealthCheck]:
         HealthCheck("template_count", len(TEMPLATES) >= 10, f"{len(TEMPLATES)} rich templates registered"),
         HealthCheck("prompt_harness", "Current Environment Context" in prompt, "dynamic environment context injected"),
         HealthCheck("prompt_guardrails", "Operational Guardrails" in prompt and "Routing Audit" in prompt, "routing and sandbox guardrails injected"),
+        HealthCheck("provider_diagnostics", bool(providers["providers"]) and "route" in providers, "provider route diagnostics available"),
         HealthCheck("search_index", int(stats.get("chunk_count") or 0) > 0, f"{stats.get('chunk_count', 0)} indexed chunks across {stats.get('repo_count', 0)} repos"),
         HealthCheck("sub_agent_prompts", {"coordinator", "read_only_research", "implementation"}.issubset(prompts), "sub-agent templates available"),
         HealthCheck(

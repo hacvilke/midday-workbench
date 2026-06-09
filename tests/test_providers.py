@@ -1,6 +1,12 @@
-import unittest
+"""Provider routing and diagnostics tests."""
+from __future__ import annotations
 
-from agent_core.providers import ChatProvider, Message, ProviderError, ProviderRouter
+import json
+import unittest
+from pathlib import Path
+
+from agent_core.config import AgentConfig
+from agent_core.providers import ChatProvider, Message, ProviderError, ProviderRouter, provider_diagnostics
 
 
 class FailingStreamProvider(ChatProvider):
@@ -23,6 +29,61 @@ class GoodStreamProvider(ChatProvider):
     def stream(self, messages):
         yield "hello "
         yield "world"
+
+
+def _config(**overrides: object) -> AgentConfig:
+    values = {
+        "provider": "offline",
+        "workspace_root": Path("."),
+        "index_path": Path("data/workspace_index.sqlite3"),
+        "max_tool_rounds": 4,
+        "groq_api_key": "",
+        "groq_model": "groq-test-model",
+        "openrouter_api_key": "",
+        "openrouter_model": "openrouter-test-model",
+        "local_base_url": "http://127.0.0.1:11434/v1",
+        "local_model": "local-test-model",
+    }
+    values.update(overrides)
+    return AgentConfig(**values)
+
+
+class ProviderDiagnosticsTests(unittest.TestCase):
+    def test_default_diagnostics_are_structured(self):
+        diagnostics = provider_diagnostics(_config())
+
+        self.assertIn("selected_provider", diagnostics)
+        self.assertIn("route", diagnostics)
+        self.assertIn("providers", diagnostics)
+        self.assertIn("remote_ready", diagnostics)
+        self.assertIsInstance(diagnostics["route"], list)
+        self.assertIsInstance(diagnostics["providers"], list)
+        self.assertGreaterEqual(len(diagnostics["providers"]), 1)
+
+    def test_diagnostics_do_not_expose_api_keys(self):
+        diagnostics = provider_diagnostics(
+            _config(
+                provider="openrouter",
+                openrouter_api_key="fake-openrouter-key",
+                groq_api_key="fake-groq-key",
+            )
+        )
+        payload = json.dumps(diagnostics)
+
+        self.assertNotIn("fake-openrouter-key", payload)
+        self.assertNotIn("fake-groq-key", payload)
+        for record in diagnostics["providers"]:
+            self.assertNotIn("api_key", record)
+            self.assertNotIn("secret", record)
+            self.assertNotIn("token", record)
+
+    def test_remote_ready_tracks_configured_remote_provider(self):
+        diagnostics = provider_diagnostics(
+            _config(provider="groq", groq_api_key="fake-groq-key")
+        )
+
+        self.assertTrue(diagnostics["remote_ready"])
+        self.assertEqual(diagnostics["selected_provider"], "groq")
 
 
 class ProviderRouterTests(unittest.TestCase):

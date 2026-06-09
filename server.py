@@ -30,7 +30,7 @@ from agent_core.quality import quality_gate_manifest, run_quality_gates
 from agent_core.repo_graph import build_repo_graph
 from agent_core.routing_audit import routing_audit
 from agent_core.tool_schemas import oss_tool_schemas
-from agent_core.providers import configured_providers
+from agent_core.providers import provider_diagnostics
 from agent_core.run_log import (
     add_command_run,
     add_decision,
@@ -77,10 +77,12 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/status":
             config = get_config()
             registry = OssToolRegistry(config)
+            providers = provider_diagnostics(config)
             return self.send_json(
                 {
                     "provider": config.provider,
-                    "provider_route": [p.name for p in configured_providers(config)],
+                    "provider_route": providers["route"],
+                    "provider_diagnostics": providers,
                     "has_groq_key": bool(config.groq_api_key),
                     "has_openrouter_key": bool(config.openrouter_api_key),
                     "tools": registry.manifest().splitlines(),
@@ -97,10 +99,12 @@ class Handler(BaseHTTPRequestHandler):
             health = health_report(include_tools=False)
             metrics = operational_metrics(session_id=session_id)
             index = index_stats(config.index_path)
+            providers = provider_diagnostics(config)
             return self.send_json(
                 {
                     "provider": config.provider,
-                    "provider_route": [p.name for p in configured_providers(config)],
+                    "provider_route": providers["route"],
+                    "provider_diagnostics": providers,
                     "tools": registry.tool_records(),
                     "health": health,
                     "metrics": metrics,

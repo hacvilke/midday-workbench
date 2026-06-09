@@ -29,6 +29,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("data.usage?.average_answer_chars", app_js)
         self.assertIn("data.retention?.total", app_js)
         self.assertIn("(data.risks || []).slice(0, 2)", app_js)
+        self.assertIn("provider_diagnostics", app_js)
+        self.assertIn("remote_ready", app_js)
 
 
 if __name__ == "__main__":

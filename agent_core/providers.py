@@ -315,5 +315,34 @@ def configured_providers(config: AgentConfig) -> list[ChatProvider]:
     return [by_name[name] for name in order if name in by_name]
 
 
+def provider_diagnostics(config: AgentConfig) -> dict[str, object]:
+    """Return safe provider readiness metadata without exposing secrets."""
+
+    providers = configured_providers(config)
+    records = []
+    for index, provider in enumerate(providers):
+        record: dict[str, object] = {
+            "name": provider.name,
+            "order": index,
+            "selected": index == 0,
+            "configured": True,
+            "kind": "remote" if provider.name in {"openrouter", "groq"} else "local" if provider.name == "local" else "offline",
+        }
+        if isinstance(provider, OpenAICompatibleProvider):
+            record["model"] = provider.model
+            record["base_url"] = provider.base_url
+            record["configured"] = provider.name == "local" or bool(provider.api_key)
+        if provider.name == "offline":
+            record["model"] = "offline-fallback"
+            record["base_url"] = ""
+        records.append(record)
+    return {
+        "selected_provider": providers[0].name if providers else "offline",
+        "route": [provider.name for provider in providers],
+        "providers": records,
+        "remote_ready": any(record["kind"] == "remote" and record["configured"] for record in records),
+    }
+
+
 def build_provider(config: AgentConfig) -> ChatProvider:
     return ProviderRouter(configured_providers(config))

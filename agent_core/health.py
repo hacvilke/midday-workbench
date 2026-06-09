@@ -84,6 +84,7 @@ def run_health_checks() -> list[HealthCheck]:
         HealthCheck("schema_count", len(schemas) == len(TOOLS), f"{len(schemas)} schemas for {len(TOOLS)} tools"),
         HealthCheck("template_count", len(TEMPLATES) >= 10, f"{len(TEMPLATES)} rich templates registered"),
         HealthCheck("prompt_harness", "Current Environment Context" in prompt, "dynamic environment context injected"),
+        HealthCheck("prompt_guardrails", "Operational Guardrails" in prompt and "Routing Audit" in prompt, "routing and sandbox guardrails injected"),
         HealthCheck("sub_agent_prompts", {"coordinator", "read_only_research", "implementation"}.issubset(prompts), "sub-agent templates available"),
         HealthCheck(
             "agent_run_contract",

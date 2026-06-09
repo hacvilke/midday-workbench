@@ -3,7 +3,7 @@
 import unittest
 
 from agent_core.config import get_config
-from agent_core.prompt_harness import build_system_prompt, prompt_registry
+from agent_core.prompt_harness import build_system_prompt, format_operational_guardrails, prompt_registry
 
 
 class PromptHarnessTests(unittest.TestCase):
@@ -20,6 +20,22 @@ class PromptHarnessTests(unittest.TestCase):
         prompt = build_system_prompt(get_config())
         self.assertIn("You are Midday Workbench", prompt)
         self.assertIn("# Current Environment Context", prompt)
+
+    def test_system_prompt_includes_operational_guardrails(self):
+        """Verify provider prompts include live routing and sandbox guardrails."""
+
+        prompt = build_system_prompt(get_config())
+        self.assertIn("# Operational Guardrails", prompt)
+        self.assertIn("Routing Audit", prompt)
+        self.assertIn("Command Sandbox", prompt)
+        self.assertIn("Verification Rule", prompt)
+
+    def test_operational_guardrails_are_compact(self):
+        """Verify guardrails are concise enough for every provider prompt."""
+
+        guardrails = format_operational_guardrails(get_config())
+        self.assertLess(len(guardrails), 1400)
+        self.assertIn("Allowed Command Prefixes", guardrails)
 
 
 if __name__ == "__main__":

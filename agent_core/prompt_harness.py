@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 from .config import AgentConfig
 from .output_templates import template_manifest
+from .routing_audit import routing_audit
+from .sandbox import ExecutionSandbox
 from .tool_schemas import schema_markdown
 
 
@@ -153,11 +155,34 @@ def format_environment_context(context: EnvironmentContext) -> str:
     )
 
 
+def format_operational_guardrails(config: AgentConfig) -> str:
+    """Return compact live routing/sandbox guardrails for provider prompts."""
+
+    sandbox = ExecutionSandbox(config.workspace_root)
+    audit = routing_audit()
+    failed = [
+        str(result.get("name"))
+        for result in audit.get("results", [])
+        if not result.get("passed")
+    ]
+    return (
+        "# Operational Guardrails\n"
+        f"- Routing Audit: `{'passed' if audit.get('passed') else 'review'}` "
+        f"({audit.get('probe_count', 0)} probes; failed: {', '.join(failed) if failed else 'none'})\n"
+        "- Command Sandbox: `read-only allowlist` with blocked shell metacharacters and destructive/network commands.\n"
+        f"- Allowed Command Prefixes: `{', '.join(sandbox.allowed_commands()[:12])}`\n"
+        f"- Blocked Command Patterns: `{', '.join(sandbox.BLOCKED_PATTERNS[:12])}`\n"
+        "- Verification Rule: every tool, command, and generated change should have an explicit verifier result or stated validation gap."
+    )
+
+
 def build_system_prompt(config: AgentConfig) -> str:
     return (
         CORE_SYSTEM_PROMPT.format(tool_schemas=schema_markdown(), output_templates=template_manifest())
         + "\n\n"
         + format_environment_context(environment_context(config))
+        + "\n\n"
+        + format_operational_guardrails(config)
     )
 
 

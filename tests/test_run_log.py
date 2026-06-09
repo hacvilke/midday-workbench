@@ -182,6 +182,15 @@ class RunLogTests(unittest.TestCase):
                 "alternatives": [{"intent": "visualize"}, {"intent": "system_design"}],
             },
         )
+        add_command_run(
+            session_id,
+            "node --check web/app.js",
+            1,
+            "SyntaxError",
+            {"passed": False, "issues": ["exit=1"], "summary": "quality:frontend_syntax exit=1"},
+            5,
+            {"allowed": True},
+        )
         metrics = operational_metrics(session_id=session_id)
         self.assertIn("runs", metrics)
         self.assertIn("commands", metrics)
@@ -200,9 +209,11 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(metrics["route_decisions"]["ambiguous"], 1)
         self.assertEqual(metrics["route_decisions"]["low_confidence"], 1)
         self.assertEqual(metrics["route_decisions"]["intents"]["visualize"], 1)
+        self.assertEqual(metrics["quality_history"]["latest_failed"]["gate"], "frontend_syntax")
         self.assertEqual(metrics["usage"]["average_prompt_chars"], 0)
         clear_runs(session_id)
         clear_decisions(session_id)
+        clear_command_runs(session_id)
 
     def test_activity_timeline_merges_events(self):
         """Verify runs, commands, and decisions merge into one activity stream."""

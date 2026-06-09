@@ -95,3 +95,4 @@
 2026-06-09: [UPGRADE] Updated operational review recommendations to name the latest failed quality gate when quality-history telemetry includes it.
 2026-06-09: [UPGRADE] Added `next_action` to operational review payloads and updated the sidebar scorecard to display the top recommended action directly.
 2026-06-09: [UPGRADE] Added structured operational-review action items with priority, severity, risk, and recommendation fields for planner/UI consumers.
+2026-06-09: [UPGRADE] Added latest failed quality-gate telemetry to operational metrics and injected compact quality-action status into provider prompt guardrails.

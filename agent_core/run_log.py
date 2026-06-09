@@ -799,16 +799,26 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
     quality_total = 0
     quality_failed = 0
     quality_passed = 0
+    latest_failed_quality: dict[str, object] | None = None
     for command in commands:
         verified = command.get("verified") or {}
         summary = str(verified.get("summary") or "")
         if not summary.startswith("quality:"):
             continue
         quality_total += 1
+        gate = summary.split(" ", 1)[0].removeprefix("quality:")
         if verified.get("passed"):
             quality_passed += 1
         else:
             quality_failed += 1
+            if latest_failed_quality is None:
+                latest_failed_quality = {
+                    "gate": gate,
+                    "command": command.get("command"),
+                    "summary": summary,
+                    "duration_ms": command.get("duration_ms"),
+                    "created_at": command.get("created_at"),
+                }
     decision_counts: dict[str, int] = {}
     route_decision_count = 0
     route_decision_ambiguous = 0
@@ -873,6 +883,7 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "count": quality_total,
             "passed": quality_passed,
             "failed": quality_failed,
+            "latest_failed": latest_failed_quality,
         },
         "files": {
             "count": len(file_events),

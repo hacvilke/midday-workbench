@@ -17,11 +17,12 @@ class PlannerTests(unittest.TestCase):
     def test_visual_plan_selects_template_tool(self):
         """Verify visual prompts plan a single rich output tool call."""
 
-        plan = AgentPlanner().build_plan("show graph of potential energy against kinetic")
+        plan = AgentPlanner().build_plan("show graph of microservice architecture")
         self.assertEqual(plan.intent, "visualize")
         self.assertEqual(plan.tool, "rich_output_template_tool")
         self.assertIn("Mermaid", plan.verification)
         self.assertGreaterEqual(len(plan.steps), 4)
+        self.assertGreaterEqual(len(plan.alternatives), 2)
         self.assertIn("verifier", [assignment["agent_id"] for assignment in plan.delegations])
 
     def test_code_plan_includes_read_only_reviewer_candidate(self):

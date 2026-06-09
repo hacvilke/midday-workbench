@@ -21,6 +21,15 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(route.intent, "visualize")
         self.assertEqual(route.tools, ["rich_output_template_tool"])
 
+    def test_route_records_matching_alternatives(self):
+        """Verify ambiguous prompts expose ranked route candidates."""
+
+        route = IntentRouter().classify("show graph of microservice architecture")
+        self.assertEqual(route.intent, "visualize")
+        self.assertGreaterEqual(len(route.alternatives or []), 2)
+        self.assertEqual(route.alternatives[0]["intent"], "visualize")
+        self.assertIn("system_design", [item["intent"] for item in route.alternatives or []])
+
     def test_show_graph_without_article_uses_template_tool(self):
         """Verify show graph phrasing still routes to visual output."""
 

@@ -122,10 +122,11 @@ class PolicyEndpointTests(unittest.TestCase):
 
 class RouteEndpointTests(unittest.TestCase):
     def test_route_endpoint_returns_decision(self):
-        data = _get("/api/route?message=show%20graph")
+        data = _get("/api/route?message=show%20graph%20of%20microservice%20architecture")
         self.assertEqual(data["intent"], "visualize")
         self.assertEqual(data["tools"], ["rich_output_template_tool"])
         self.assertIn("confidence", data)
+        self.assertGreaterEqual(len(data["alternatives"]), 2)
 
     def test_route_records_decision(self):
         _post("/api/decisions/clear", {"session_id": "api-route-decision"})

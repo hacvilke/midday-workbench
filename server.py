@@ -151,6 +151,7 @@ class Handler(BaseHTTPRequestHandler):
                 "tools": route.tools,
                 "confidence": route.confidence,
                 "rationale": route.rationale,
+                "alternatives": route.alternatives or [],
             }
             add_decision(session_id, "route", message, payload)
             return self.send_json(payload)

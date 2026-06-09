@@ -577,6 +577,8 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
     verifier_passed = 0
     fallback_count = 0
     total_duration = 0
+    ambiguous_routes = 0
+    low_confidence_routes = 0
 
     for run in runs:
         provider = str(run.get("provider", "unknown"))
@@ -584,6 +586,12 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
         total_duration += int(run.get("duration_ms") or 0)
         if run.get("fallback_used"):
             fallback_count += 1
+        plan = run.get("plan") or {}
+        confidence = plan.get("confidence")
+        if plan.get("ambiguous"):
+            ambiguous_routes += 1
+        if isinstance(confidence, (int, float)) and confidence < 0.75:
+            low_confidence_routes += 1
         tools = run.get("tools_used") or []
         for tool in tools:
             name = str(tool)
@@ -604,6 +612,8 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
         "runs": {
             "count": len(runs),
             "fallback_count": fallback_count,
+            "ambiguous_routes": ambiguous_routes,
+            "low_confidence_routes": low_confidence_routes,
             "average_duration_ms": int(total_duration / len(runs)) if runs else 0,
             "providers": provider_counts,
             "tools": tool_counts,

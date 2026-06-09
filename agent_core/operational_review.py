@@ -61,6 +61,14 @@ def operational_review(
         score -= min(15, int(runs["fallback_count"]) * 3)
         risks.append(f"{runs['fallback_count']} provider fallback(s) recorded")
         recommendations.append("Check provider configuration and keep local fallback outputs concise.")
+    if runs.get("ambiguous_routes"):
+        score -= min(12, int(runs["ambiguous_routes"]) * 2)
+        risks.append(f"{runs['ambiguous_routes']} ambiguous route decision(s) need review")
+        recommendations.append("Inspect route alternatives in run details and tighten router keywords for repeated ambiguity.")
+    if runs.get("low_confidence_routes"):
+        score -= min(18, int(runs["low_confidence_routes"]) * 3)
+        risks.append(f"{runs['low_confidence_routes']} low-confidence route decision(s) recorded")
+        recommendations.append("Add routing probes or specialized tool schemas for low-confidence request patterns.")
 
     chunk_count = int(index.get("chunk_count") or 0)
     age_seconds = index.get("age_seconds")

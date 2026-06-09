@@ -914,6 +914,7 @@ async function loadMetrics() {
     const passRate = data.verifier?.pass_rate == null ? "n/a" : `${Math.round(data.verifier.pass_rate * 100)}%`;
     metricsPanel.innerHTML = `
       <div><span>Runs</span><strong>${Number(data.runs?.count || 0)}</strong></div>
+      <div><span>Route Review</span><strong>${Number(data.runs?.ambiguous_routes || 0) + Number(data.runs?.low_confidence_routes || 0)}</strong></div>
       <div><span>Commands</span><strong>${Number(data.commands?.count || 0)}</strong></div>
       <div><span>Files</span><strong>${Number(data.files?.count || 0)}</strong></div>
       <div><span>Decisions</span><strong>${Number(data.decisions?.count || 0)}</strong></div>

@@ -118,13 +118,33 @@ class RunLogTests(unittest.TestCase):
     def test_operational_metrics_shape(self):
         """Verify metrics summarize runs, commands, decisions, and verifier state."""
 
-        metrics = operational_metrics(session_id="missing-metrics-session")
+        session_id = "route-metrics-session"
+        clear_runs(session_id)
+        run = AgentRun(
+            run_id="route-metrics-run",
+            answer="answer",
+            tools_used=[],
+            react_steps=[],
+            context_attached=False,
+            memory_items=0,
+            provider="local",
+            duration_ms=1,
+            fallback_used=False,
+            error=None,
+            provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 1, "error": None}],
+            plan={"intent": "general", "confidence": 0.5, "ambiguous": True},
+        )
+        add_run(session_id, "unclear request", run)
+        metrics = operational_metrics(session_id=session_id)
         self.assertIn("runs", metrics)
         self.assertIn("commands", metrics)
         self.assertIn("files", metrics)
         self.assertIn("decisions", metrics)
         self.assertIn("verifier", metrics)
-        self.assertEqual(metrics["runs"]["count"], 0)
+        self.assertEqual(metrics["runs"]["count"], 1)
+        self.assertEqual(metrics["runs"]["ambiguous_routes"], 1)
+        self.assertEqual(metrics["runs"]["low_confidence_routes"], 1)
+        clear_runs(session_id)
 
     def test_activity_timeline_merges_events(self):
         """Verify runs, commands, and decisions merge into one activity stream."""

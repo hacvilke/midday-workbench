@@ -50,3 +50,4 @@
 2026-06-09: [UPGRADE] Added structured file-write audit metadata with bytes, lines, sha256, created/overwritten status, API exposure, UI display, and regression tests.
 2026-06-09: [HARDENING] Added lightweight health mode for `/api/control-plane` so the control plane remains responsive while `/api/health` keeps full per-tool probes.
 2026-06-09: [UPGRADE] Added persistent file mutation events with SQLite audit storage, `/api/files/events`, timeline and metrics integration, session-aware UI writes, and regression tests.
+2026-06-09: [UPGRADE] Added planner confidence and ambiguity metadata to persisted run plans, run-detail UI, streaming metadata, and regression tests.

@@ -20,6 +20,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("write.sha256", app_js)
         self.assertIn("data.files?.count", app_js)
         self.assertIn("session_id: sessionId", app_js)
+        self.assertIn("plan?.confidence", app_js)
+        self.assertIn("plan.ambiguous", app_js)
 
 
 if __name__ == "__main__":

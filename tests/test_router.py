@@ -85,6 +85,8 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(run.tools_used, [])
         self.assertEqual(run.provider, "local")
         self.assertIn("Midday Workbench", run.answer)
+        self.assertGreater(run.plan["confidence"], 0.9)
+        self.assertFalse(run.plan["ambiguous"])
 
     def test_agent_streaming_greeting_has_plan_metadata(self):
         """Verify streaming greetings finish with structured plan metadata."""
@@ -95,6 +97,7 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(done["metadata"]["provider"], "local")
         self.assertEqual(done["metadata"]["tools_used"], [])
         self.assertEqual(done["metadata"]["plan"]["intent"], "plain_chat")
+        self.assertIn("confidence", done["metadata"]["plan"])
 
     def test_agent_streaming_general_has_provider_attempts(self):
         """Verify streamed general runs expose provider attempt metadata."""
@@ -129,11 +132,12 @@ class RouterTests(unittest.TestCase):
     def test_agent_streaming_visual_has_plan_metadata(self):
         """Verify streaming visual fast path includes planner metadata."""
 
-        events = list(Agent().stream_with_events("show me a graph"))
+        events = list(Agent().stream_with_events("show graph of microservice architecture"))
         done = events[-1]
         self.assertEqual(done["type"], "done")
         self.assertEqual(done["metadata"]["tools_used"], ["rich_output_template_tool"])
         self.assertEqual(done["metadata"]["plan"]["intent"], "visualize")
+        self.assertTrue(done["metadata"]["plan"]["ambiguous"])
 
 
 if __name__ == "__main__":

@@ -37,6 +37,8 @@ class AgentPlan:
         verification: Verification action the agent should perform.
         stop_condition: Concrete condition that completes the turn.
         delegations: Role assignments for future parallel/sub-agent execution.
+        confidence: Selected route confidence from 0.0 to 1.0.
+        ambiguous: Whether multiple route candidates matched this prompt.
         alternatives: Other matching route candidates for audit/ambiguity review.
 
     Returns:
@@ -50,6 +52,8 @@ class AgentPlan:
     verification: str
     stop_condition: str
     delegations: list[dict[str, object]]
+    confidence: float
+    ambiguous: bool
     alternatives: list[dict[str, object]]
 
 
@@ -80,6 +84,8 @@ class AgentPlanner:
             verification=self._verification_for_route(route, tool),
             stop_condition=self._stop_condition_for_route(route),
             delegations=self.delegation.as_dicts(prompt),
+            confidence=route.confidence,
+            ambiguous=len(route.alternatives or []) > 1,
             alternatives=route.alternatives or [],
         )
 

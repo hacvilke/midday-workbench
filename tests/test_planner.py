@@ -10,6 +10,8 @@ class PlannerTests(unittest.TestCase):
         plan = AgentPlanner().build_plan("hi")
         self.assertEqual(plan.intent, "plain_chat")
         self.assertIsNone(plan.tool)
+        self.assertGreater(plan.confidence, 0.9)
+        self.assertFalse(plan.ambiguous)
         self.assertEqual(plan.verification, "confirm no tool/provider was required")
         self.assertEqual(plan.delegations[0]["agent_id"], "manager")
         self.assertEqual(plan.delegations[1]["agent_id"], "responder")
@@ -23,6 +25,7 @@ class PlannerTests(unittest.TestCase):
         self.assertIn("Mermaid", plan.verification)
         self.assertGreaterEqual(len(plan.steps), 4)
         self.assertGreaterEqual(len(plan.alternatives), 2)
+        self.assertTrue(plan.ambiguous)
         self.assertIn("verifier", [assignment["agent_id"] for assignment in plan.delegations])
 
     def test_code_plan_includes_read_only_reviewer_candidate(self):

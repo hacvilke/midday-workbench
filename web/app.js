@@ -100,6 +100,7 @@ function renderRunMetadata(metadata) {
   const plan = metadata.plan || null;
   const verifierReports = metadata.verifier_reports || [];
   const routeAlternatives = plan?.alternatives || [];
+  const routeConfidence = plan?.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
   const stepHtml = steps.length
     ? steps
         .map(
@@ -141,8 +142,9 @@ function renderRunMetadata(metadata) {
         plan
           ? `<div class="plan-card">
               <strong>${escapeHtml(plan.intent || "plan")}</strong>
-              <span>${escapeHtml(plan.tool || "direct response")}</span>
+              <span>${escapeHtml(plan.tool || "direct response")} - confidence ${escapeHtml(routeConfidence)}</span>
               <em>${escapeHtml(plan.stop_condition || "")}</em>
+              ${plan.ambiguous ? `<small>ambiguous route - review alternatives</small>` : ""}
               ${
                 routeAlternatives.length
                   ? `<small>${escapeHtml(formatRouteAlternatives(routeAlternatives))}</small>`
@@ -742,10 +744,12 @@ async function loadRunDetail(runId) {
     const delegations = plan.delegations || [];
     const verifier = run.verifier_reports || [];
     const alternatives = plan.alternatives || [];
+    const confidence = plan.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
     runDetail.textContent = [
       `run ${run.run_id}`,
       `intent ${plan.intent || "unknown"}`,
       `tool ${plan.tool || "direct"}`,
+      `confidence ${confidence} - ambiguous ${plan.ambiguous ? "yes" : "no"}`,
       `provider ${run.provider || "unknown"} - ${Number(run.duration_ms || 0)}ms`,
       formatRouteAlternatives(alternatives),
       `delegations ${delegations.map((item) => item.agent_id).join(", ") || "none"}`,

@@ -148,6 +148,7 @@ def operational_review(
         recommendations.append("Continue expanding tests, tool coverage, and verifier recovery rules.")
 
     score = max(0, min(100, score))
+    action_items = _action_items(risks, recommendations, score)
     return {
         "session_id": session_id,
         "score": score,
@@ -155,6 +156,7 @@ def operational_review(
         "risks": risks,
         "recommendations": recommendations,
         "next_action": recommendations[0] if recommendations else "",
+        "action_items": action_items,
         "metrics": metrics,
         "index": index,
         "health_passed": bool(health["passed"]),
@@ -169,3 +171,27 @@ def _grade(score: int) -> str:
     if score >= 60:
         return "needs_attention"
     return "unstable"
+
+
+def _action_items(risks: list[str], recommendations: list[str], score: int) -> list[dict[str, object]]:
+    """Pair scorecard risks with recommendations for planner/UI consumers."""
+
+    severity = "high" if score < 60 else "medium" if score < 90 else "low"
+    count = max(len(risks), len(recommendations))
+    items = []
+    for index in range(count):
+        risk = risks[index] if index < len(risks) else "No risk summary available"
+        recommendation = (
+            recommendations[index]
+            if index < len(recommendations)
+            else "Review operational telemetry and rerun quality gates."
+        )
+        items.append(
+            {
+                "priority": index + 1,
+                "severity": severity if index == 0 else "medium" if severity == "high" else severity,
+                "risk": risk,
+                "recommendation": recommendation,
+            }
+        )
+    return items

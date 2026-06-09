@@ -1013,8 +1013,10 @@ async function loadOperationalReview() {
     const data = await response.json();
     const risks = (data.risks || []).slice(0, 2);
     const recommendations = (data.recommendations || []).slice(0, 2);
+    const topAction = (data.action_items || [])[0] || {};
     operationalReview.textContent = [
       `score ${Number(data.score || 0)}/100 (${data.grade || "unknown"})`,
+      `priority ${topAction.severity || "low"}: ${topAction.risk || "No immediate operational risk."}`,
       `risk ${risks.join(" | ") || "No risk summary."}`,
       `next ${data.next_action || recommendations.join(" | ") || "No recommendation."}`,
     ].join("\n");

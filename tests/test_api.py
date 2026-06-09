@@ -308,6 +308,7 @@ class OperationalReviewEndpointTests(unittest.TestCase):
         self.assertIn("score", data)
         self.assertIn("grade", data)
         self.assertIn("next_action", data)
+        self.assertIn("action_items", data)
         self.assertIn("risks", data)
         self.assertIn("recommendations", data)
         self.assertIn("index", data)

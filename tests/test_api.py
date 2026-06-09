@@ -182,6 +182,7 @@ class SandboxEndpointTests(unittest.TestCase):
         self.assertIn("commands", data)
         self.assertGreaterEqual(len(data["commands"]), 1)
         self.assertEqual(data["commands"][0]["command"], "python --version")
+        self.assertTrue(data["commands"][0]["policy_decision"]["allowed"])
         status, cleared = _post("/api/commands/clear", {"session_id": "api-command-history"})
         self.assertEqual(status, 200)
         self.assertTrue(cleared.get("ok"))

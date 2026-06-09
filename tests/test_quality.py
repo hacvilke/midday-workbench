@@ -50,9 +50,11 @@ class QualityGateTests(unittest.TestCase):
         report = run_quality_gates(required_only=False, dry_run=False, session_id=session_id, gate_names=["diff_stat"])
         diff_stat = [item for item in report["results"] if item["name"] == "diff_stat"][0]
         self.assertTrue(diff_stat["verified"]["summary"].startswith("quality:diff_stat"))
+        self.assertTrue(diff_stat["policy_decision"]["allowed"])
         rows = recent_command_runs(session_id=session_id)
         self.assertGreaterEqual(len(rows), 1)
         self.assertTrue(any(row["verified"]["summary"].startswith("quality:diff_stat") for row in rows))
+        self.assertTrue(any(row["policy_decision"].get("allowed") for row in rows))
         clear_command_runs(session_id)
 
 

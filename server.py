@@ -322,7 +322,16 @@ class Handler(BaseHTTPRequestHandler):
             report = verifier.verify_command_result(result.command, result.exit_code, result.output)
             duration_ms = int((time.perf_counter() - started) * 1000)
             verified = {"passed": report.passed, "issues": report.issues, "summary": report.summary}
-            add_command_run(session_id, result.command, result.exit_code, result.output, verified, duration_ms)
+            policy_decision = _sandbox_decision_payload(decision)
+            add_command_run(
+                session_id,
+                result.command,
+                result.exit_code,
+                result.output,
+                verified,
+                duration_ms,
+                policy_decision,
+            )
             return self.send_json(
                 {
                     "command": result.command,
@@ -330,7 +339,7 @@ class Handler(BaseHTTPRequestHandler):
                     "output": result.output,
                     "verified": verified,
                     "duration_ms": duration_ms,
-                    "policy_decision": _sandbox_decision_payload(decision),
+                    "policy_decision": policy_decision,
                 }
             )
 

@@ -15,6 +15,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("const alternatives = plan.alternatives || []", app_js)
         self.assertIn("async function loadRoutingAudit", app_js)
         self.assertIn("function formatSandboxDecision", app_js)
+        self.assertIn("formatSandboxDecision(entry.policy_decision)", app_js)
 
 
 if __name__ == "__main__":

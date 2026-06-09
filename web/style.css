@@ -836,7 +836,8 @@ select {
 
 .recent-runs strong,
 .recent-runs span,
-.recent-runs em {
+.recent-runs em,
+.recent-runs small {
   display: block;
 }
 
@@ -849,6 +850,12 @@ select {
   color: #8ee0c8;
   font-style: normal;
   margin-top: 3px;
+}
+
+.recent-runs small {
+  color: #8f9aaa;
+  line-height: 1.4;
+  margin-top: 4px;
 }
 
 button {

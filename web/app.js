@@ -868,6 +868,7 @@ async function loadRecentCommands() {
         <strong>${escapeHtml(entry.command)}</strong>
         <span>exit ${Number(entry.exit_code)} - ${Number(entry.duration_ms || 0)}ms</span>
         <em>${escapeHtml(entry.verified?.summary || "")}</em>
+        <small>${escapeHtml(formatSandboxDecision(entry.policy_decision))}</small>
       `;
       recentCommands.appendChild(row);
     });

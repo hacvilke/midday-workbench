@@ -67,11 +67,17 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
             exit_code INTEGER NOT NULL,
             output TEXT NOT NULL,
             verified TEXT NOT NULL,
+            policy_decision TEXT DEFAULT '{}',
             duration_ms INTEGER NOT NULL,
             created_at INTEGER NOT NULL
         )
         """
     )
+    try:
+        con.execute("ALTER TABLE command_runs ADD COLUMN policy_decision TEXT DEFAULT '{}'")
+        con.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already present
     con.execute("CREATE INDEX IF NOT EXISTS idx_command_runs_session ON command_runs(session_id, id)")
     con.execute(
         """
@@ -267,6 +273,7 @@ def add_command_run(
     output: str,
     verified: dict[str, object],
     duration_ms: int,
+    policy_decision: dict[str, object] | None = None,
 ) -> None:
     """Persist a sandbox command run for auditability.
 
@@ -277,6 +284,7 @@ def add_command_run(
         output: Combined output.
         verified: Verifier report payload.
         duration_ms: Execution duration in milliseconds.
+        policy_decision: Optional structured sandbox decision payload.
 
     Returns:
         None.
@@ -285,10 +293,19 @@ def add_command_run(
     con = connect()
     con.execute(
         """
-        INSERT INTO command_runs(session_id, command, exit_code, output, verified, duration_ms, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO command_runs(session_id, command, exit_code, output, verified, policy_decision, duration_ms, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (session_id, command, exit_code, output[:8000], json.dumps(verified), duration_ms, int(time.time())),
+        (
+            session_id,
+            command,
+            exit_code,
+            output[:8000],
+            json.dumps(verified),
+            json.dumps(policy_decision or {}),
+            duration_ms,
+            int(time.time()),
+        ),
     )
     con.commit()
     con.close()
@@ -309,7 +326,7 @@ def recent_command_runs(session_id: str | None = None, limit: int = 20) -> list[
     if session_id:
         rows = con.execute(
             """
-            SELECT session_id, command, exit_code, output, verified, duration_ms, created_at
+            SELECT session_id, command, exit_code, output, verified, policy_decision, duration_ms, created_at
             FROM command_runs WHERE session_id = ? ORDER BY id DESC LIMIT ?
             """,
             (session_id, limit),
@@ -317,7 +334,7 @@ def recent_command_runs(session_id: str | None = None, limit: int = 20) -> list[
     else:
         rows = con.execute(
             """
-            SELECT session_id, command, exit_code, output, verified, duration_ms, created_at
+            SELECT session_id, command, exit_code, output, verified, policy_decision, duration_ms, created_at
             FROM command_runs ORDER BY id DESC LIMIT ?
             """,
             (limit,),
@@ -330,8 +347,9 @@ def recent_command_runs(session_id: str | None = None, limit: int = 20) -> list[
             "exit_code": row[2],
             "output": row[3],
             "verified": json.loads(row[4]),
-            "duration_ms": row[5],
-            "created_at": row[6],
+            "policy_decision": json.loads(row[5]) if row[5] else {},
+            "duration_ms": row[6],
+            "created_at": row[7],
         }
         for row in rows
     ]

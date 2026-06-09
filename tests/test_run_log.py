@@ -64,10 +64,17 @@ class RunLogTests(unittest.TestCase):
             "Python 3",
             {"passed": True, "issues": [], "summary": "exit=0"},
             12,
+            {
+                "allowed": True,
+                "reason": "command is allowlisted",
+                "matched_prefix": "python --version",
+            },
         )
         rows = recent_command_runs(session_id=session_id)
         self.assertEqual(rows[0]["command"], "python --version")
         self.assertTrue(rows[0]["verified"]["passed"])
+        self.assertTrue(rows[0]["policy_decision"]["allowed"])
+        self.assertEqual(rows[0]["policy_decision"]["matched_prefix"], "python --version")
         clear_command_runs(session_id)
 
     def test_decision_roundtrip(self):
@@ -113,7 +120,15 @@ class RunLogTests(unittest.TestCase):
             plan={"intent": "plain_chat"},
         )
         add_run(session_id, "hi", run)
-        add_command_run(session_id, "git status", 0, "ok", {"passed": True, "issues": [], "summary": "exit=0"}, 1)
+        add_command_run(
+            session_id,
+            "git status",
+            0,
+            "ok",
+            {"passed": True, "issues": [], "summary": "exit=0"},
+            1,
+            {"allowed": True, "matched_prefix": "git status"},
+        )
         add_decision(session_id, "route", "hi", {"intent": "plain_chat"})
         events = activity_timeline(session_id=session_id)
         self.assertEqual({"run", "command", "decision"}, {event["type"] for event in events})

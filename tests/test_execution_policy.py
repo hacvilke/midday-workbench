@@ -64,6 +64,24 @@ class ExecutionPolicyTests(unittest.TestCase):
             metadata = editor.file_metadata("hello.txt")
             self.assertEqual(metadata.sha256, result.sha256)
 
+    def test_agent_confirmed_file_write_returns_metadata(self):
+        """Verify confirmed automatic file writes return auditable metadata."""
+
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = Agent()
+            agent.editor = FileEditorTool(Path(tmp))
+            answer = "```python\nprint('hello')\n```"
+            updated, writes = agent._maybe_write_file_with_metadata(
+                "confirmed write file tmp_policy_agent.py",
+                [ToolResult("file_edit_tool", "summary", "content")],
+                answer,
+            )
+            self.assertIn("Created", updated)
+            self.assertEqual(len(writes), 1)
+            self.assertEqual(writes[0]["path"], "tmp_policy_agent.py")
+            self.assertEqual(len(writes[0]["sha256"]), 64)
+            self.assertTrue((Path(tmp) / "tmp_policy_agent.py").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

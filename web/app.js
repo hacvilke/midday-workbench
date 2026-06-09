@@ -99,6 +99,7 @@ function renderRunMetadata(metadata) {
   const attempts = metadata.provider_attempts || [];
   const plan = metadata.plan || null;
   const verifierReports = metadata.verifier_reports || [];
+  const fileWrites = metadata.file_writes || [];
   const routeAlternatives = plan?.alternatives || [];
   const routeConfidence = plan?.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
   const stepHtml = steps.length
@@ -135,6 +136,22 @@ function renderRunMetadata(metadata) {
           .join("")}
       </div>
       ${metadata.error ? `<blockquote>${escapeHtml(metadata.error)}</blockquote>` : ""}
+      ${
+        fileWrites.length
+          ? `<div class="verifier-list">
+              ${fileWrites
+                .map(
+                  (write) => `
+                    <div class="ok">
+                      <strong>${escapeHtml(write.path || "file written")}</strong>
+                      <span>${Number(write.bytes_written || 0).toLocaleString()} bytes - sha256 ${escapeHtml(String(write.sha256 || "").slice(0, 12))}</span>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>`
+          : ""
+      }
       <div class="tool-chips">
         ${tools.map((tool) => `<span>${escapeHtml(tool)}</span>`).join("")}
       </div>
@@ -743,6 +760,7 @@ async function loadRunDetail(runId) {
     const plan = run.plan || {};
     const delegations = plan.delegations || [];
     const verifier = run.verifier_reports || [];
+    const fileWrites = run.file_writes || [];
     const alternatives = plan.alternatives || [];
     const confidence = plan.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
     runDetail.textContent = [
@@ -754,6 +772,7 @@ async function loadRunDetail(runId) {
       formatRouteAlternatives(alternatives),
       `delegations ${delegations.map((item) => item.agent_id).join(", ") || "none"}`,
       `verifier ${verifier.map((item) => (item.passed ? "pass" : "fail")).join(", ") || "none"}`,
+      `file writes ${fileWrites.map((write) => `${write.path} ${String(write.sha256 || "").slice(0, 12)}`).join(", ") || "none"}`,
     ].join("\n");
   } catch {
     runDetail.textContent = "Run detail unavailable.";

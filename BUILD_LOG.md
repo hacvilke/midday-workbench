@@ -53,3 +53,4 @@
 2026-06-09: [UPGRADE] Added planner confidence and ambiguity metadata to persisted run plans, run-detail UI, streaming metadata, and regression tests.
 2026-06-09: [UPGRADE] Added route-uncertainty operational scoring with ambiguous/low-confidence route metrics, control-plane risks, UI counters, and regression tests.
 2026-06-09: [UPGRADE] Added route-confidence policy to provider operational guardrails so ambiguous or low-confidence plans stay one-tool, assumption-aware, and verifier-driven.
+2026-06-09: [UPGRADE] Added automatic agent file-write audit metadata with persisted run `file_writes`, chat API propagation, file-event mirroring, run-detail UI display, and regression tests.

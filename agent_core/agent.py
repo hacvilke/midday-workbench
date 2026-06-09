@@ -50,6 +50,7 @@ class AgentRun:
     provider_attempts: list[dict[str, object]]
     verifier_reports: list[dict] = field(default_factory=list)
     plan: dict | None = None
+    file_writes: list[dict[str, object]] = field(default_factory=list)
 
 
 class Agent:
@@ -172,7 +173,7 @@ class Agent:
                 oss_block = self.format_tool_results(tool_results)
                 answer = f"Provider failed: {exc}\n\nFallback:\n{oss_block or context}"
 
-        answer = self._maybe_write_file(prompt, tool_results, answer)
+        answer, file_writes = self._maybe_write_file_with_metadata(prompt, tool_results, answer)
 
         return AgentRun(
             run_id=run_id,
@@ -188,6 +189,7 @@ class Agent:
             provider_attempts=provider_attempts,
             verifier_reports=[asdict(r) for r in v_reports],
             plan=plan,
+            file_writes=file_writes,
         )
 
     def stream_with_events(
@@ -314,22 +316,20 @@ class Agent:
                     yield {"type": "token", "token": word + " "}
 
         # Auto file-write post-processing
-        write_result = self._maybe_write_file(prompt, tool_results, full_answer)
+        write_result, file_writes = self._maybe_write_file_with_metadata(prompt, tool_results, full_answer)
         if write_result != full_answer:
             suffix = write_result[len(full_answer):]
             full_answer = write_result
             yield {"type": "token", "token": suffix}
-            # Extract written path for the UI
-            filename = self.editor.extract_filename_from_prompt(prompt)
-            if filename:
-                yield {"type": "file_written", "path": filename}
+            for write in file_writes:
+                yield {"type": "file_written", "path": write.get("path"), "write": write}
 
         yield {
             "type": "done",
             "metadata": self._make_stream_metadata(
                 run_id, full_answer, [r.name for r in tool_results],
                 [asdict(s) for s in react_steps], bool(context), fallback_used, error,
-                provider_attempts, provider_name, started, [asdict(r) for r in v_reports], plan,
+                provider_attempts, provider_name, started, [asdict(r) for r in v_reports], plan, file_writes,
             ),
         }
 
@@ -417,27 +417,38 @@ class Agent:
 
     def _maybe_write_file(self, prompt: str, tool_results, answer: str) -> str:
         """Auto-write a file if file_edit_tool was used and model produced a code block."""
+        return self._maybe_write_file_with_metadata(prompt, tool_results, answer)[0]
+
+    def _maybe_write_file_with_metadata(self, prompt: str, tool_results, answer: str) -> tuple[str, list[dict[str, object]]]:
+        """Auto-write a file and return structured audit metadata when applied."""
+
         if "file_edit_tool" not in [r.name for r in tool_results]:
-            return answer
+            return answer, []
         policy = decide("write_file")
         if policy.requires_confirmation and "confirmed write" not in prompt.lower():
-            return answer + f"\n\n> File write prepared but not applied: {policy.reason}. Say `confirmed write` with the target file path to apply it."
+            return (
+                answer
+                + f"\n\n> File write prepared but not applied: {policy.reason}. Say `confirmed write` with the target file path to apply it.",
+                [],
+            )
         filename = self.editor.extract_filename_from_prompt(prompt)
         if not filename:
-            return answer
+            return answer, []
         code = extract_code_block(answer)
         if not code:
-            return answer
+            return answer, []
         try:
-            msg = self.editor.write_file(filename, code)
-            return answer + f"\n\n**{msg}**"
+            result = self.editor.write_file_with_metadata(filename, code)
+            write = result.to_dict()
+            return answer + f"\n\n**{result.message}**", [write]
         except (ValueError, OSError) as exc:
-            return answer + f"\n\n> File write failed: {exc}"
+            return answer + f"\n\n> File write failed: {exc}", []
 
     def _make_stream_metadata(
         self, run_id, answer, tools_used, react_steps,
         context_attached, fallback_used, error,
         provider_attempts, provider_name, started, verifier_reports, plan,
+        file_writes: list[dict[str, object]] | None = None,
     ) -> dict:
         return {
             "run_id": run_id,
@@ -453,4 +464,5 @@ class Agent:
             "provider_attempts": provider_attempts,
             "verifier_reports": verifier_reports,
             "plan": plan,
+            "file_writes": file_writes or [],
         }

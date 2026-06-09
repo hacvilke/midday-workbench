@@ -482,8 +482,11 @@ class Handler(BaseHTTPRequestHandler):
                         provider_attempts=metadata.get("provider_attempts", []),
                         verifier_reports=metadata.get("verifier_reports", []),
                         plan=metadata.get("plan"),
+                        file_writes=metadata.get("file_writes", []),
                     )
                     add_run(session_id, prompt, run)
+                    for write in run.file_writes:
+                        add_file_event(session_id, "agent_write", write)
                 except Exception:
                     pass
             return
@@ -501,6 +504,8 @@ class Handler(BaseHTTPRequestHandler):
         add_message(session_id, "user", prompt)
         run = Agent().run_with_metadata(prompt, history=history)
         add_run(session_id, prompt, run)
+        for write in run.file_writes:
+            add_file_event(session_id, "agent_write", write)
         add_message(session_id, "agent", run.answer)
         update_session_summary(session_id, prompt, run.answer)
         self.send_json(
@@ -519,6 +524,7 @@ class Handler(BaseHTTPRequestHandler):
                     "provider_attempts": run.provider_attempts,
                     "verifier_reports": run.verifier_reports,
                     "plan": run.plan,
+                    "file_writes": run.file_writes,
                 },
             }
         )

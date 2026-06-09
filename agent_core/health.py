@@ -15,6 +15,9 @@ from .router import IntentRouter
 from .session import load_session_state
 from .run_log import recent_runs
 from .tool_schemas import oss_tool_schemas
+from .execution_policy import decide, policy_manifest
+from .quality import required_quality_commands
+from .sandbox import ExecutionSandbox
 
 
 @dataclass(frozen=True)
@@ -72,6 +75,7 @@ def run_health_checks() -> list[HealthCheck]:
     schemas = oss_tool_schemas()
     prompt = build_system_prompt(config)
     prompts = prompt_registry()
+    sandbox = ExecutionSandbox(config.workspace_root)
 
     checks = [
         HealthCheck("tool_count", len(TOOLS) >= 9, f"{len(TOOLS)} tools registered"),
@@ -122,6 +126,21 @@ def run_health_checks() -> list[HealthCheck]:
             "run_log_load",
             isinstance(recent_runs(limit=1), list),
             "run log can be loaded or initialized",
+        ),
+        HealthCheck(
+            "execution_policy",
+            decide("write_file").requires_confirmation and not decide("delete_file").allowed,
+            "mutation and destructive action policies are enforced",
+        ),
+        HealthCheck(
+            "policy_manifest",
+            bool(policy_manifest().get("safe_actions")) and bool(policy_manifest().get("blocked_actions")),
+            "execution policy manifest is available",
+        ),
+        HealthCheck(
+            "quality_gates_allowlisted",
+            all(sandbox.is_allowed(command) for command in required_quality_commands()),
+            "required quality gates can run through the sandbox",
         ),
     ]
 

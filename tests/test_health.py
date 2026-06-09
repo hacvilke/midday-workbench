@@ -21,6 +21,14 @@ class HealthTests(unittest.TestCase):
         self.assertIn("latency_ms", first)
         self.assertIn("last_ok_at", first)
 
+    def test_control_plane_health_checks_exist(self):
+        """Verify health checks cover policy and quality gates."""
+
+        names = {check.name for check in run_health_checks()}
+        self.assertIn("execution_policy", names)
+        self.assertIn("policy_manifest", names)
+        self.assertIn("quality_gates_allowlisted", names)
+
 
 if __name__ == "__main__":
     unittest.main()

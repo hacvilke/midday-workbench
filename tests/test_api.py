@@ -235,6 +235,7 @@ class OperationalReviewEndpointTests(unittest.TestCase):
         self.assertIn("grade", data)
         self.assertIn("risks", data)
         self.assertIn("recommendations", data)
+        self.assertIn("index", data)
 
 
 class PromptsEndpointTests(unittest.TestCase):

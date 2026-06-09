@@ -91,6 +91,7 @@ class Handler(BaseHTTPRequestHandler):
             prompts = prompt_registry()
             health = health_report()
             metrics = operational_metrics(session_id=session_id)
+            index = index_stats(config.index_path)
             return self.send_json(
                 {
                     "provider": config.provider,
@@ -98,10 +99,10 @@ class Handler(BaseHTTPRequestHandler):
                     "tools": registry.tool_records(),
                     "health": health,
                     "metrics": metrics,
-                    "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics),
+                    "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics, index=index),
                     "timeline": activity_timeline(session_id=session_id, limit=10),
                     "sessions": get_sessions(limit=10),
-                    "index": index_stats(config.index_path),
+                    "index": index,
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),
                     "routing_audit": routing_audit(),
@@ -513,12 +514,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_json(self, payload: dict, status: int = 200):
         data = json.dumps(payload).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(data)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError):
+            return
 
     def send_file(self, path: Path, content_type: str):
         try:

@@ -45,3 +45,5 @@
 2026-06-09: [HARDENING] Added provider streaming metadata so streamed runs retain provider attempts, fallback state, selected provider, and errors across provider failover.
 2026-06-09: [UPGRADE] Injected live operational guardrails into provider system prompts, including routing audit status, sandbox allowlist/blocklist summaries, and explicit verification expectations.
 2026-06-09: [UPGRADE] Added search-index observability with index stats, `/api/index`, control-plane inclusion, health coverage, sidebar display, and tests for repo-context readiness.
+2026-06-09: [UPGRADE] Added search-index readiness scoring to operational review, including empty/stale index risks, rebuild recommendations, precomputed index reuse, and API tests.
+2026-06-09: [HARDENING] Made JSON responses tolerate aborted/reset clients so long-running control-plane probes do not leave noisy server exceptions or flaky API tests.

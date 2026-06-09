@@ -1,7 +1,9 @@
 """Operational review scoring for Midday Workbench control-plane telemetry."""
 from __future__ import annotations
 
+from .config import get_config
 from .health import health_report
+from .indexer import index_stats
 from .run_log import operational_metrics
 
 
@@ -9,6 +11,7 @@ def operational_review(
     session_id: str | None = None,
     health: dict[str, object] | None = None,
     metrics: dict[str, object] | None = None,
+    index: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Build a deterministic scorecard from health and runtime telemetry.
 
@@ -16,6 +19,7 @@ def operational_review(
         session_id: Optional session filter.
         health: Optional precomputed health report.
         metrics: Optional precomputed operational metrics.
+        index: Optional precomputed search-index stats.
 
     Returns:
         JSON-compatible scorecard with risks and recommended next actions.
@@ -23,6 +27,7 @@ def operational_review(
 
     health = health or health_report()
     metrics = metrics or operational_metrics(session_id=session_id)
+    index = index or index_stats(get_config().index_path)
     risks: list[str] = []
     recommendations: list[str] = []
     score = 100
@@ -57,6 +62,17 @@ def operational_review(
         risks.append(f"{runs['fallback_count']} provider fallback(s) recorded")
         recommendations.append("Check provider configuration and keep local fallback outputs concise.")
 
+    chunk_count = int(index.get("chunk_count") or 0)
+    age_seconds = index.get("age_seconds")
+    if chunk_count <= 0:
+        score -= 25
+        risks.append("Search index is empty; repo context retrieval is unavailable")
+        recommendations.append("Run `python -m agent_core.indexer --rebuild` before relying on repository answers.")
+    elif isinstance(age_seconds, int) and age_seconds > 86400:
+        score -= 8
+        risks.append("Search index is older than 24 hours")
+        recommendations.append("Refresh the search index so repo context reflects current code.")
+
     if not risks:
         risks.append("No immediate operational risks detected")
     if not recommendations:
@@ -70,6 +86,7 @@ def operational_review(
         "risks": risks,
         "recommendations": recommendations,
         "metrics": metrics,
+        "index": index,
         "health_passed": bool(health["passed"]),
     }
 

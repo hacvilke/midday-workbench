@@ -1,3 +1,4 @@
+"""Persistent run log for agent runs, with verifier report storage."""
 from __future__ import annotations
 
 import json
@@ -13,7 +14,7 @@ RUN_LOG_PATH = PROJECT_ROOT / "data" / "run_log.sqlite3"
 
 
 def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
-    """Open the run log database and ensure tables exist.
+    """Open the run log database and ensure tables/columns exist.
 
     Args:
         path: SQLite database path.
@@ -21,7 +22,6 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
     Returns:
         sqlite3 connection with run log schema.
     """
-
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     con.execute(
@@ -38,10 +38,24 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
             duration_ms INTEGER NOT NULL,
             fallback_used INTEGER NOT NULL,
             error TEXT,
-            created_at INTEGER NOT NULL
+            created_at INTEGER NOT NULL,
+            verifier_reports TEXT DEFAULT '[]',
+            plan TEXT DEFAULT '{}'
         )
         """
     )
+    # Migrate: add verifier_reports column if this DB pre-dates it
+    try:
+        con.execute("ALTER TABLE runs ADD COLUMN verifier_reports TEXT DEFAULT '[]'")
+        con.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already present
+    try:
+        con.execute("ALTER TABLE runs ADD COLUMN plan TEXT DEFAULT '{}'")
+        con.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already present
+
     con.execute("CREATE INDEX IF NOT EXISTS idx_runs_session ON runs(session_id, id)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_runs_run_id ON runs(run_id)")
     return con
@@ -58,15 +72,15 @@ def add_run(session_id: str, prompt: str, run: AgentRun) -> None:
     Returns:
         None.
     """
-
     con = connect()
     con.execute(
         """
         INSERT INTO runs(
             run_id, session_id, prompt, provider, tools_used, react_steps,
-            provider_attempts, duration_ms, fallback_used, error, created_at
+            provider_attempts, duration_ms, fallback_used, error, created_at,
+            verifier_reports, plan
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             run.run_id,
@@ -80,6 +94,8 @@ def add_run(session_id: str, prompt: str, run: AgentRun) -> None:
             1 if run.fallback_used else 0,
             run.error,
             int(time.time()),
+            json.dumps(run.verifier_reports),
+            json.dumps(run.plan or {}),
         ),
     )
     con.commit()
@@ -96,13 +112,13 @@ def recent_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str
     Returns:
         List of run dictionaries.
     """
-
     con = connect()
     if session_id:
         rows = con.execute(
             """
             SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
-                   provider_attempts, duration_ms, fallback_used, error, created_at
+                   provider_attempts, duration_ms, fallback_used, error, created_at,
+                   verifier_reports, plan
             FROM runs WHERE session_id = ? ORDER BY id DESC LIMIT ?
             """,
             (session_id, limit),
@@ -111,13 +127,41 @@ def recent_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str
         rows = con.execute(
             """
             SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
-                   provider_attempts, duration_ms, fallback_used, error, created_at
+                   provider_attempts, duration_ms, fallback_used, error, created_at,
+                   verifier_reports, plan
             FROM runs ORDER BY id DESC LIMIT ?
             """,
             (limit,),
         ).fetchall()
     con.close()
     return [row_to_dict(row) for row in rows]
+
+
+def get_sessions(limit: int = 50) -> list[dict[str, object]]:
+    """Return unique sessions with their last-active time and run count.
+
+    Args:
+        limit: Maximum sessions to return.
+
+    Returns:
+        List of session summary dicts ordered by most recently active.
+    """
+    con = connect()
+    rows = con.execute(
+        """
+        SELECT session_id, COUNT(*) AS run_count, MAX(created_at) AS last_active
+        FROM runs
+        GROUP BY session_id
+        ORDER BY last_active DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    con.close()
+    return [
+        {"session_id": row[0], "run_count": row[1], "last_active": row[2]}
+        for row in rows
+    ]
 
 
 def row_to_dict(row: tuple[object, ...]) -> dict[str, object]:
@@ -129,7 +173,6 @@ def row_to_dict(row: tuple[object, ...]) -> dict[str, object]:
     Returns:
         Dictionary run metadata.
     """
-
     return {
         "run_id": row[0],
         "session_id": row[1],
@@ -142,6 +185,8 @@ def row_to_dict(row: tuple[object, ...]) -> dict[str, object]:
         "fallback_used": bool(row[8]),
         "error": row[9],
         "created_at": row[10],
+        "verifier_reports": json.loads(row[11]) if len(row) > 11 and row[11] else [],
+        "plan": json.loads(row[12]) if len(row) > 12 and row[12] else {},
     }
 
 
@@ -154,7 +199,6 @@ def clear_runs(session_id: str | None = None) -> None:
     Returns:
         None.
     """
-
     con = connect()
     if session_id:
         con.execute("DELETE FROM runs WHERE session_id = ?", (session_id,))

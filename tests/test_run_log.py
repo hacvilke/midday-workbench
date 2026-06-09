@@ -20,6 +20,7 @@ class RunLogTests(unittest.TestCase):
             fallback_used=False,
             error=None,
             provider_attempts=[{"provider": "offline", "ok": True, "duration_ms": 1, "error": None}],
+            plan={"intent": "test", "tool": None},
         )
         session_id = "run-log-test"
         clear_runs(session_id)
@@ -27,6 +28,7 @@ class RunLogTests(unittest.TestCase):
         rows = recent_runs(session_id=session_id)
         self.assertEqual(rows[0]["run_id"], "run-test")
         self.assertEqual(rows[0]["tools_used"], ["tool"])
+        self.assertEqual(rows[0]["plan"]["intent"], "test")
         clear_runs(session_id)
 
 

@@ -1,7 +1,9 @@
+"""OSS tool registry with file editing and web search."""
 from __future__ import annotations
 
 import json
 import re
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -82,6 +84,18 @@ TOOLS: tuple[OssTool, ...] = (
         "Markdown and Mermaid output templates for repo maps, architecture diagrams, dependency graphs, dashboards, reports, Kanban, and sequence diagrams.",
         ("template", "dashboard", "diagram", "mermaid", "kanban", "mind map", "dependency graph", "repository map", "report", "sequence diagram", "rich output"),
     ),
+    OssTool(
+        "file_edit_tool",
+        "local",
+        "Read, write, create, and patch files in the local workspace. Reads the target file as context so the model can generate accurate new content.",
+        ("write file", "create file", "edit file", "update file", "modify file", "make a file", "new file", "create a new", "write to file", "save file", "create a script", "write a script"),
+    ),
+    OssTool(
+        "web_search_tool",
+        "online",
+        "Web search via DuckDuckGo Instant Answers. Returns summaries and related topics for research queries. No API key required.",
+        ("search for", "look up", "find online", "google", "web search", "search the web", "find information"),
+    ),
 )
 
 
@@ -110,15 +124,6 @@ class OssToolRegistry:
         raise KeyError(f"Unknown OSS tool: {name}")
 
     def select_tools(self, prompt: str) -> list[OssTool]:
-        """Select tools using legacy trigger matching.
-
-        Args:
-            prompt: User prompt.
-
-        Returns:
-            Ordered matching OssTool objects.
-        """
-
         normalized = prompt.lower()
         selected = [
             tool for tool in TOOLS
@@ -132,7 +137,6 @@ class OssToolRegistry:
 
     def run_for_prompt(self, prompt: str) -> list[ToolResult]:
         from .router import IntentRouter
-
         results = []
         route = IntentRouter().classify(prompt)
         for tool_name in route.tools:
@@ -150,6 +154,10 @@ class OssToolRegistry:
             return self.remote_ingest_tool(prompt)
         if tool.name == "rich_output_template_tool":
             return self.output_template_tool(prompt)
+        if tool.name == "file_edit_tool":
+            return self.file_context_tool(prompt)
+        if tool.name == "web_search_tool":
+            return self.web_search_tool(prompt)
         return self.scoped_search_tool(tool, prompt)
 
     def _wants_repo_graph(self, prompt: str) -> bool:
@@ -261,6 +269,98 @@ class OssToolRegistry:
             "cugraph_graph_tool",
             "Generated a workspace dependency graph using import/include relationships and lightweight centrality ranking.",
             json.dumps(payload, indent=2),
+        )
+
+    def file_context_tool(self, prompt: str) -> ToolResult:
+        """Read the target file (if mentioned) to provide editing context for the model.
+
+        Args:
+            prompt: User prompt.
+
+        Returns:
+            ToolResult with existing file content or workspace listing.
+        """
+        from .file_editor import FileEditorTool
+        editor = FileEditorTool(self.config.workspace_root)
+        filename = editor.extract_filename_from_prompt(prompt)
+        if not filename:
+            files = editor.list_files("**/*.py") + editor.list_files("**/*.js")
+            sample = files[:24]
+            return ToolResult(
+                "file_edit_tool",
+                "No specific file mentioned — providing workspace listing as context.",
+                "Workspace files:\n" + "\n".join(sample) if sample else "No files found.",
+            )
+        try:
+            content = editor.read_file(filename)
+            return ToolResult(
+                "file_edit_tool",
+                f"Read {filename} ({len(content)} chars) as editing context.",
+                f"File: {filename}\n\n{content}",
+            )
+        except FileNotFoundError:
+            return ToolResult(
+                "file_edit_tool",
+                f"File {filename!r} does not exist yet — will be created.",
+                f"Creating new file: {filename}",
+            )
+        except (ValueError, OSError) as exc:
+            return ToolResult(
+                "file_edit_tool",
+                f"Cannot read {filename}: {exc}",
+                str(exc),
+            )
+
+    def web_search_tool(self, prompt: str) -> ToolResult:
+        """Search using DuckDuckGo Instant Answers API (no API key required).
+
+        Args:
+            prompt: User prompt including the search query.
+
+        Returns:
+            ToolResult with search summary and related topics.
+        """
+        import urllib.parse
+        # Extract the actual query
+        query = prompt.strip()
+        for prefix in ("search for", "look up", "find online", "google", "web search",
+                        "search the web", "find information about", "search"):
+            if query.lower().startswith(prefix):
+                query = query[len(prefix):].strip().lstrip(":").strip()
+                break
+
+        if not query:
+            return ToolResult("web_search_tool", "Empty search query.", "No query provided.")
+
+        encoded = urllib.parse.quote_plus(query[:200])
+        url = f"https://api.duckduckgo.com/?q={encoded}&format=json&no_html=1&skip_disambig=1"
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "MidDayWorkbench/1.0 (local agent)"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:
+            return ToolResult("web_search_tool", "Web search failed.", f"Error: {exc}")
+
+        parts = []
+        if data.get("AbstractText"):
+            parts.append(f"**Summary:** {data['AbstractText']}")
+            if data.get("AbstractURL"):
+                parts.append(f"**Source:** {data['AbstractURL']}")
+        for topic in data.get("RelatedTopics", [])[:6]:
+            if isinstance(topic, dict) and topic.get("Text"):
+                parts.append(f"- {topic['Text']}")
+        for result in data.get("Results", [])[:3]:
+            if isinstance(result, dict) and result.get("Text"):
+                parts.append(f"- {result['Text']}")
+
+        content = "\n\n".join(parts) if parts else f"No results found for: {query}"
+        return ToolResult(
+            "web_search_tool",
+            f"Web search: {query[:60]}",
+            content,
         )
 
     def _interesting_paths(self, prompt: str, limit: int) -> list[str]:

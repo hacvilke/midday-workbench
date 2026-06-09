@@ -11,7 +11,7 @@ from .config import PROJECT_ROOT
 
 
 GRAPH_EXTENSIONS = {".py", ".js", ".jl", ".cpp", ".hpp", ".h", ".c", ".cc", ".cu", ".cuh"}
-SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "build", "dist", ".mypy_cache"}
+SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "build", "dist", ".mypy_cache", "Midday-Workbench"}
 _GRAPH_CACHE: dict[tuple[str, int, int], tuple[float, RepoGraph]] = {}
 _CACHE_TTL_SECONDS = 300
 GRAPH_CACHE_PATH = PROJECT_ROOT / "data" / "repo_graph_cache.json"

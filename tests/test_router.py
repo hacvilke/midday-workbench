@@ -64,9 +64,10 @@ class RouterTests(unittest.TestCase):
         """Verify the ReAct planner follows the intent router."""
 
         registry = OssToolRegistry(get_config())
-        steps, results = ReactPlanner(registry).run("make a graph of the tools")
+        steps, results, reports = ReactPlanner(registry).run("make a graph of the tools")
         self.assertEqual([result.name for result in results], ["rich_output_template_tool"])
         self.assertEqual([step.action for step in steps], ["rich_output_template_tool"])
+        self.assertEqual(len(reports), len(results))
 
     def test_agent_greeting_direct_answer(self):
         """Verify greetings return locally without provider or tools."""
@@ -74,7 +75,7 @@ class RouterTests(unittest.TestCase):
         run = Agent().run_with_metadata("hi")
         self.assertEqual(run.tools_used, [])
         self.assertEqual(run.provider, "local")
-        self.assertIn("OSS Agent Workbench", run.answer)
+        self.assertIn("Midday Workbench", run.answer)
 
     def test_agent_visual_answer_is_mermaid_only(self):
         """Verify visual requests return a single Mermaid fence."""

@@ -1,10 +1,12 @@
+"""LLM provider abstraction with streaming support."""
 from __future__ import annotations
 
 import json
+import time
 import urllib.error
 import urllib.request
-import time
 from dataclasses import dataclass
+from typing import Iterator
 
 from .config import AgentConfig
 
@@ -25,6 +27,12 @@ class ChatProvider:
     def complete(self, messages: list[Message]) -> str:
         raise NotImplementedError
 
+    def stream(self, messages: list[Message]) -> Iterator[str]:
+        """Stream tokens. Default wraps complete() and yields word by word."""
+        response = self.complete(messages)
+        for word in response.split(" "):
+            yield word + " "
+
 
 class OfflineProvider(ChatProvider):
     name = "offline"
@@ -35,37 +43,51 @@ class OfflineProvider(ChatProvider):
         if request.lower() in {"hi", "hello", "hey"}:
             return "Hello. I am ready."
         return (
-            "Offline mode: no model provider is active. I can still use local tools and repository context "
-            "when the request needs it.\n\n"
+            "Offline mode: no model provider is active. "
+            "I can still use local tools and repository context when the request needs it.\n\n"
             f"{latest}"
         )
 
+    def stream(self, messages: list[Message]) -> Iterator[str]:
+        response = self.complete(messages)
+        for word in response.split(" "):
+            yield word + " "
+
 
 class OpenAICompatibleProvider(ChatProvider):
-    def __init__(self, name: str, base_url: str, api_key: str, model: str, extra_headers: dict[str, str] | None = None):
+    def __init__(
+        self,
+        name: str,
+        base_url: str,
+        api_key: str,
+        model: str,
+        extra_headers: dict[str, str] | None = None,
+    ):
         self.name = name
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.extra_headers = extra_headers or {}
 
+    def _build_headers(self) -> dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+            **self.extra_headers,
+        }
+
     def complete(self, messages: list[Message]) -> str:
         payload = {
             "model": self.model,
             "messages": [message.__dict__ for message in messages],
             "temperature": 0.2,
-            "max_tokens": 900,
+            "max_tokens": 4096,
         }
         data = json.dumps(payload).encode("utf-8")
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-            **self.extra_headers,
-        }
         req = urllib.request.Request(
             f"{self.base_url}/chat/completions",
             data=data,
-            headers=headers,
+            headers=self._build_headers(),
             method="POST",
         )
         try:
@@ -81,6 +103,54 @@ class OpenAICompatibleProvider(ChatProvider):
             return body["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
             raise ProviderError(f"Unexpected provider response: {body}") from exc
+
+    def stream(self, messages: list[Message]) -> Iterator[str]:
+        """Stream tokens via OpenAI-compatible SSE endpoint.
+
+        Args:
+            messages: Conversation messages.
+
+        Yields:
+            Token strings as they arrive from the API.
+
+        Raises:
+            ProviderError: On HTTP or connection failure.
+        """
+        payload = {
+            "model": self.model,
+            "messages": [message.__dict__ for message in messages],
+            "temperature": 0.2,
+            "max_tokens": 4096,
+            "stream": True,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            f"{self.base_url}/chat/completions",
+            data=data,
+            headers=self._build_headers(),
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as response:
+                for raw_line in response:
+                    line = raw_line.decode("utf-8", errors="replace").strip()
+                    if not line.startswith("data:"):
+                        continue
+                    payload_str = line[5:].strip()
+                    if payload_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(payload_str)
+                        token = chunk["choices"][0]["delta"].get("content", "")
+                        if token:
+                            yield token
+                    except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+                        continue
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise ProviderError(f"Stream HTTP {exc.code}: {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise ProviderError(f"Stream connection failed: {exc}") from exc
 
 
 @dataclass(frozen=True)
@@ -143,6 +213,26 @@ class ProviderRouter(ChatProvider):
             error=last_error,
         )
 
+    def stream(self, messages: list[Message]) -> Iterator[str]:
+        """Stream tokens, falling back to next provider on connection failure.
+
+        Args:
+            messages: Conversation messages.
+
+        Yields:
+            Token strings from the first responsive provider.
+        """
+        for provider in self.providers:
+            try:
+                gen = provider.stream(messages)
+                first = next(gen)
+                yield first
+                yield from gen
+                return
+            except (ProviderError, StopIteration):
+                continue
+        yield from OfflineProvider().stream(messages)
+
 
 def configured_providers(config: AgentConfig) -> list[ChatProvider]:
     providers: list[ChatProvider] = []
@@ -153,7 +243,7 @@ def configured_providers(config: AgentConfig) -> list[ChatProvider]:
                 "https://openrouter.ai/api/v1",
                 config.openrouter_api_key,
                 config.openrouter_model,
-                {"HTTP-Referer": "http://127.0.0.1:8765", "X-Title": "OSS Agent Workbench"},
+                {"HTTP-Referer": "http://127.0.0.1:8765", "X-Title": "Midday Workbench"},
             )
         )
     if config.groq_api_key:

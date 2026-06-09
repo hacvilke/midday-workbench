@@ -12,7 +12,7 @@ TEXT_EXTENSIONS = {
     ".c", ".cc", ".cpp", ".cuh", ".cu", ".h", ".hpp", ".jl", ".js", ".json", ".md",
     ".py", ".toml", ".txt", ".yaml", ".yml",
 }
-SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__", "dist", "build", ".mypy_cache"}
+SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__", "dist", "build", ".mypy_cache", "Midday-Workbench"}
 
 
 def iter_files(root: Path):

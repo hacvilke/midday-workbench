@@ -1,13 +1,17 @@
+"""Midday Workbench main agent with streaming and file-editing support."""
 from __future__ import annotations
 
 import re
 import time
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
+from typing import Iterator
 
 from .config import get_config
+from .file_editor import FileEditorTool, extract_code_block
 from .indexer import search
 from .oss_tools import OssToolRegistry
+from .planner import AgentPlanner
 from .prompt_harness import build_system_prompt
 from .providers import Message, ProviderError, build_provider
 from .react_loop import ReactPlanner, format_react_trace
@@ -43,6 +47,8 @@ class AgentRun:
     fallback_used: bool
     error: str | None
     provider_attempts: list[dict[str, object]]
+    verifier_reports: list[dict] = field(default_factory=list)
+    plan: dict | None = None
 
 
 class Agent:
@@ -53,41 +59,37 @@ class Agent:
         self.oss_tools = OssToolRegistry(self.config)
         self.react = ReactPlanner(self.oss_tools)
         self.router = IntentRouter()
+        self.planner = AgentPlanner()
+        self.editor = FileEditorTool(self.config.workspace_root)
 
-    def should_retrieve(self, prompt: str) -> bool:
-        normalized = re.sub(r"\s+", " ", prompt.strip().lower())
-        if not normalized:
-            return False
-        if normalized in CASUAL_PATTERNS:
-            return False
-        if "trading chart" in normalized and not any(hint in normalized for hint in ACCOUNTING_HINTS):
-            return False
-        if len(normalized.split()) <= 3 and not any(hint in normalized for hint in REPO_CONTEXT_HINTS):
-            return False
-        return any(hint in normalized for hint in REPO_CONTEXT_HINTS) or len(normalized.split()) >= 7
-
-    def retrieve_context(self, prompt: str) -> str:
-        if not self.should_retrieve(prompt):
-            return ""
-        results = search(self.config.index_path, prompt, limit=10)
-        if not results:
-            return ""
-        lines = []
-        for item in results:
-            lines.append(f"[{item['repo']}] {item['path']}\n{item['snippet']}")
-        return "\n\n".join(lines)
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def run(self, prompt: str, history: list[dict[str, object]] | None = None) -> str:
         return self.run_with_metadata(prompt, history=history).answer
 
     def run_with_metadata(self, prompt: str, history: list[dict[str, object]] | None = None) -> AgentRun:
+        """Run the agent and return a complete AgentRun (non-streaming).
+
+        Args:
+            prompt: User message.
+            history: Prior conversation messages.
+
+        Returns:
+            AgentRun with answer and full run metadata.
+        """
         started = time.perf_counter()
         run_id = uuid.uuid4().hex[:12]
-        direct_answer = self.direct_answer(prompt)
-        if direct_answer is not None:
+        plan = asdict(self.planner.build_plan(prompt))
+        plan = asdict(self.planner.build_plan(prompt))
+
+        # Fast path: greetings / identity
+        direct = self.direct_answer(prompt)
+        if direct is not None:
             return AgentRun(
                 run_id=run_id,
-                answer=direct_answer,
+                answer=direct,
                 tools_used=[],
                 react_steps=[],
                 context_attached=False,
@@ -97,17 +99,22 @@ class Agent:
                 fallback_used=False,
                 error=None,
                 provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                verifier_reports=[],
+                plan=plan,
             )
+
         route = self.router.classify(prompt)
+
+        # Fast path: visual diagram — Mermaid only, no provider call
         if route.intent == "visualize":
-            react_steps, tool_results = self.react.run(prompt)
-            visual_answer = self.visual_tool_answer(tool_results)
-            if visual_answer is not None:
+            react_steps, tool_results, v_reports = self.react.run(prompt)
+            visual = self.visual_tool_answer(tool_results)
+            if visual is not None:
                 return AgentRun(
                     run_id=run_id,
-                    answer=visual_answer,
-                    tools_used=[result.name for result in tool_results],
-                    react_steps=[asdict(step) for step in react_steps],
+                    answer=visual,
+                    tools_used=[r.name for r in tool_results],
+                    react_steps=[asdict(s) for s in react_steps],
                     context_attached=False,
                     memory_items=len(history or []),
                     provider="local",
@@ -115,16 +122,21 @@ class Agent:
                     fallback_used=False,
                     error=None,
                     provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                    verifier_reports=[asdict(r) for r in v_reports],
+                    plan=plan,
                 )
+
+        # General path
         context = self.retrieve_context(prompt)
-        react_steps, tool_results = self.react.run(prompt)
-        visual_answer = self.visual_tool_answer(tool_results)
-        if visual_answer is not None:
+        react_steps, tool_results, v_reports = self.react.run(prompt)
+
+        visual = self.visual_tool_answer(tool_results)
+        if visual is not None:
             return AgentRun(
                 run_id=run_id,
-                answer=visual_answer,
-                tools_used=[result.name for result in tool_results],
-                react_steps=[asdict(step) for step in react_steps],
+                answer=visual,
+                tools_used=[r.name for r in tool_results],
+                react_steps=[asdict(s) for s in react_steps],
                 context_attached=bool(context),
                 memory_items=len(history or []),
                 provider="local",
@@ -132,38 +144,19 @@ class Agent:
                 fallback_used=False,
                 error=None,
                 provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                verifier_reports=[asdict(r) for r in v_reports],
+                plan=plan,
             )
-        tool_overview = self.tools.workspace_map() if context else ""
-        oss_tool_block = self.format_tool_results(tool_results)
-        react_trace = format_react_trace(react_steps)
-        context_block = (
-            f"\n\nWorkspace map:\n{tool_overview}\n\nRetrieved local OSS context:\n{context}"
-            if context
-            else "\n\nNo local repository context was attached because this request does not need it."
-        )
-        if react_trace:
-            context_block += f"\n\nReAct tool trace:\n{react_trace}"
-        if oss_tool_block:
-            context_block += f"\n\nActive OSS tool results:\n{oss_tool_block}"
-        else:
-            context_block += f"\n\nAvailable OSS tool schemas:\n{schema_markdown()}"
-        history_block = self.format_history(history or [])
-        if history_block:
-            context_block += f"\n\nRecent conversation memory:\n{history_block}"
-        messages = [
-            Message("system", build_system_prompt(self.config)),
-            Message(
-                "user",
-                f"User request:\n{prompt}{context_block}",
-            ),
-        ]
+
+        messages = self._build_messages(prompt, context, react_steps, tool_results, v_reports, history or [])
+
         if hasattr(self.provider, "complete_with_metadata"):
-            provider_result = self.provider.complete_with_metadata(messages)
-            answer = provider_result.answer
-            provider_name = provider_result.provider
-            fallback_used = provider_result.fallback_used
-            error = provider_result.error
-            provider_attempts = [asdict(attempt) for attempt in provider_result.attempts]
+            result = self.provider.complete_with_metadata(messages)
+            answer = result.answer
+            provider_name = result.provider
+            fallback_used = result.fallback_used
+            error = result.error
+            provider_attempts = [asdict(a) for a in result.attempts]
         else:
             try:
                 answer = self.provider.complete(messages)
@@ -176,16 +169,16 @@ class Agent:
                 fallback_used = True
                 error = str(exc)
                 provider_attempts = [{"provider": self.config.provider, "ok": False, "duration_ms": 0, "error": error}]
-                answer = (
-                    f"Provider failed: {exc}\n\n"
-                    "Fallback local tool/context output:\n\n"
-                    f"{oss_tool_block or context}"
-                )
+                oss_block = self.format_tool_results(tool_results)
+                answer = f"Provider failed: {exc}\n\nFallback:\n{oss_block or context}"
+
+        answer = self._maybe_write_file(prompt, tool_results, answer)
+
         return AgentRun(
             run_id=run_id,
             answer=answer,
-            tools_used=[result.name for result in tool_results],
-            react_steps=[asdict(step) for step in react_steps],
+            tools_used=[r.name for r in tool_results],
+            react_steps=[asdict(s) for s in react_steps],
             context_attached=bool(context),
             memory_items=len(history or []),
             provider=provider_name,
@@ -193,50 +186,189 @@ class Agent:
             fallback_used=fallback_used,
             error=error,
             provider_attempts=provider_attempts,
+            verifier_reports=[asdict(r) for r in v_reports],
+            plan=plan,
         )
 
-    def direct_answer(self, prompt: str) -> str | None:
-        """Return local plain-text answers for no-tool identity/greeting prompts.
+    def stream_with_events(
+        self,
+        prompt: str,
+        history: list[dict[str, object]] | None = None,
+    ) -> Iterator[dict]:
+        """Stream agent response as SSE-style event dicts.
+
+        Yields event dicts with keys:
+        - {"type": "tool", "tool": name, "summary": text}
+        - {"type": "token", "token": text}
+        - {"type": "file_written", "path": path}
+        - {"type": "done", "metadata": {...}}
+        - {"type": "error", "error": text}
 
         Args:
-            prompt: User prompt.
+            prompt: User message.
+            history: Prior conversation messages.
 
-        Returns:
-            A plain answer for no-tool prompts, otherwise None.
+        Yields:
+            Event dicts for streaming consumption.
         """
+        started = time.perf_counter()
+        run_id = uuid.uuid4().hex[:12]
 
+        # Fast path: greetings
+        direct = self.direct_answer(prompt)
+        if direct is not None:
+            for word in direct.split(" "):
+                yield {"type": "token", "token": word + " "}
+            yield {
+                "type": "done",
+                "metadata": self._make_stream_metadata(
+                    run_id, direct, [], [], False, False, None,
+                    [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                    "local", started, [], plan,
+                ),
+            }
+            return
+
+        route = self.router.classify(prompt)
+
+        # Fast path: visual
+        if route.intent == "visualize":
+            react_steps, tool_results, v_reports = self.react.run(prompt)
+            for r in tool_results:
+                yield {"type": "tool", "tool": r.name, "summary": r.summary}
+            visual = self.visual_tool_answer(tool_results)
+            if visual is not None:
+                for word in visual.split(" "):
+                    yield {"type": "token", "token": word + " "}
+                yield {
+                    "type": "done",
+                    "metadata": self._make_stream_metadata(
+                        run_id, visual, [r.name for r in tool_results],
+                        [asdict(s) for s in react_steps], False, False, None,
+                        [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                        "local", started, [asdict(r) for r in v_reports], plan,
+                    ),
+                }
+                return
+
+        # General path
+        context = self.retrieve_context(prompt)
+        react_steps, tool_results, v_reports = self.react.run(prompt)
+
+        for r in tool_results:
+            yield {"type": "tool", "tool": r.name, "summary": r.summary}
+
+        visual = self.visual_tool_answer(tool_results)
+        if visual is not None:
+            for word in visual.split(" "):
+                yield {"type": "token", "token": word + " "}
+            yield {
+                "type": "done",
+                "metadata": self._make_stream_metadata(
+                    run_id, visual, [r.name for r in tool_results],
+                    [asdict(s) for s in react_steps], bool(context), False, None,
+                    [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                    "local", started, [asdict(r) for r in v_reports], plan,
+                ),
+            }
+            return
+
+        messages = self._build_messages(prompt, context, react_steps, tool_results, v_reports, history or [])
+
+        full_answer = ""
+        provider_name = "offline"
+        fallback_used = False
+        error = None
+        provider_attempts = []
+
+        try:
+            t0 = time.perf_counter()
+            for token in self.provider.stream(messages):
+                full_answer += token
+                yield {"type": "token", "token": token}
+            latency = int((time.perf_counter() - t0) * 1000)
+            pname = getattr(self.provider, "name", self.config.provider)
+            provider_name = pname
+            provider_attempts = [{"provider": pname, "ok": True, "duration_ms": latency, "error": None}]
+        except ProviderError as exc:
+            error = str(exc)
+            fallback_used = True
+            provider_name = "offline"
+            provider_attempts = [{"provider": self.config.provider, "ok": False, "duration_ms": 0, "error": error}]
+            oss_block = self.format_tool_results(tool_results)
+            full_answer = f"Provider failed: {exc}\n\nFallback:\n{oss_block or context}"
+            for word in full_answer.split(" "):
+                yield {"type": "token", "token": word + " "}
+
+        # Auto file-write post-processing
+        write_result = self._maybe_write_file(prompt, tool_results, full_answer)
+        if write_result != full_answer:
+            suffix = write_result[len(full_answer):]
+            full_answer = write_result
+            yield {"type": "token", "token": suffix}
+            # Extract written path for the UI
+            filename = self.editor.extract_filename_from_prompt(prompt)
+            if filename:
+                yield {"type": "file_written", "path": filename}
+
+        yield {
+            "type": "done",
+            "metadata": self._make_stream_metadata(
+                run_id, full_answer, [r.name for r in tool_results],
+                [asdict(s) for s in react_steps], bool(context), fallback_used, error,
+                provider_attempts, provider_name, started, [asdict(r) for r in v_reports], plan,
+            ),
+        }
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def should_retrieve(self, prompt: str) -> bool:
+        normalized = re.sub(r"\s+", " ", prompt.strip().lower())
+        if not normalized or normalized in CASUAL_PATTERNS:
+            return False
+        if "trading chart" in normalized and not any(h in normalized for h in ACCOUNTING_HINTS):
+            return False
+        if len(normalized.split()) <= 3 and not any(h in normalized for h in REPO_CONTEXT_HINTS):
+            return False
+        return any(h in normalized for h in REPO_CONTEXT_HINTS) or len(normalized.split()) >= 7
+
+    def retrieve_context(self, prompt: str) -> str:
+        if not self.should_retrieve(prompt):
+            return ""
+        results = search(self.config.index_path, prompt, limit=10)
+        if not results:
+            return ""
+        return "\n\n".join(f"[{r['repo']}] {r['path']}\n{r['snippet']}" for r in results)
+
+    def direct_answer(self, prompt: str) -> str | None:
         route = self.router.classify(prompt)
         if route.intent != "plain_chat":
             return None
         normalized = re.sub(r"\s+", " ", prompt.strip().lower())
         if "who are you" in normalized or "what are you" in normalized or "help" in normalized:
-            return "I am OSS Agent Workbench, a local-first engineering agent that can use your OSS tools when a request clearly needs them."
+            return (
+                "I am Midday Workbench — a local-first engineering agent. "
+                "I use OSS tools, web search, and file editing when needed, "
+                "verify each result, and keep everything on-device."
+            )
         if "thank" in normalized:
-            return "You are welcome. I am here and ready to keep building."
-        return "Hi. I am OSS Agent Workbench, ready to help with the project."
+            return "You are welcome. I am ready to keep building."
+        return "Hi. I am Midday Workbench, ready to help."
 
     def visual_tool_answer(self, tool_results) -> str | None:
-        """Return only Mermaid for visual template requests.
-
-        Args:
-            tool_results: Tool results produced by the ReAct planner.
-
-        Returns:
-            A single Mermaid fenced block when the rich template tool is the only tool, otherwise None.
-        """
-
         if len(tool_results) != 1 or tool_results[0].name != "rich_output_template_tool":
             return None
-        blocks = [block for block in extract_mermaid_blocks(tool_results[0].content) if is_valid_mermaid(block)]
+        blocks = [b for b in extract_mermaid_blocks(tool_results[0].content) if is_valid_mermaid(b)]
         if not blocks:
             return None
         return f"```mermaid\n{blocks[0]}\n```"
 
     def format_tool_results(self, tool_results) -> str:
-        blocks = []
-        for result in tool_results:
-            blocks.append(f"## {result.name}\n{result.summary}\n{result.content}")
-        return "\n\n".join(blocks)
+        return "\n\n".join(
+            f"## {r.name}\n{r.summary}\n{r.content}" for r in tool_results
+        )
 
     def format_history(self, history: list[dict[str, object]]) -> str:
         safe = []
@@ -245,3 +377,63 @@ class Agent:
             content = str(item.get("content", ""))[:1200]
             safe.append(f"{role}: {content}")
         return "\n".join(safe)
+
+    def _build_messages(self, prompt, context, react_steps, tool_results, v_reports, history) -> list[Message]:
+        tool_overview = self.tools.workspace_map() if context else ""
+        oss_block = self.format_tool_results(tool_results)
+        trace = format_react_trace(react_steps, v_reports)
+        context_block = (
+            f"\n\nWorkspace map:\n{tool_overview}\n\nRetrieved local OSS context:\n{context}"
+            if context
+            else "\n\nNo local repository context was attached — request does not need it."
+        )
+        if trace:
+            context_block += f"\n\nReAct tool trace:\n{trace}"
+        if oss_block:
+            context_block += f"\n\nActive OSS tool results:\n{oss_block}"
+        else:
+            context_block += f"\n\nAvailable OSS tool schemas:\n{schema_markdown()}"
+        history_block = self.format_history(history)
+        if history_block:
+            context_block += f"\n\nRecent conversation memory:\n{history_block}"
+        return [
+            Message("system", build_system_prompt(self.config)),
+            Message("user", f"User request:\n{prompt}{context_block}"),
+        ]
+
+    def _maybe_write_file(self, prompt: str, tool_results, answer: str) -> str:
+        """Auto-write a file if file_edit_tool was used and model produced a code block."""
+        if "file_edit_tool" not in [r.name for r in tool_results]:
+            return answer
+        filename = self.editor.extract_filename_from_prompt(prompt)
+        if not filename:
+            return answer
+        code = extract_code_block(answer)
+        if not code:
+            return answer
+        try:
+            msg = self.editor.write_file(filename, code)
+            return answer + f"\n\n**{msg}**"
+        except (ValueError, OSError) as exc:
+            return answer + f"\n\n> File write failed: {exc}"
+
+    def _make_stream_metadata(
+        self, run_id, answer, tools_used, react_steps,
+        context_attached, fallback_used, error,
+        provider_attempts, provider_name, started, verifier_reports, plan,
+    ) -> dict:
+        return {
+            "run_id": run_id,
+            "answer": answer,
+            "tools_used": tools_used,
+            "react_steps": react_steps,
+            "context_attached": context_attached,
+            "memory_items": 0,
+            "provider": provider_name,
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+            "fallback_used": fallback_used,
+            "error": error,
+            "provider_attempts": provider_attempts,
+            "verifier_reports": verifier_reports,
+            "plan": plan,
+        }

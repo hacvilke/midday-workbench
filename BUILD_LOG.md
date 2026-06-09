@@ -1,4 +1,15 @@
+2026-06-09: [PHASE 2] Streaming SSE responses, file write/create/edit tools, DuckDuckGo web search, UI polish (streaming cursor, file editor panel, Ctrl+Enter, bold/italic markdown). max_tokens 900→4096. Tools 9→11.
 2026-06-08: Added intent routing, ReAct context chaining, session_state persistence, Mermaid normalization/render targets, and structured per-tool health.
 2026-06-08: Verified visual graph routing uses rich templates, cuGraph is reserved for graph analytics, and health now reports per-tool structured JSON.
 2026-06-09: Added persistent run log storage, run-log API endpoints, and a Recent Runs UI panel for auditability.
 2026-06-09: Fixed visual graph fast paths so graph requests skip provider/repo retrieval, added a potential-vs-kinetic energy Mermaid chart, and added UI SVG fallback rendering for Mermaid xy charts.
+2026-06-09: [UPGRADE] Added manager/planner/verifier orchestration — ReactPlanner now plays Planner, IntentRouter plays Manager, new ReActVerifier plays Verifier. Each ReAct step gets THOUGHT/ACTION/OBSERVATION/VERIFY output in traces.
+2026-06-09: [UPGRADE] Expanded sandbox allowlist: added python -m pytest, git log, git diff, git branch, ls, cat, find, wc, echo, head, tail, python -m py_compile. Added BLOCKED_PATTERNS guard (pipe, redirect, sudo, rm, curl, etc.) so prefix matches cannot be abused.
+2026-06-09: [UPGRADE] Added verifier_reports field to AgentRun; persisted in run_log.sqlite3 (with ALTER TABLE migration for existing DBs); returned in /api/chat response and stored per run.
+2026-06-09: [UPGRADE] Added GET /api/sessions endpoint — returns unique session IDs with run counts and last-active timestamps from the run log.
+2026-06-09: [UPGRADE] /api/sandbox/run now runs ReActVerifier on every command result and returns a verified block with passed/issues/summary.
+2026-06-09: [UPGRADE] Renamed UI branding from "OSS Agent Workbench" to "Midday Workbench" in index.html, agent.py direct_answer, and server.py startup message.
+2026-06-09: [UPGRADE] Added self-verifier indicator to the sidebar Execution panel (always On).
+2026-06-09: [UPGRADE] Added Mermaid CDN error listener fallback in index.html for offline/CSP environments.
+2026-06-09: [UPGRADE] Added tests/test_tools.py (OssToolRegistry, Sandbox, Verifier integration tests) and tests/test_api.py (HTTP smoke tests for all API endpoints).
+2026-06-09: [UPGRADE] Migrated Replit's Midday Workbench source into the main repo, fixed Windows sandbox portability, added structured manager/planner artifacts to every run, persisted plans in SQLite, exposed plan/verifier metadata in the API/UI, and excluded the Replit wrapper from graph/index scans.

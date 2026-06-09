@@ -1,3 +1,4 @@
+"""Intent router: maps user messages to ordered tool chains."""
 from __future__ import annotations
 
 import re
@@ -25,50 +26,20 @@ class IntentRoute:
 
 
 class IntentRouter:
-    """Classifies user messages into explicit tool chains.
-
-    Args:
-        None.
-
-    Returns:
-        IntentRoute objects through classify().
-    """
+    """Classifies user messages into explicit tool chains."""
 
     VISUAL_WORDS = {
-        "show",
-        "draw",
-        "visualize",
-        "diagram",
-        "mermaid",
-        "dashboard",
-        "kanban",
-        "mind map",
-        "repo map",
-        "repository map",
-        "chart",
+        "show", "draw", "visualize", "diagram", "mermaid", "dashboard",
+        "kanban", "mind map", "repo map", "repository map", "chart",
     }
     GRAPH_ALGORITHM_WORDS = {
-        "pagerank",
-        "page rank",
-        "bfs",
-        "breadth first",
-        "centrality",
-        "traversal",
-        "shortest path",
-        "community",
-        "ranking algorithm",
-        "graph algorithm",
-        "dependency ranking",
+        "pagerank", "page rank", "bfs", "breadth first", "centrality",
+        "traversal", "shortest path", "community", "ranking algorithm",
+        "graph algorithm", "dependency ranking",
     }
     GREETING_WORDS = {
-        "hi",
-        "hello",
-        "hey",
-        "help",
-        "thanks",
-        "thank you",
-        "what are you",
-        "who are you",
+        "hi", "hello", "hey", "help", "thanks", "thank you",
+        "what are you", "who are you",
     }
 
     def classify(self, message: str) -> IntentRoute:
@@ -78,9 +49,8 @@ class IntentRouter:
             message: Raw user message.
 
         Returns:
-            IntentRoute containing category, ordered tools, confidence, and rationale.
+            IntentRoute with category, ordered tools, confidence, and rationale.
         """
-
         text = normalize(message)
         if is_greeting_or_identity(text):
             return IntentRoute("plain_chat", [], 0.96, "Greeting, help, thanks, or identity question needs no tool.")
@@ -91,13 +61,27 @@ class IntentRouter:
                 "visualize",
                 ["rich_output_template_tool"],
                 0.92,
-                "Visual graph/chart/map request should render Markdown/Mermaid instead of invoking graph algorithms.",
+                "Visual graph/chart/map request — render Markdown/Mermaid.",
+            )
+        if is_file_edit_request(text):
+            return IntentRoute(
+                "code_edit",
+                ["file_edit_tool"],
+                0.91,
+                "File write, create, or edit request — read file context and let the model generate new content.",
+            )
+        if is_web_search_request(text):
+            return IntentRoute(
+                "web_search",
+                ["web_search_tool"],
+                0.85,
+                "Web search or look-up request — use DuckDuckGo Instant Answers.",
             )
         if contains_any(text, ("purchase order", "invoice", "erp", "frappe", "doctype", "payroll", "stock")):
             return IntentRoute("business_workflow", ["erpnext_business_tool"], 0.86, "ERP/business workflow request.")
         if contains_any(text, ("julia", "compiler", "runtime", "juliasyntax", "package")):
             return IntentRoute("code_analysis", ["julia_language_tool"], 0.82, "Julia language/runtime request.")
-        if contains_any(text, ("edit", "fix", "refactor", "commit", "diff", "patch", "write code")):
+        if contains_any(text, ("fix", "refactor", "commit", "diff", "patch", "write code")):
             return IntentRoute("code_edit", ["aider_git_native_tool"], 0.88, "Git-native code editing request.")
         if contains_any(text, ("pack", "summarize repo", "repo context")):
             return IntentRoute("repo_context", ["repomix_context_pack_tool"], 0.86, "Local repository packing/context request.")
@@ -111,84 +95,70 @@ class IntentRouter:
 
 
 def normalize(message: str) -> str:
-    """Normalize user text for deterministic intent checks.
-
-    Args:
-        message: Raw text.
-
-    Returns:
-        Lowercase text with compact whitespace.
-    """
-
     return re.sub(r"\s+", " ", message.strip().lower())
 
 
 def contains_any(text: str, needles: tuple[str, ...]) -> bool:
-    """Check whether normalized text contains any phrase.
-
-    Args:
-        text: Normalized text.
-        needles: Phrases to search for.
-
-    Returns:
-        True when at least one phrase is present.
-    """
-
     return any(needle in text for needle in needles)
 
 
 def is_visual_request(text: str) -> bool:
-    """Determine whether the user wants a rendered visual artifact.
-
-    Args:
-        text: Normalized text.
-
-    Returns:
-        True for visual/report/chart/diagram/map requests.
-    """
-
     visual_patterns = (
-        "show a graph",
-        "show me a graph",
-        "show graph",
-        "make a graph",
-        "draw a graph",
-        "show diagram",
-        "make diagram",
-        "draw diagram",
-        "show chart",
-        "make chart",
-        "draw chart",
-        "show map",
-        "make map",
-        "draw map",
+        "show a graph", "show me a graph", "show graph", "make a graph",
+        "draw a graph", "show diagram", "make diagram", "draw diagram",
+        "show chart", "make chart", "draw chart", "show map", "make map", "draw map",
     )
-    return contains_any(text, visual_patterns) or any(word in text for word in ("diagram", "mermaid", "dashboard", "kanban", "mind map", "repo map", "repository map"))
+    return contains_any(text, visual_patterns) or any(
+        word in text for word in ("diagram", "mermaid", "dashboard", "kanban", "mind map", "repo map", "repository map")
+    )
 
 
 def is_graph_algorithm_request(text: str) -> bool:
-    """Determine whether the user wants graph analytics rather than a visual.
-
-    Args:
-        text: Normalized text.
-
-    Returns:
-        True for centrality, BFS, PageRank, traversal, and graph algorithm requests.
-    """
-
     return "cugraph" in text or any(word in text for word in IntentRouter.GRAPH_ALGORITHM_WORDS)
 
 
 def is_greeting_or_identity(text: str) -> bool:
-    """Determine whether a prompt should be answered without tools.
+    if text in IntentRouter.GREETING_WORDS:
+        return True
+    return text in {"who are you?", "what are you?", "can you help?", "help me"}
+
+
+def is_file_edit_request(text: str) -> bool:
+    """Detect file write, create, edit, or update requests.
 
     Args:
         text: Normalized text.
 
     Returns:
-        True for short greetings, thanks, help, and identity questions.
+        True when the user wants to read/write/create a workspace file.
     """
-
-    if text in IntentRouter.GREETING_WORDS:
+    explicit_patterns = (
+        "write file", "create file", "edit file", "update file", "modify file",
+        "make a file", "new file", "create a new file", "write to file",
+        "save to file", "save as", "create a script", "write a script",
+        "write a function", "write me a", "create a class", "create a module",
+        "write the code for", "write code that", "make a python", "make a js",
+        "create a config", "create a json", "write a test",
+    )
+    if contains_any(text, explicit_patterns):
         return True
-    return text in {"who are you?", "what are you?", "can you help?", "help me"}
+    # Match "edit <filename>" or "update <filename.ext>"
+    if re.search(r'(?:edit|update|modify|fix|create|write)\s+[\w./-]+\.\w+', text):
+        return True
+    return False
+
+
+def is_web_search_request(text: str) -> bool:
+    """Detect web search or look-up requests.
+
+    Args:
+        text: Normalized text.
+
+    Returns:
+        True when the user wants to search the web.
+    """
+    search_patterns = (
+        "search for", "look up", "find online", "google", "web search",
+        "search the web", "find information about", "search online",
+    )
+    return contains_any(text, search_patterns)

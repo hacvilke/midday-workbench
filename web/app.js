@@ -3,7 +3,7 @@ const promptInput = document.querySelector("#prompt");
 const messages = document.querySelector("#messages");
 const providerStatus = document.querySelector("#providerStatus");
 const toolList = document.querySelector("#toolList");
-const topbarBadge = document.querySelector(".topbar-badge");
+const topbarBadge = document.querySelector("#topbarBadge");
 const healthStatus = document.querySelector("#healthStatus");
 const toolHealthStatus = document.querySelector("#toolHealthStatus");
 const clearMemoryButton = document.querySelector("#clearMemory");
@@ -20,13 +20,20 @@ const graphEdges = document.querySelector("#graphEdges");
 const graphCentrality = document.querySelector("#graphCentrality");
 const recentRuns = document.querySelector("#recentRuns");
 const clearRunsButton = document.querySelector("#clearRuns");
+const fileEditorPath = document.querySelector("#fileEditorPath");
+const fileEditorContent = document.querySelector("#fileEditorContent");
+const fileEditorStatus = document.querySelector("#fileEditorStatus");
+const readFileButton = document.querySelector("#readFileButton");
+const writeFileButton = document.querySelector("#writeFileButton");
 const sessionId = getSessionId();
 
+let isStreaming = false;
+
 function getSessionId() {
-  const existing = localStorage.getItem("oss-agent-session");
+  const existing = localStorage.getItem("mw-session");
   if (existing) return existing;
   const created = crypto.randomUUID();
-  localStorage.setItem("oss-agent-session", created);
+  localStorage.setItem("mw-session", created);
   return created;
 }
 
@@ -73,6 +80,8 @@ function renderRunMetadata(metadata) {
   const tools = metadata.tools_used?.length ? metadata.tools_used : ["no active OSS tool"];
   const steps = metadata.react_steps || [];
   const attempts = metadata.provider_attempts || [];
+  const plan = metadata.plan || null;
+  const verifierReports = metadata.verifier_reports || [];
   const stepHtml = steps.length
     ? steps
         .map(
@@ -87,7 +96,7 @@ function renderRunMetadata(metadata) {
     : `<div class="trace-step muted">No ReAct tool action was needed.</div>`;
   return `
     <details class="run-meta">
-      <summary>Run ${escapeHtml(metadata.run_id || "")} - ${tools.length} tool${tools.length === 1 ? "" : "s"} - ${Number(metadata.duration_ms || 0)}ms</summary>
+      <summary>Run ${escapeHtml(metadata.run_id || "")} · ${tools.length} tool${tools.length === 1 ? "" : "s"} · ${Number(metadata.duration_ms || 0)}ms</summary>
       <div class="meta-grid">
         <div><span>Provider</span><strong>${escapeHtml(metadata.provider || "unknown")}</strong></div>
         <div><span>Memory</span><strong>${Number(metadata.memory_items || 0)} items</strong></div>
@@ -100,7 +109,7 @@ function renderRunMetadata(metadata) {
             (attempt) => `
               <div class="${attempt.ok ? "ok" : "fail"}">
                 <strong>${escapeHtml(attempt.provider || "unknown")}</strong>
-                <span>${attempt.ok ? "ok" : "failed"} - ${Number(attempt.duration_ms || 0)}ms</span>
+                <span>${attempt.ok ? "ok" : "failed"} · ${Number(attempt.duration_ms || 0)}ms</span>
               </div>
             `,
           )
@@ -110,13 +119,38 @@ function renderRunMetadata(metadata) {
       <div class="tool-chips">
         ${tools.map((tool) => `<span>${escapeHtml(tool)}</span>`).join("")}
       </div>
+      ${
+        plan
+          ? `<div class="plan-card">
+              <strong>${escapeHtml(plan.intent || "plan")}</strong>
+              <span>${escapeHtml(plan.tool || "direct response")}</span>
+              <em>${escapeHtml(plan.stop_condition || "")}</em>
+            </div>`
+          : ""
+      }
+      ${
+        verifierReports.length
+          ? `<div class="verifier-list">
+              ${verifierReports
+                .map(
+                  (report) => `
+                    <div class="${report.passed ? "ok" : "fail"}">
+                      <strong>${report.passed ? "Verifier pass" : "Verifier fail"}</strong>
+                      <span>${escapeHtml(report.summary || "")}</span>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>`
+          : ""
+      }
       <div class="trace-list">${stepHtml}</div>
     </details>
   `;
 }
 
 function escapeHtml(value) {
-  return value
+  return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -125,7 +159,10 @@ function escapeHtml(value) {
 }
 
 function renderInline(value) {
-  return escapeHtml(value).replace(/`([^`]+)`/g, "<code>$1</code>");
+  return escapeHtml(value)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>");
 }
 
 function renderTable(lines) {
@@ -191,6 +228,8 @@ function renderMarkdown(markdown) {
     flushTable();
     if (!line.trim()) {
       html.push("");
+    } else if (line.startsWith("#### ")) {
+      html.push(`<h4>${renderInline(line.slice(5))}</h4>`);
     } else if (line.startsWith("### ")) {
       html.push(`<h4>${renderInline(line.slice(4))}</h4>`);
     } else if (line.startsWith("## ")) {
@@ -228,11 +267,9 @@ async function renderMermaidBlocks(root) {
       const rendered = await window.mermaid.render(id, source);
       block.innerHTML = rendered.svg;
       block.classList.add("rendered");
-    } catch (error) {
+    } catch {
       renderSimpleMermaidBlock(block);
-      if (!block.classList.contains("rendered")) {
-        block.classList.add("failed");
-      }
+      if (!block.classList.contains("rendered")) block.classList.add("failed");
     }
   }
 }
@@ -410,13 +447,144 @@ function addTradingChart() {
   messages.scrollTop = messages.scrollHeight;
 }
 
+// ── SSE streaming ──────────────────────────────────────────────────────────────
+
+function parseSSEChunk(buffer) {
+  const events = [];
+  const remaining = [];
+  const parts = buffer.split("\n\n");
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i].trim();
+    if (!part) continue;
+    for (const line of part.split("\n")) {
+      if (line.startsWith("data:")) {
+        const raw = line.slice(5).trim();
+        try {
+          events.push(JSON.parse(raw));
+        } catch {
+          // skip malformed
+        }
+      }
+    }
+  }
+  return { events, remainder: parts[parts.length - 1] || "" };
+}
+
+async function streamChat(prompt) {
+  if (isStreaming) return;
+  isStreaming = true;
+
+  addMessage("user", prompt);
+
+  const msgEl = document.createElement("article");
+  msgEl.className = "message agent streaming";
+  messages.appendChild(msgEl);
+  messages.scrollTop = messages.scrollHeight;
+
+  let rawText = "";
+  let metadataReceived = null;
+  let toolBadgesEl = null;
+
+  try {
+    const response = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, session_id: sessionId }),
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const { events, remainder } = parseSSEChunk(buffer);
+      buffer = remainder;
+
+      for (const event of events) {
+        if (event.type === "tool") {
+          // Show tool badge before the answer text
+          if (!toolBadgesEl) {
+            toolBadgesEl = document.createElement("div");
+            toolBadgesEl.style.marginBottom = "10px";
+            msgEl.prepend(toolBadgesEl);
+          }
+          const badge = document.createElement("span");
+          badge.className = "streaming-tool-badge";
+          badge.innerHTML = `<span class="dot"></span>${escapeHtml(event.tool)}`;
+          toolBadgesEl.appendChild(badge);
+        } else if (event.type === "token") {
+          rawText += event.token;
+          const answerEl = toolBadgesEl
+            ? (msgEl.querySelector(".stream-answer") || (() => {
+                const el = document.createElement("div");
+                el.className = "stream-answer";
+                msgEl.appendChild(el);
+                return el;
+              })())
+            : msgEl;
+          answerEl.innerHTML = renderMarkdown(rawText);
+          messages.scrollTop = messages.scrollHeight;
+        } else if (event.type === "file_written") {
+          const badge = document.createElement("div");
+          badge.className = "file-written-badge";
+          badge.innerHTML = `✓ Written: <code>${escapeHtml(event.path)}</code>`;
+          msgEl.appendChild(badge);
+        } else if (event.type === "done") {
+          metadataReceived = event.metadata;
+        } else if (event.type === "error") {
+          rawText += `\n\n> Error: ${event.error}`;
+        }
+      }
+    }
+  } catch (err) {
+    rawText = rawText || `Streaming failed: ${err}. Trying standard mode...`;
+    // Fallback to non-streaming
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, session_id: sessionId }),
+      });
+      const data = await response.json();
+      rawText = data.answer || rawText;
+      metadataReceived = data.metadata;
+    } catch {
+      // Keep error message
+    }
+  }
+
+  // Finalize message
+  msgEl.classList.remove("streaming");
+  const answerEl = msgEl.querySelector(".stream-answer") || msgEl;
+  answerEl.innerHTML = renderMarkdown(rawText);
+  renderMermaidBlocks(msgEl);
+  if (metadataReceived) {
+    msgEl.insertAdjacentHTML("beforeend", renderRunMetadata(metadataReceived));
+  }
+  messages.scrollTop = messages.scrollHeight;
+
+  if (prompt.toLowerCase().includes("trading chart")) addTradingChart();
+
+  loadRecentRuns();
+  isStreaming = false;
+}
+
+// ── Status and panel loaders ───────────────────────────────────────────────────
+
 async function showStatus() {
   try {
     const response = await fetch("/api/status");
     const status = await response.json();
     const provider = status.provider === "offline" ? "offline retrieval" : status.provider;
     providerStatus.textContent = `Provider: ${provider}`;
-    topbarBadge.textContent = `${status.tools.length} tools - ${status.provider_route?.join(" -> ") || provider}`;
+    topbarBadge.textContent = `${status.tools.length} tools · ${status.provider_route?.join(" → ") || provider}`;
     toolList.innerHTML = "";
     status.tools.forEach((entry) => {
       const clean = entry.replace(/^- /, "");
@@ -443,7 +611,7 @@ async function showStatus() {
     const okTools = (health.tools || []).filter((tool) => tool.status === "ok").length;
     toolHealthStatus.textContent = `${okTools}/${(health.tools || []).length || 0} OK`;
     toolHealthStatus.className = okTools === (health.tools || []).length ? "ok" : "warn";
-    addMessage("agent", `Ready. Provider: ${provider}. ${status.tools.length} OSS tools are active in the ReAct loop.`);
+    addMessage("agent", `Ready. Provider: ${provider}. ${status.tools.length} OSS tools, streaming enabled.`);
   } catch {
     addMessage("agent", "Ready.");
   }
@@ -473,9 +641,7 @@ async function loadRepoGraph() {
       row.innerHTML = `<span>${escapeHtml(name)}</span><strong>${Number(score)}</strong>`;
       graphCentrality.appendChild(row);
     });
-    if (!graphCentrality.children.length) {
-      graphCentrality.textContent = "No edges detected yet.";
-    }
+    if (!graphCentrality.children.length) graphCentrality.textContent = "No edges detected yet.";
   } catch {
     graphCentrality.textContent = "Graph unavailable.";
   }
@@ -495,7 +661,7 @@ async function loadRecentRuns() {
       const tools = run.tools_used?.length ? run.tools_used.join(", ") : "direct";
       row.innerHTML = `
         <strong>${escapeHtml(run.run_id)}</strong>
-        <span>${escapeHtml(run.provider)} - ${Number(run.duration_ms || 0)}ms</span>
+        <span>${escapeHtml(run.provider)} · ${Number(run.duration_ms || 0)}ms</span>
         <em>${escapeHtml(tools)}</em>
       `;
       recentRuns.appendChild(row);
@@ -517,6 +683,8 @@ async function loadSandboxPolicy() {
 
 showStatus().then(loadMemory).then(loadRepoGraph).then(loadRecentRuns).then(loadSandboxPolicy);
 
+// ── Event handlers ─────────────────────────────────────────────────────────────
+
 clearMemoryButton.addEventListener("click", async () => {
   await fetch("/api/memory/clear", {
     method: "POST",
@@ -526,6 +694,7 @@ clearMemoryButton.addEventListener("click", async () => {
   messages.innerHTML = "";
   addMessage("agent", "Memory cleared for this browser session.");
 });
+
 clearRunsButton.addEventListener("click", async () => {
   await fetch("/api/runs/clear", {
     method: "POST",
@@ -534,6 +703,7 @@ clearRunsButton.addEventListener("click", async () => {
   });
   recentRuns.textContent = "No runs yet.";
 });
+
 runToolButton.addEventListener("click", async () => {
   const tool = toolSelect.value;
   const query = toolQuery.value.trim() || "overview";
@@ -571,36 +741,71 @@ runCommandButton.addEventListener("click", async () => {
       return;
     }
     commandOutput.textContent = `$ ${data.command}\nexit ${data.exit_code}\n\n${data.output || "(no output)"}`;
-  } catch (error) {
+  } catch {
     commandOutput.textContent = "Command runner unavailable.";
   }
 });
 
+// File editor
+readFileButton.addEventListener("click", async () => {
+  const path = fileEditorPath.value.trim();
+  if (!path) {
+    fileEditorStatus.textContent = "Enter a file path first.";
+    return;
+  }
+  fileEditorStatus.textContent = "Reading...";
+  try {
+    const resp = await fetch(`/api/files/read?path=${encodeURIComponent(path)}`);
+    const data = await resp.json();
+    if (data.error) {
+      fileEditorStatus.textContent = `Error: ${data.error}`;
+      return;
+    }
+    fileEditorContent.value = data.content;
+    fileEditorStatus.textContent = `Read ${data.size.toLocaleString()} chars from ${data.path}`;
+  } catch (err) {
+    fileEditorStatus.textContent = `Read failed: ${err}`;
+  }
+});
+
+writeFileButton.addEventListener("click", async () => {
+  const path = fileEditorPath.value.trim();
+  const content = fileEditorContent.value;
+  if (!path) {
+    fileEditorStatus.textContent = "Enter a file path first.";
+    return;
+  }
+  fileEditorStatus.textContent = "Writing...";
+  try {
+    const resp = await fetch("/api/files/write", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, content }),
+    });
+    const data = await resp.json();
+    if (data.error) {
+      fileEditorStatus.textContent = `Error: ${data.error}`;
+      return;
+    }
+    fileEditorStatus.textContent = data.message;
+  } catch (err) {
+    fileEditorStatus.textContent = `Write failed: ${err}`;
+  }
+});
+
+// Keyboard shortcut: Ctrl+Enter to submit
+promptInput.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+  }
+});
+
+// Main chat submit — streaming
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const prompt = promptInput.value.trim();
-  if (!prompt) return;
+  if (!prompt || isStreaming) return;
   promptInput.value = "";
-  addMessage("user", prompt);
-  const pending = addPendingMessage();
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, session_id: sessionId }),
-    });
-    const data = await response.json();
-    clearInterval(pending.timer);
-    pending.el.classList.remove("pending");
-    pending.el.innerHTML = renderMarkdown(data.answer) + renderRunMetadata(data.metadata);
-    renderMermaidBlocks(pending.el);
-    loadRecentRuns();
-    if (prompt.toLowerCase().includes("trading chart")) {
-      addTradingChart();
-    }
-  } catch (error) {
-    clearInterval(pending.timer);
-    pending.el.classList.remove("pending");
-    pending.el.textContent = `Request failed: ${error}`;
-  }
+  await streamChat(prompt);
 });

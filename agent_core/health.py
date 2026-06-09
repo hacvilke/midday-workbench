@@ -1,3 +1,4 @@
+"""Platform health checks for Midday Workbench."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -92,6 +93,8 @@ def run_health_checks() -> list[HealthCheck]:
                 "fallback_used",
                 "error",
                 "provider_attempts",
+                "verifier_reports",
+                "plan",
             },
             "AgentRun metadata contract available",
         ),
@@ -134,7 +137,7 @@ def run_health_checks() -> list[HealthCheck]:
         "template_tool_route": "create dashboard template",
     }
     for name, query in probes.items():
-        steps, results = ReactPlanner(registry).run(query)
+        steps, results, _ = ReactPlanner(registry).run(query)
         checks.append(
             HealthCheck(
                 name,

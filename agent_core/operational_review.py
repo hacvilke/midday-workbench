@@ -195,8 +195,38 @@ def _action_items(risks: list[str], recommendations: list[str], score: int) -> l
             {
                 "priority": index + 1,
                 "severity": severity if index == 0 else "medium" if severity == "high" else severity,
+                "category": _risk_category(risk),
                 "risk": risk,
                 "recommendation": recommendation,
             }
         )
     return items
+
+
+def _risk_category(risk: str) -> str:
+    """Classify scorecard risks for planner and UI triage."""
+
+    text = risk.lower()
+    if "quality gate" in text:
+        return "quality"
+    if "sandbox command" in text or "command" in text:
+        return "commands"
+    if "platform health" in text:
+        return "health"
+    if "tool health" in text or "tool" in text:
+        return "tools"
+    if "verifier" in text:
+        return "verifier"
+    if "provider" in text:
+        return "provider"
+    if "route" in text:
+        return "routing"
+    if "answer" in text or "attached context" in text:
+        return "usage"
+    if "memory" in text:
+        return "memory"
+    if "context window" in text:
+        return "context"
+    if "search index" in text:
+        return "index"
+    return "general"

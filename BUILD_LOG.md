@@ -28,6 +28,7 @@
 2026-06-09: [UPGRADE] Added a Prompt Harness sidebar panel backed by `/api/prompts`, showing coordinator and sub-agent prompt previews for local control-plane inspection.
 2026-06-09: [UPGRADE] Added `/api/control-plane`, an aggregate local endpoint for provider route, tool records, health, metrics, sessions, execution policy, quality gates, and prompt harness names.
 2026-06-09: [UPGRADE] Added deterministic delegation planning with manager/executor/verifier/reviewer assignments, plan metadata integration, `/api/delegation`, control-plane manifest exposure, health checks, tests, and route-inspector UI preview.
+2026-06-09: [UPGRADE] Added deterministic categories to operational review action items and surfaced the category in the sidebar scorecard for planner/UI triage.
 2026-06-09: [UPGRADE] Added single-run detail lookup with `get_run(run_id)` and `/api/runs/{run_id}` so plan/delegation/verifier metadata can be inspected directly by UI and external agents.
 2026-06-09: [UPGRADE] Added Recent Runs UI detail inspection: run rows are clickable/keyboard accessible and fetch `/api/runs/{run_id}` to show intent, tool, provider, delegation, and verifier summary.
 2026-06-09: [UPGRADE] Added ReAct context-window observability with snapshot/clear helpers, `/api/context-window`, `/api/context-window/clear`, control-plane inclusion, tests, and a sidebar panel for inspecting chained tool observations.

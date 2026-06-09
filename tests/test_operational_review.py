@@ -19,6 +19,7 @@ class OperationalReviewTests(unittest.TestCase):
         self.assertIn("action_items", review)
         self.assertGreaterEqual(len(review["action_items"]), 1)
         self.assertIn("severity", review["action_items"][0])
+        self.assertIn("category", review["action_items"][0])
         self.assertIn("metrics", review)
 
     def test_operational_review_accepts_precomputed_inputs(self):
@@ -270,6 +271,7 @@ class OperationalReviewTests(unittest.TestCase):
         self.assertTrue(any("frontend_syntax" in item for item in review["recommendations"]))
         self.assertIn("frontend_syntax", review["next_action"])
         self.assertEqual(review["action_items"][0]["priority"], 1)
+        self.assertEqual(review["action_items"][0]["category"], "quality")
         self.assertIn("frontend_syntax", review["action_items"][0]["recommendation"])
 
     def test_command_failure_recommendation_names_latest_command(self):
@@ -308,6 +310,7 @@ class OperationalReviewTests(unittest.TestCase):
         )
         self.assertLess(review["score"], 100)
         self.assertTrue(any("python -m unittest missing" in item for item in review["recommendations"]))
+        self.assertEqual(review["action_items"][0]["category"], "commands")
 
     def test_context_window_bloat_reduces_score(self):
         """Verify oversized context windows are operationally visible."""

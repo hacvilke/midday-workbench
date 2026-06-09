@@ -1018,7 +1018,7 @@ async function loadOperationalReview() {
     const topAction = (data.action_items || [])[0] || {};
     operationalReview.textContent = [
       `score ${Number(data.score || 0)}/100 (${data.grade || "unknown"})`,
-      `priority ${topAction.severity || "low"}: ${topAction.risk || "No immediate operational risk."}`,
+      `priority ${topAction.severity || "low"}/${topAction.category || "general"}: ${topAction.risk || "No immediate operational risk."}`,
       `risk ${risks.join(" | ") || "No risk summary."}`,
       `next ${data.next_action || recommendations.join(" | ") || "No recommendation."}`,
     ].join("\n");

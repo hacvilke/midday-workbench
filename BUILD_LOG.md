@@ -52,3 +52,4 @@
 2026-06-09: [UPGRADE] Added persistent file mutation events with SQLite audit storage, `/api/files/events`, timeline and metrics integration, session-aware UI writes, and regression tests.
 2026-06-09: [UPGRADE] Added planner confidence and ambiguity metadata to persisted run plans, run-detail UI, streaming metadata, and regression tests.
 2026-06-09: [UPGRADE] Added route-uncertainty operational scoring with ambiguous/low-confidence route metrics, control-plane risks, UI counters, and regression tests.
+2026-06-09: [UPGRADE] Added route-confidence policy to provider operational guardrails so ambiguous or low-confidence plans stay one-tool, assumption-aware, and verifier-driven.

@@ -172,6 +172,7 @@ def format_operational_guardrails(config: AgentConfig) -> str:
         "- Command Sandbox: `read-only allowlist` with blocked shell metacharacters and destructive/network commands.\n"
         f"- Allowed Command Prefixes: `{', '.join(sandbox.allowed_commands()[:12])}`\n"
         f"- Blocked Command Patterns: `{', '.join(sandbox.BLOCKED_PATTERNS[:12])}`\n"
+        "- Route Confidence Policy: if planner metadata marks a route ambiguous or below 0.75 confidence, state the routing assumption, use at most one selected tool, and avoid inventing extra tool calls.\n"
         "- Verification Rule: every tool, command, and generated change should have an explicit verifier result or stated validation gap."
     )
 

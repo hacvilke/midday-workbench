@@ -28,6 +28,7 @@ class PromptHarnessTests(unittest.TestCase):
         self.assertIn("# Operational Guardrails", prompt)
         self.assertIn("Routing Audit", prompt)
         self.assertIn("Command Sandbox", prompt)
+        self.assertIn("Route Confidence Policy", prompt)
         self.assertIn("Verification Rule", prompt)
 
     def test_operational_guardrails_are_compact(self):
@@ -36,6 +37,7 @@ class PromptHarnessTests(unittest.TestCase):
         guardrails = format_operational_guardrails(get_config())
         self.assertLess(len(guardrails), 1400)
         self.assertIn("Allowed Command Prefixes", guardrails)
+        self.assertIn("below 0.75 confidence", guardrails)
 
 
 if __name__ == "__main__":

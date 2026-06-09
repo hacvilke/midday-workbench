@@ -14,3 +14,4 @@
 2026-06-09: [UPGRADE] Added tests/test_tools.py (OssToolRegistry, Sandbox, Verifier integration tests) and tests/test_api.py (HTTP smoke tests for all API endpoints).
 2026-06-09: [UPGRADE] Migrated Replit's Midday Workbench source into the main repo, fixed Windows sandbox portability, added structured manager/planner artifacts to every run, persisted plans in SQLite, exposed plan/verifier metadata in the API/UI, and excluded the Replit wrapper from graph/index scans.
 2026-06-09: [UPGRADE] Added persistent sandbox command history with `/api/commands`, `/api/commands/clear`, command verifier payloads, command duration tracking, UI recent-command display, and run-log tests for command auditability.
+2026-06-09: [UPGRADE] Added bounded verifier-driven recovery: failed recoverable tool outputs can receive one corrective retry with stricter instructions, with both reports retained for audit traces.

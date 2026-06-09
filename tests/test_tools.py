@@ -9,6 +9,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agent_core.config import get_config
 from agent_core.oss_tools import OssToolRegistry, ToolResult
+from agent_core.oss_tools import OssTool
+from agent_core.react_loop import ReactPlanner
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.verifier import ReActVerifier
 from agent_core.react_loop import ReactStep
@@ -186,6 +188,40 @@ class VerifierTests(unittest.TestCase):
     def test_verify_all_empty(self):
         reports = self.verifier.verify_all([], [])
         self.assertEqual(reports, [])
+
+    def test_recovery_action_for_bad_mermaid(self):
+        result = ToolResult("rich_output_template_tool", "summary", "plain text")
+        report = self.verifier.verify_tool_result(0, "rich_output_template_tool", result)
+        recovery = self.verifier.recovery_action("rich_output_template_tool", report)
+        self.assertTrue(recovery.should_retry)
+        self.assertIn("Mermaid", recovery.prompt_suffix)
+
+
+class ReactRecoveryTests(unittest.TestCase):
+    def test_planner_retries_recoverable_bad_visual_output(self):
+        """Verify a failed visual verifier report gets one corrective retry."""
+
+        class FakeRegistry:
+            def __init__(self):
+                self.calls = 0
+                self.tool = OssTool("rich_output_template_tool", "fake", "fake", ("graph",))
+
+            def get_tool(self, name):
+                return self.tool
+
+            def run_tool(self, tool, prompt):
+                self.calls += 1
+                if self.calls == 1:
+                    return ToolResult(tool.name, "bad visual", "plain text without a diagram")
+                return ToolResult(tool.name, "fixed visual", "```mermaid\ngraph TD\nA --> B\n```")
+
+        registry = FakeRegistry()
+        steps, results, reports = ReactPlanner(registry).run("show graph")
+        self.assertEqual(registry.calls, 2)
+        self.assertEqual(results[0].summary, "fixed visual")
+        self.assertEqual(len(reports), 2)
+        self.assertTrue(reports[-1].passed)
+        self.assertIn("Recovery:", steps[0].observation)
 
 
 if __name__ == "__main__":

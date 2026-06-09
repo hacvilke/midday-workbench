@@ -81,12 +81,23 @@ class ReactPlanner:
             result = self.registry.run_tool(tool, chained_prompt)
             context_window.add_tool_result(result)
 
-            # VERIFY: self-check the result before recording the step
+            # VERIFY: self-check the result before recording the step.
             report = self.verifier.verify_tool_result(len(steps), tool.name, result)
             reports.append(report)
+            recovery = self.verifier.recovery_action(tool.name, report)
 
-            verify_tag = "✓ VERIFY:OK" if report.passed else f"✗ VERIFY:{'; '.join(report.issues)}"
-            observation = f"{result.summary} [{verify_tag}]"
+            if recovery.should_retry:
+                retry_prompt = f"{prompt}\n\nVerifier recovery instruction: {recovery.prompt_suffix}"
+                retry_result = self.registry.run_tool(tool, retry_prompt)
+                context_window.add_tool_result(retry_result)
+                retry_report = self.verifier.verify_tool_result(len(steps), tool.name, retry_result)
+                reports.append(retry_report)
+                result = retry_result
+                report = retry_report
+
+            verify_tag = "VERIFY:OK" if report.passed else f"VERIFY:{'; '.join(report.issues)}"
+            recovery_note = f" Recovery: {recovery.reason}." if recovery.should_retry else ""
+            observation = f"{result.summary} [{verify_tag}]{recovery_note}"
 
             steps.append(ReactStep(thought, tool.name, observation))
             results.append(result)

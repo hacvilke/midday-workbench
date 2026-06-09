@@ -29,6 +29,24 @@ class VerifierReport:
     summary: str
 
 
+@dataclass(frozen=True)
+class RecoveryAction:
+    """Bounded self-correction instruction after a verifier failure.
+
+    Args:
+        should_retry: Whether the planner should retry the same tool once.
+        prompt_suffix: Extra instruction appended to the retry prompt.
+        reason: Why this recovery path was chosen.
+
+    Returns:
+        Immutable recovery instruction.
+    """
+
+    should_retry: bool
+    prompt_suffix: str
+    reason: str
+
+
 class ReActVerifier:
     """Post-execution self-verifier for the ReAct loop.
 
@@ -128,3 +146,31 @@ class ReActVerifier:
             self.verify_tool_result(i, action, result)
             for i, (action, result) in enumerate(zip(step_actions, results))
         ]
+
+    def recovery_action(self, action: str, report: VerifierReport) -> RecoveryAction:
+        """Decide whether a failed verifier report can be corrected automatically.
+
+        Args:
+            action: Tool name that failed verification.
+            report: Failed verifier report.
+
+        Returns:
+            RecoveryAction describing a bounded retry, or no retry.
+        """
+
+        if report.passed:
+            return RecoveryAction(False, "", "verification passed")
+        joined = " ".join(report.issues).lower()
+        if action == "rich_output_template_tool" and "mermaid" in joined:
+            return RecoveryAction(
+                True,
+                "Return exactly one valid Mermaid diagram fence. Use graph TD if no better chart type fits.",
+                "visual output can be repaired by tightening the Mermaid format",
+            )
+        if "empty content" in joined or "suspiciously short" in joined:
+            return RecoveryAction(
+                True,
+                "Return a fuller, structured result with enough concrete detail to be useful.",
+                "short or empty output can be retried with a stricter detail requirement",
+            )
+        return RecoveryAction(False, "", "failure is not safely recoverable with an automatic retry")

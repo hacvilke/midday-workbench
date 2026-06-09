@@ -17,6 +17,8 @@ from agent_core.run_log import (
     recent_file_events,
     recent_runs,
     operational_metrics,
+    prune_history,
+    retention_stats,
 )
 
 
@@ -162,6 +164,47 @@ class RunLogTests(unittest.TestCase):
         clear_command_runs(session_id)
         clear_file_events(session_id)
         clear_decisions(session_id)
+
+    def test_prune_history_keeps_newest_rows(self):
+        """Verify retention pruning keeps newest audit rows per table."""
+
+        session_id = "retention-test"
+        clear_runs(session_id)
+        clear_command_runs(session_id)
+        for index in range(3):
+            run = AgentRun(
+                run_id=f"retention-run-{index}",
+                answer="answer",
+                tools_used=[],
+                react_steps=[],
+                context_attached=False,
+                memory_items=0,
+                provider="local",
+                duration_ms=1,
+                fallback_used=False,
+                error=None,
+                provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 1, "error": None}],
+                plan={"intent": "plain_chat"},
+            )
+            add_run(session_id, f"prompt {index}", run)
+            add_command_run(
+                session_id,
+                f"git status {index}",
+                0,
+                "ok",
+                {"passed": True, "issues": [], "summary": "exit=0"},
+                1,
+                {"allowed": True},
+            )
+        before = retention_stats(session_id=session_id)
+        self.assertEqual(before["counts"]["runs"], 3)
+        result = prune_history(session_id=session_id, keep_per_table=1)
+        self.assertEqual(result["deleted"]["runs"], 2)
+        self.assertEqual(result["deleted"]["commands"], 2)
+        self.assertEqual(retention_stats(session_id=session_id)["counts"]["runs"], 1)
+        self.assertEqual(recent_runs(session_id=session_id)[0]["run_id"], "retention-run-2")
+        clear_runs(session_id)
+        clear_command_runs(session_id)
         run = AgentRun(
             run_id="timeline-run",
             answer="answer",

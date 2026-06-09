@@ -573,6 +573,95 @@ def clear_decisions(session_id: str | None = None) -> None:
     con.close()
 
 
+def retention_stats(session_id: str | None = None) -> dict[str, object]:
+    """Return audit-log row counts for retention visibility."""
+
+    con = connect()
+    if session_id:
+        counts = {
+            "runs": _count_where(con, "runs", session_id),
+            "commands": _count_where(con, "command_runs", session_id),
+            "files": _count_where(con, "file_events", session_id),
+            "decisions": _count_where(con, "decisions", session_id),
+        }
+    else:
+        counts = {
+            "runs": _count_all(con, "runs"),
+            "commands": _count_all(con, "command_runs"),
+            "files": _count_all(con, "file_events"),
+            "decisions": _count_all(con, "decisions"),
+        }
+    con.close()
+    return {
+        "session_id": session_id,
+        "counts": counts,
+        "total": sum(int(value) for value in counts.values()),
+    }
+
+
+def prune_history(session_id: str | None = None, keep_per_table: int = 500) -> dict[str, object]:
+    """Prune old audit rows while keeping the newest rows per table."""
+
+    keep = max(0, int(keep_per_table))
+    con = connect()
+    deleted = {
+        "runs": _prune_table(con, "runs", session_id, keep),
+        "commands": _prune_table(con, "command_runs", session_id, keep),
+        "files": _prune_table(con, "file_events", session_id, keep),
+        "decisions": _prune_table(con, "decisions", session_id, keep),
+    }
+    con.commit()
+    con.execute("VACUUM")
+    con.close()
+    return {
+        "session_id": session_id,
+        "keep_per_table": keep,
+        "deleted": deleted,
+        "deleted_total": sum(int(value) for value in deleted.values()),
+    }
+
+
+def _count_all(con: sqlite3.Connection, table: str) -> int:
+    return int(con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+
+
+def _count_where(con: sqlite3.Connection, table: str, session_id: str) -> int:
+    return int(con.execute(f"SELECT COUNT(*) FROM {table} WHERE session_id = ?", (session_id,)).fetchone()[0])
+
+
+def _prune_table(con: sqlite3.Connection, table: str, session_id: str | None, keep: int) -> int:
+    before = _count_where(con, table, session_id) if session_id else _count_all(con, table)
+    if session_id:
+        con.execute(
+            f"""
+            DELETE FROM {table}
+            WHERE session_id = ?
+              AND id NOT IN (
+                SELECT id FROM {table}
+                WHERE session_id = ?
+                ORDER BY id DESC
+                LIMIT ?
+              )
+            """,
+            (session_id, session_id, keep),
+        )
+        after = _count_where(con, table, session_id)
+    else:
+        con.execute(
+            f"""
+            DELETE FROM {table}
+            WHERE id NOT IN (
+                SELECT id FROM {table}
+                ORDER BY id DESC
+                LIMIT ?
+            )
+            """,
+            (keep,),
+        )
+        after = _count_all(con, table)
+    return max(0, before - after)
+
+
 def operational_metrics(session_id: str | None = None) -> dict[str, object]:
     """Summarize operational telemetry for runs, commands, and decisions.
 
@@ -632,6 +721,7 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
 
     return {
         "session_id": session_id,
+        "retention": retention_stats(session_id=session_id),
         "runs": {
             "count": len(runs),
             "fallback_count": fallback_count,

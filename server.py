@@ -48,6 +48,8 @@ from agent_core.run_log import (
     recent_file_events,
     recent_runs,
     operational_metrics,
+    prune_history,
+    retention_stats,
 )
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.session import clear_session_state, session_state_snapshot
@@ -218,6 +220,10 @@ class Handler(BaseHTTPRequestHandler):
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json(operational_metrics(session_id=session_id))
 
+        if parsed.path == "/api/retention":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json(retention_stats(session_id=session_id))
+
         if parsed.path == "/api/operational-review":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json(operational_review(session_id=session_id))
@@ -295,6 +301,12 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/context-window/clear":
             clear_session_state()
             return self.send_json({"ok": True})
+
+        if self.path == "/api/retention/prune":
+            body = self._read_json()
+            session_id = body.get("session_id")
+            keep = int(body.get("keep_per_table", 500))
+            return self.send_json(prune_history(session_id=session_id, keep_per_table=keep))
 
         if self.path == "/api/quality/run":
             body = self._read_json()

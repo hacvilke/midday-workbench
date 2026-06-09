@@ -58,3 +58,4 @@
 2026-06-09: [HARDENING] Added built-in secret scanning with Groq/OpenRouter key pattern detection, a required quality gate, sandbox allowlisting, health coverage, and regression tests.
 2026-06-09: [UPGRADE] Added run usage telemetry with prompt, answer, context, tool-result, and history character counts persisted in run logs, exposed through APIs, summarized in metrics, and displayed in the UI.
 2026-06-09: [UPGRADE] Added usage-bloat operational scoring for oversized answers and attached context, plus expanded sidebar review display and regression coverage.
+2026-06-09: [UPGRADE] Added audit-log retention maintenance with row-count telemetry, prune APIs, metrics/UI visibility, SQLite vacuuming, and regression tests for newest-row retention.

@@ -943,6 +943,7 @@ async function loadMetrics() {
       <div><span>Commands</span><strong>${Number(data.commands?.count || 0)}</strong></div>
       <div><span>Files</span><strong>${Number(data.files?.count || 0)}</strong></div>
       <div><span>Avg Answer</span><strong>${Number(data.usage?.average_answer_chars || 0).toLocaleString()}</strong></div>
+      <div><span>Audit Rows</span><strong>${Number(data.retention?.total || 0).toLocaleString()}</strong></div>
       <div><span>Decisions</span><strong>${Number(data.decisions?.count || 0)}</strong></div>
       <div><span>Verifier</span><strong>${escapeHtml(passRate)}</strong></div>
     `;

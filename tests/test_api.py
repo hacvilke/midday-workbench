@@ -233,12 +233,30 @@ class RunsEndpointTests(unittest.TestCase):
 class MetricsEndpointTests(unittest.TestCase):
     def test_metrics_endpoint_shape(self):
         data = _get("/api/metrics?session_id=nonexistent-session-xyz")
+        self.assertIn("retention", data)
         self.assertIn("runs", data)
         self.assertIn("commands", data)
         self.assertIn("files", data)
         self.assertIn("usage", data)
         self.assertIn("decisions", data)
         self.assertIn("verifier", data)
+
+
+class RetentionEndpointTests(unittest.TestCase):
+    def test_retention_endpoint_shape(self):
+        data = _get("/api/retention?session_id=nonexistent-session-xyz")
+        self.assertIn("counts", data)
+        self.assertIn("total", data)
+        self.assertIn("runs", data["counts"])
+
+    def test_retention_prune_endpoint_shape(self):
+        status, data = _post(
+            "/api/retention/prune",
+            {"session_id": "nonexistent-session-xyz", "keep_per_table": 5},
+        )
+        self.assertEqual(status, 200)
+        self.assertIn("deleted", data)
+        self.assertEqual(data["keep_per_table"], 5)
 
 
 class OperationalReviewEndpointTests(unittest.TestCase):

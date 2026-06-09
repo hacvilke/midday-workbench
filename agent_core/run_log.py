@@ -932,14 +932,21 @@ def activity_timeline(session_id: str | None = None, limit: int = 30) -> list[di
         )
     for command in recent_command_runs(session_id=session_id, limit=limit):
         verified = command.get("verified") or {}
+        summary = str(verified.get("summary") or f"exit={command.get('exit_code')}")
+        quality_gate = summary.split(" ", 1)[0].removeprefix("quality:") if summary.startswith("quality:") else None
+        status = "ok" if int(command.get("exit_code") or 0) == 0 else "failed"
+        if quality_gate and status == "failed":
+            status = "review"
         events.append(
             {
-                "type": "command",
+                "type": "quality" if quality_gate else "command",
                 "id": command["command"],
                 "session_id": command["session_id"],
                 "title": command["command"],
-                "summary": verified.get("summary", f"exit={command.get('exit_code')}"),
-                "status": "ok" if int(command.get("exit_code") or 0) == 0 else "failed",
+                "summary": summary,
+                "status": status,
+                "quality_gate": quality_gate,
+                "policy_decision": command.get("policy_decision") or {},
                 "created_at": command["created_at"],
             }
         )

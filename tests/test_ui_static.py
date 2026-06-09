@@ -50,6 +50,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("/api/quality/history", app_js)
         self.assertIn("data.latest_failed", app_js)
         self.assertIn("loadQualityHistory", app_js)
+        self.assertIn("event.quality_gate", app_js)
+        self.assertIn("formatSandboxDecision(event.policy_decision)", app_js)
         self.assertIn("data.retention?.total", app_js)
         self.assertIn("(data.risks || []).slice(0, 2)", app_js)
         self.assertIn("data.next_action", app_js)

@@ -415,6 +415,22 @@ class TimelineEndpointTests(unittest.TestCase):
         self.assertIn("events", data)
         self.assertIsInstance(data["events"], list)
 
+    def test_timeline_exposes_quality_events(self):
+        session_id = "api-quality-timeline"
+        _post("/api/commands/clear", {"session_id": session_id})
+        status, data = _post(
+            "/api/quality/run",
+            {"required_only": False, "dry_run": False, "session_id": session_id, "gate_names": ["diff_stat"]},
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(data["results"][0]["policy_decision"]["allowed"])
+        timeline = _get(f"/api/timeline?session_id={session_id}")
+        quality_events = [event for event in timeline["events"] if event["type"] == "quality"]
+        self.assertGreaterEqual(len(quality_events), 1)
+        self.assertEqual(quality_events[0]["quality_gate"], "diff_stat")
+        self.assertIn("policy_decision", quality_events[0])
+        _post("/api/commands/clear", {"session_id": session_id})
+
 
 class FileEventsEndpointTests(unittest.TestCase):
     def test_file_events_endpoint_records_write(self):

@@ -100,3 +100,4 @@
 2026-06-09: [UPGRADE] Added sandbox policy decisions to quality gate manifests and surfaced them as command-runner gate tooltips.
 2026-06-09: [UPGRADE] Added sandbox policy decisions to quality-history rows and displayed policy summaries for persisted quality gate runs in the UI.
 2026-06-09: [UPGRADE] Added sandbox policy details to operational metrics latest-failed quality gate telemetry for consistent quality audit payloads.
+2026-06-09: [UPGRADE] Promoted persisted quality-gate command runs to first-class `quality` activity timeline events with gate names and sandbox policy details.

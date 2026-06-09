@@ -1052,10 +1052,12 @@ async function loadActivityTimeline() {
     }
     data.events.slice(0, 8).forEach((event) => {
       const row = document.createElement("div");
+      const qualityLabel = event.quality_gate ? ` - ${event.quality_gate}` : "";
       row.innerHTML = `
-        <strong>${escapeHtml(event.type)} - ${escapeHtml(event.status)}</strong>
+        <strong>${escapeHtml(event.type)}${escapeHtml(qualityLabel)} - ${escapeHtml(event.status)}</strong>
         <span>${escapeHtml(event.title)}</span>
         <em>${escapeHtml(event.summary)}</em>
+        ${event.policy_decision ? `<small>${escapeHtml(formatSandboxDecision(event.policy_decision))}</small>` : ""}
       `;
       activityTimeline.appendChild(row);
     });

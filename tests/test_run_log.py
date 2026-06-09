@@ -289,6 +289,15 @@ class RunLogTests(unittest.TestCase):
             1,
             {"allowed": True, "matched_prefix": "git status"},
         )
+        add_command_run(
+            session_id,
+            "node --check web/app.js",
+            1,
+            "SyntaxError",
+            {"passed": False, "issues": ["exit=1"], "summary": "quality:frontend_syntax exit=1"},
+            2,
+            {"allowed": True, "matched_prefix": "node --check"},
+        )
         add_decision(
             session_id,
             "route",
@@ -312,9 +321,13 @@ class RunLogTests(unittest.TestCase):
             },
         )
         events = activity_timeline(session_id=session_id)
-        self.assertEqual({"run", "command", "decision", "file"}, {event["type"] for event in events})
+        self.assertEqual({"run", "command", "quality", "decision", "file"}, {event["type"] for event in events})
         decision_event = next(event for event in events if event["type"] == "decision")
         self.assertEqual(decision_event["status"], "review")
+        quality_event = next(event for event in events if event["type"] == "quality")
+        self.assertEqual(quality_event["status"], "review")
+        self.assertEqual(quality_event["quality_gate"], "frontend_syntax")
+        self.assertEqual(quality_event["policy_decision"]["matched_prefix"], "node --check")
         clear_runs(session_id)
         clear_command_runs(session_id)
         clear_file_events(session_id)

@@ -770,6 +770,10 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
     provider_route_reports = 0
     provider_route_failed = 0
     provider_route_degraded = 0
+    evidence_provider_verified = 0
+    evidence_tools_verified = 0
+    evidence_quality_ready = 0
+    evidence_needs_review = 0
 
     for run in runs:
         provider = str(run.get("provider", "unknown"))
@@ -781,6 +785,15 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
         total_context_chars += int(usage.get("context_chars") or 0)
         if run.get("fallback_used"):
             fallback_count += 1
+        evidence = run.get("completion_evidence") or {}
+        if evidence.get("provider_verified"):
+            evidence_provider_verified += 1
+        if evidence.get("tools_verified"):
+            evidence_tools_verified += 1
+        if evidence.get("quality_ready"):
+            evidence_quality_ready += 1
+        if evidence.get("failed_verifier_count") or not evidence.get("provider_verified") or not evidence.get("tools_verified"):
+            evidence_needs_review += 1
         plan = run.get("plan") or {}
         confidence = plan.get("confidence")
         if plan.get("ambiguous"):
@@ -895,6 +908,12 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "count": provider_route_reports,
             "failed": provider_route_failed,
             "degraded": provider_route_degraded,
+        },
+        "completion_evidence": {
+            "provider_verified": evidence_provider_verified,
+            "tools_verified": evidence_tools_verified,
+            "quality_ready": evidence_quality_ready,
+            "needs_review": evidence_needs_review,
         },
         "memory": memory_stats(session_id=session_id),
         "context_window": session_state_stats(),

@@ -172,6 +172,12 @@ class RunLogTests(unittest.TestCase):
             error=None,
             provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 1, "error": None}],
             plan={"intent": "general", "confidence": 0.5, "ambiguous": True},
+            completion_evidence={
+                "provider_verified": True,
+                "tools_verified": False,
+                "quality_ready": False,
+                "failed_verifier_count": 1,
+            },
         )
         add_run(session_id, "unclear request", run)
         add_decision(
@@ -211,6 +217,7 @@ class RunLogTests(unittest.TestCase):
         self.assertIn("decisions", metrics)
         self.assertIn("verifier", metrics)
         self.assertIn("provider_routes", metrics)
+        self.assertIn("completion_evidence", metrics)
         self.assertIn("memory", metrics)
         self.assertIn("quality_history", metrics)
         self.assertIn("context_window", metrics)
@@ -220,6 +227,8 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(metrics["runs"]["count"], 1)
         self.assertEqual(metrics["runs"]["ambiguous_routes"], 1)
         self.assertEqual(metrics["runs"]["low_confidence_routes"], 1)
+        self.assertEqual(metrics["completion_evidence"]["provider_verified"], 1)
+        self.assertEqual(metrics["completion_evidence"]["needs_review"], 1)
         self.assertEqual(metrics["route_decisions"]["ambiguous"], 1)
         self.assertEqual(metrics["route_decisions"]["low_confidence"], 1)
         self.assertEqual(metrics["route_decisions"]["intents"]["visualize"], 1)

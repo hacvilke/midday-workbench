@@ -1004,6 +1004,7 @@ async function loadMetrics() {
       <div><span>Decisions</span><strong>${Number(data.decisions?.count || 0)}</strong></div>
       <div><span>Route Audits</span><strong>${Number(data.route_decisions?.ambiguous || 0) + Number(data.route_decisions?.low_confidence || 0)}</strong></div>
       <div><span>Provider Route</span><strong>${Number(data.provider_routes?.degraded || 0)}</strong></div>
+      <div><span>Evidence Review</span><strong>${Number(data.completion_evidence?.needs_review || 0)}</strong></div>
       <div><span>Context</span><strong>${Number(data.context_window?.item_count || 0)}</strong></div>
       <div><span>Verifier</span><strong>${escapeHtml(passRate)}</strong></div>
     `;

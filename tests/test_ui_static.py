@@ -40,6 +40,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("completionEvidence.provider_verified", app_js)
         self.assertIn("data.usage?.average_answer_chars", app_js)
         self.assertIn("data.provider_routes?.degraded", app_js)
+        self.assertIn("data.completion_evidence?.needs_review", app_js)
+        self.assertIn("Evidence Review", app_js)
         self.assertIn("data.memory?.message_count", app_js)
         self.assertIn("data.quality_history?.failed", app_js)
         self.assertIn("data.commands?.latest_failed?.command", app_js)

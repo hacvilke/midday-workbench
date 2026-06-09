@@ -35,6 +35,7 @@ from agent_core.run_log import (
     clear_command_runs,
     clear_decisions,
     clear_runs,
+    get_run,
     get_sessions,
     recent_decisions,
     recent_command_runs,
@@ -161,6 +162,15 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/runs":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json({"runs": recent_runs(session_id=session_id, limit=20)})
+
+        if parsed.path.startswith("/api/runs/"):
+            run_id = unquote_plus(parsed.path.removeprefix("/api/runs/")).strip()
+            if not run_id:
+                return self.send_json({"error": "run id required"}, status=400)
+            run = get_run(run_id)
+            if run is None:
+                return self.send_json({"error": "run not found"}, status=404)
+            return self.send_json({"run": run})
 
         if parsed.path == "/api/sessions":
             return self.send_json({"sessions": get_sessions(limit=50)})

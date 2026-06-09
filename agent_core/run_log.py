@@ -165,6 +165,30 @@ def recent_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str
     return [row_to_dict(row) for row in rows]
 
 
+def get_run(run_id: str) -> dict[str, object] | None:
+    """Fetch one run by id.
+
+    Args:
+        run_id: Run identifier.
+
+    Returns:
+        Run dictionary, or None if it does not exist.
+    """
+
+    con = connect()
+    row = con.execute(
+        """
+        SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
+               provider_attempts, duration_ms, fallback_used, error, created_at,
+               verifier_reports, plan
+        FROM runs WHERE run_id = ? ORDER BY id DESC LIMIT 1
+        """,
+        (run_id,),
+    ).fetchone()
+    con.close()
+    return row_to_dict(row) if row else None
+
+
 def get_sessions(limit: int = 50) -> list[dict[str, object]]:
     """Return unique sessions with their last-active time and run count.
 

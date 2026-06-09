@@ -44,6 +44,14 @@ def _get(path: str) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _get_status(path: str) -> tuple[int, dict]:
+    try:
+        with urllib.request.urlopen(f"{_BASE}{path}", timeout=10) as resp:
+            return resp.status, json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read().decode("utf-8"))
+
+
 def _post(path: str, payload: dict) -> tuple[int, dict]:
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -175,6 +183,20 @@ class RunsEndpointTests(unittest.TestCase):
         status, data = _post("/api/runs/clear", {"session_id": "nonexistent-session-xyz"})
         self.assertEqual(status, 200)
         self.assertTrue(data.get("ok"))
+
+    def test_run_detail_endpoint(self):
+        session_id = "api-run-detail"
+        _post("/api/runs/clear", {"session_id": session_id})
+        _, chat = _post("/api/chat", {"prompt": "hi", "session_id": session_id})
+        run_id = chat["metadata"]["run_id"]
+        data = _get(f"/api/runs/{run_id}")
+        self.assertEqual(data["run"]["run_id"], run_id)
+        self.assertEqual(data["run"]["plan"]["intent"], "plain_chat")
+
+    def test_missing_run_detail_returns_404(self):
+        status, data = _get_status("/api/runs/not-a-real-run")
+        self.assertEqual(status, 404)
+        self.assertIn("error", data)
 
 
 class MetricsEndpointTests(unittest.TestCase):

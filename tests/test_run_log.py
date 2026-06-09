@@ -8,6 +8,7 @@ from agent_core.run_log import (
     clear_command_runs,
     clear_decisions,
     clear_runs,
+    get_run,
     recent_decisions,
     recent_command_runs,
     recent_runs,
@@ -40,7 +41,15 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(rows[0]["run_id"], "run-test")
         self.assertEqual(rows[0]["tools_used"], ["tool"])
         self.assertEqual(rows[0]["plan"]["intent"], "test")
+        detail = get_run("run-test")
+        self.assertIsNotNone(detail)
+        self.assertEqual(detail["prompt"], "prompt")
         clear_runs(session_id)
+
+    def test_get_run_missing_returns_none(self):
+        """Verify missing run detail lookup is explicit."""
+
+        self.assertIsNone(get_run("missing-run-id"))
 
     def test_command_run_roundtrip(self):
         """Verify sandbox command runs can be persisted and retrieved."""

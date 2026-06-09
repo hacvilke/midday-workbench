@@ -61,3 +61,4 @@
 2026-06-09: [UPGRADE] Added audit-log retention maintenance with row-count telemetry, prune APIs, metrics/UI visibility, SQLite vacuuming, and regression tests for newest-row retention.
 2026-06-09: [UPGRADE] Added safe provider diagnostics with provider route readiness, redacted provider metadata, status/control-plane API exposure, UI display, health coverage, and regression tests.
 2026-06-09: [UPGRADE] Added delegation concurrency planning with serial ordering, safe parallel-candidate grouping, blocked parallel rationale, API exposure, route-inspector UI display, and tests.
+2026-06-09: [UPGRADE] Added provider readiness and parallel-candidate policy to the live prompt guardrails so model calls receive current routing, sandbox, concurrency, and verification constraints.

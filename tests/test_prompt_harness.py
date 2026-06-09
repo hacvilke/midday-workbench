@@ -28,6 +28,8 @@ class PromptHarnessTests(unittest.TestCase):
         self.assertIn("# Operational Guardrails", prompt)
         self.assertIn("Routing Audit", prompt)
         self.assertIn("Command Sandbox", prompt)
+        self.assertIn("Provider Route", prompt)
+        self.assertIn("Parallel Policy", prompt)
         self.assertIn("Route Confidence Policy", prompt)
         self.assertIn("Verification Rule", prompt)
 
@@ -35,9 +37,10 @@ class PromptHarnessTests(unittest.TestCase):
         """Verify guardrails are concise enough for every provider prompt."""
 
         guardrails = format_operational_guardrails(get_config())
-        self.assertLess(len(guardrails), 1400)
+        self.assertLess(len(guardrails), 1700)
         self.assertIn("Allowed Command Prefixes", guardrails)
         self.assertIn("below 0.75 confidence", guardrails)
+        self.assertIn("remote ready", guardrails)
 
 
 if __name__ == "__main__":

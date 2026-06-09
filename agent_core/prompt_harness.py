@@ -6,7 +6,9 @@ import subprocess
 from dataclasses import dataclass
 
 from .config import AgentConfig
+from .delegation import DelegationPlanner
 from .output_templates import template_manifest
+from .providers import provider_diagnostics
 from .routing_audit import routing_audit
 from .sandbox import ExecutionSandbox
 from .tool_schemas import schema_markdown
@@ -160,6 +162,8 @@ def format_operational_guardrails(config: AgentConfig) -> str:
 
     sandbox = ExecutionSandbox(config.workspace_root)
     audit = routing_audit()
+    providers = provider_diagnostics(config)
+    delegation = DelegationPlanner().manifest()
     failed = [
         str(result.get("name"))
         for result in audit.get("results", [])
@@ -172,6 +176,8 @@ def format_operational_guardrails(config: AgentConfig) -> str:
         "- Command Sandbox: `read-only allowlist` with blocked shell metacharacters and destructive/network commands.\n"
         f"- Allowed Command Prefixes: `{', '.join(sandbox.allowed_commands()[:12])}`\n"
         f"- Blocked Command Patterns: `{', '.join(sandbox.BLOCKED_PATTERNS[:12])}`\n"
+        f"- Provider Route: `{', '.join(providers['route'])}`; remote ready: `{providers['remote_ready']}`; never reveal keys.\n"
+        f"- Parallel Policy: `{delegation['parallel_policy']}`\n"
         "- Route Confidence Policy: if planner metadata marks a route ambiguous or below 0.75 confidence, state the routing assumption, use at most one selected tool, and avoid inventing extra tool calls.\n"
         "- Verification Rule: every tool, command, and generated change should have an explicit verifier result or stated validation gap."
     )

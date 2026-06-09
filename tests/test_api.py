@@ -191,6 +191,10 @@ class SessionsEndpointTests(unittest.TestCase):
         data = _get("/api/sessions")
         self.assertIn("sessions", data)
         self.assertIsInstance(data["sessions"], list)
+        if data["sessions"]:
+            self.assertIn("session_id", data["sessions"][0])
+            self.assertIn("run_count", data["sessions"][0])
+            self.assertIn("last_active", data["sessions"][0])
 
 
 class MemoryEndpointTests(unittest.TestCase):

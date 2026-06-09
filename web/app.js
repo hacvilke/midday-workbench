@@ -25,6 +25,7 @@ const graphNodes = document.querySelector("#graphNodes");
 const graphEdges = document.querySelector("#graphEdges");
 const graphCentrality = document.querySelector("#graphCentrality");
 const recentRuns = document.querySelector("#recentRuns");
+const sessionList = document.querySelector("#sessionList");
 const clearRunsButton = document.querySelector("#clearRuns");
 const fileEditorPath = document.querySelector("#fileEditorPath");
 const fileEditorContent = document.querySelector("#fileEditorContent");
@@ -162,6 +163,15 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function formatTimestamp(epochSeconds) {
+  if (!epochSeconds) return "never";
+  try {
+    return new Date(Number(epochSeconds) * 1000).toLocaleString();
+  } catch {
+    return "unknown";
+  }
 }
 
 function renderInline(value) {
@@ -579,6 +589,7 @@ async function streamChat(prompt) {
   if (prompt.toLowerCase().includes("trading chart")) addTradingChart();
 
   loadRecentRuns();
+  loadSessions();
   loadMetrics();
   isStreaming = false;
 }
@@ -675,6 +686,30 @@ async function loadRecentRuns() {
     });
   } catch {
     recentRuns.textContent = "Runs unavailable.";
+  }
+}
+
+async function loadSessions() {
+  try {
+    const response = await fetch("/api/sessions");
+    const data = await response.json();
+    sessionList.innerHTML = "";
+    if (!data.sessions?.length) {
+      sessionList.textContent = "No sessions yet.";
+      return;
+    }
+    data.sessions.slice(0, 6).forEach((session) => {
+      const row = document.createElement("div");
+      const isCurrent = session.session_id === sessionId;
+      const summary = isCurrent ? "current" : `${Number(session.run_count || 0)} runs`;
+      row.innerHTML = `
+        <strong>${escapeHtml(session.session_id)}</strong>
+        <span>${escapeHtml(summary)} - ${escapeHtml(formatTimestamp(session.last_active))}</span>
+      `;
+      sessionList.appendChild(row);
+    });
+  } catch {
+    sessionList.textContent = "Sessions unavailable.";
   }
 }
 
@@ -779,6 +814,7 @@ showStatus()
   .then(loadMemory)
   .then(loadRepoGraph)
   .then(loadRecentRuns)
+  .then(loadSessions)
   .then(loadSandboxPolicy)
   .then(loadRecentCommands)
   .then(loadRecentDecisions)
@@ -804,6 +840,7 @@ clearRunsButton.addEventListener("click", async () => {
     body: JSON.stringify({ session_id: sessionId }),
   });
   recentRuns.textContent = "No runs yet.";
+  loadSessions();
   loadMetrics();
 });
 

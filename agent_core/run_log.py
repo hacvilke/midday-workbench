@@ -6,6 +6,7 @@ import sqlite3
 import time
 
 from .memory import memory_stats
+from .session import session_state_stats
 from pathlib import Path
 
 from .agent import AgentRun
@@ -773,6 +774,7 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "degraded": provider_route_degraded,
         },
         "memory": memory_stats(session_id=session_id),
+        "context_window": session_state_stats(),
         "commands": {
             "count": len(commands),
             "failures": command_failures,

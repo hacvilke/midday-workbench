@@ -32,6 +32,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("data.provider_routes?.degraded", app_js)
         self.assertIn("data.memory?.message_count", app_js)
         self.assertIn("data.quality_history?.failed", app_js)
+        self.assertIn("data.context_window?.item_count", app_js)
         self.assertIn("/api/memory/prune", app_js)
         self.assertIn("/api/quality/history", app_js)
         self.assertIn("loadQualityHistory", app_js)

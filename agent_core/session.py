@@ -52,6 +52,27 @@ def session_state_snapshot(path: Path = SESSION_STATE_PATH) -> dict[str, object]
     }
 
 
+def session_state_stats(path: Path = SESSION_STATE_PATH) -> dict[str, object]:
+    """Return compact telemetry for the persisted context window."""
+
+    snapshot = session_state_snapshot(path=path)
+    items = snapshot.get("context_window", {}).get("items", [])
+    total_chars = sum(len(str(item.get("content", ""))) for item in items if isinstance(item, dict))
+    tools: dict[str, int] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        tool = str(item.get("tool", "unknown"))
+        tools[tool] = tools.get(tool, 0) + 1
+    return {
+        "updated_at": snapshot.get("updated_at"),
+        "item_count": len(items),
+        "content_chars": total_chars,
+        "tools": tools,
+        "has_error": bool(snapshot.get("error")),
+    }
+
+
 def save_session_state(context_window: ContextWindow, path: Path = SESSION_STATE_PATH) -> None:
     """Persist ReAct context window state to disk.
 

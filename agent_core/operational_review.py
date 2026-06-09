@@ -106,6 +106,16 @@ def operational_review(
         risks.append("Condensed memory summary is large")
         recommendations.append("Tighten summary compaction to keep long-running sessions lightweight.")
 
+    context_window = metrics.get("context_window", {})
+    if int(context_window.get("item_count") or 0) > 12:
+        score -= 6
+        risks.append("Context window has many chained tool observations")
+        recommendations.append("Clear or prune the context window when tool chaining becomes stale.")
+    if int(context_window.get("content_chars") or 0) > 20000:
+        score -= 8
+        risks.append("Context window content is large")
+        recommendations.append("Reduce retained tool-result size or clear stale observations before provider calls.")
+
     chunk_count = int(index.get("chunk_count") or 0)
     age_seconds = index.get("age_seconds")
     if chunk_count <= 0:

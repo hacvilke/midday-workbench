@@ -83,6 +83,7 @@ def run_health_checks() -> list[HealthCheck]:
     sandbox = ExecutionSandbox(config.workspace_root)
     stats = index_stats(config.index_path)
     providers = provider_diagnostics(config)
+    quality_commands = required_quality_commands()
 
     checks = [
         HealthCheck("tool_count", len(TOOLS) >= 9, f"{len(TOOLS)} tools registered"),
@@ -161,13 +162,18 @@ def run_health_checks() -> list[HealthCheck]:
         ),
         HealthCheck(
             "quality_gates_allowlisted",
-            all(sandbox.is_allowed(command) for command in required_quality_commands()),
+            all(sandbox.is_allowed(command) for command in quality_commands),
             "required quality gates can run through the sandbox",
         ),
         HealthCheck(
             "secret_scan",
-            "python -m agent_core.secret_scan" in required_quality_commands() and len(SECRET_PATTERNS) >= 2,
+            "python -m agent_core.secret_scan" in quality_commands and len(SECRET_PATTERNS) >= 2,
             "secret scan quality gate is configured",
+        ),
+        HealthCheck(
+            "frontend_syntax_gate",
+            "node --check web/app.js" in quality_commands and sandbox.is_allowed("node --check web/app.js"),
+            "frontend JavaScript syntax quality gate is configured",
         ),
     ]
 

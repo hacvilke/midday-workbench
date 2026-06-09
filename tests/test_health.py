@@ -49,6 +49,7 @@ class HealthTests(unittest.TestCase):
         self.assertIn("policy_manifest", names)
         self.assertIn("quality_gates_allowlisted", names)
         self.assertIn("secret_scan", names)
+        self.assertIn("frontend_syntax_gate", names)
         self.assertIn("routing_audit", names)
         self.assertIn("search_index", names)
         self.assertIn("provider_diagnostics", names)

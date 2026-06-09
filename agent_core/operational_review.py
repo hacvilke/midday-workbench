@@ -59,7 +59,12 @@ def operational_review(
     if quality.get("failed"):
         score -= min(24, int(quality["failed"]) * 6)
         risks.append(f"{quality['failed']} quality gate run(s) failed")
-        recommendations.append("Run required gates again after fixes and inspect /api/quality/history for repeated failures.")
+        latest_failed = quality.get("latest_failed") or {}
+        gate = latest_failed.get("gate") if isinstance(latest_failed, dict) else None
+        if gate:
+            recommendations.append(f"Fix the latest failed quality gate `{gate}`, then rerun required gates.")
+        else:
+            recommendations.append("Run required gates again after fixes and inspect /api/quality/history for repeated failures.")
 
     runs = metrics["runs"]
     if runs["fallback_count"]:

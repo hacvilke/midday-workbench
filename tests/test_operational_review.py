@@ -244,7 +244,12 @@ class OperationalReviewTests(unittest.TestCase):
             },
             "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
             "provider_routes": {"count": 0, "failed": 0, "degraded": 0},
-            "quality_history": {"count": 2, "passed": 1, "failed": 1},
+            "quality_history": {
+                "count": 2,
+                "passed": 1,
+                "failed": 1,
+                "latest_failed": {"gate": "frontend_syntax"},
+            },
             "commands": {"count": 2, "failures": 0, "successes": 2},
             "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
             "files": {"count": 0, "created": 0, "patched": 0, "written": 0},
@@ -258,6 +263,7 @@ class OperationalReviewTests(unittest.TestCase):
         )
         self.assertLess(review["score"], 100)
         self.assertTrue(any("quality gate run(s) failed" in risk for risk in review["risks"]))
+        self.assertTrue(any("frontend_syntax" in item for item in review["recommendations"]))
 
     def test_context_window_bloat_reduces_score(self):
         """Verify oversized context windows are operationally visible."""

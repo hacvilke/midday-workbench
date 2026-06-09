@@ -22,6 +22,14 @@ class RoutingAuditTests(unittest.TestCase):
         self.assertGreaterEqual(len(ambiguous["alternatives"]), 2)
         self.assertEqual(ambiguous["alternatives"][0]["intent"], "visualize")
 
+    def test_routing_audit_returns_mutation_safe_copy(self):
+        """Verify callers cannot mutate the cached routing audit payload."""
+
+        first = routing_audit()
+        first["results"].clear()
+        second = routing_audit()
+        self.assertGreaterEqual(len(second["results"]), 6)
+
 
 if __name__ == "__main__":
     unittest.main()

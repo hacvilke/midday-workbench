@@ -1,7 +1,9 @@
 """Deterministic routing audits for Midday Workbench."""
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 
 from .router import IntentRouter
 
@@ -62,6 +64,13 @@ def routing_audit() -> dict[str, object]:
     Returns:
         JSON-compatible audit report with pass/fail results.
     """
+
+    return deepcopy(_routing_audit_cached())
+
+
+@lru_cache(maxsize=1)
+def _routing_audit_cached() -> dict[str, object]:
+    """Return cached deterministic route audit payload."""
 
     router = IntentRouter()
     results: list[RoutingAuditResult] = []

@@ -100,6 +100,7 @@ function renderRunMetadata(metadata) {
   const plan = metadata.plan || null;
   const verifierReports = metadata.verifier_reports || [];
   const fileWrites = metadata.file_writes || [];
+  const usage = metadata.usage || {};
   const routeAlternatives = plan?.alternatives || [];
   const routeConfidence = plan?.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
   const stepHtml = steps.length
@@ -122,6 +123,9 @@ function renderRunMetadata(metadata) {
         <div><span>Memory</span><strong>${Number(metadata.memory_items || 0)} items</strong></div>
         <div><span>Context</span><strong>${metadata.context_attached ? "attached" : "direct"}</strong></div>
         <div><span>Fallback</span><strong>${metadata.fallback_used ? "used" : "no"}</strong></div>
+        <div><span>Prompt</span><strong>${Number(usage.prompt_chars || 0).toLocaleString()} chars</strong></div>
+        <div><span>Answer</span><strong>${Number(usage.answer_chars || 0).toLocaleString()} chars</strong></div>
+        <div><span>Tool Context</span><strong>${Number(usage.tool_result_chars || 0).toLocaleString()} chars</strong></div>
       </div>
       <div class="attempt-list">
         ${attempts
@@ -761,6 +765,7 @@ async function loadRunDetail(runId) {
     const delegations = plan.delegations || [];
     const verifier = run.verifier_reports || [];
     const fileWrites = run.file_writes || [];
+    const usage = run.usage || {};
     const alternatives = plan.alternatives || [];
     const confidence = plan.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
     runDetail.textContent = [
@@ -769,6 +774,7 @@ async function loadRunDetail(runId) {
       `tool ${plan.tool || "direct"}`,
       `confidence ${confidence} - ambiguous ${plan.ambiguous ? "yes" : "no"}`,
       `provider ${run.provider || "unknown"} - ${Number(run.duration_ms || 0)}ms`,
+      `usage prompt ${Number(usage.prompt_chars || 0)} chars - answer ${Number(usage.answer_chars || 0)} chars - context ${Number(usage.context_chars || 0)} chars`,
       formatRouteAlternatives(alternatives),
       `delegations ${delegations.map((item) => item.agent_id).join(", ") || "none"}`,
       `verifier ${verifier.map((item) => (item.passed ? "pass" : "fail")).join(", ") || "none"}`,
@@ -936,6 +942,7 @@ async function loadMetrics() {
       <div><span>Route Review</span><strong>${Number(data.runs?.ambiguous_routes || 0) + Number(data.runs?.low_confidence_routes || 0)}</strong></div>
       <div><span>Commands</span><strong>${Number(data.commands?.count || 0)}</strong></div>
       <div><span>Files</span><strong>${Number(data.files?.count || 0)}</strong></div>
+      <div><span>Avg Answer</span><strong>${Number(data.usage?.average_answer_chars || 0).toLocaleString()}</strong></div>
       <div><span>Decisions</span><strong>${Number(data.decisions?.count || 0)}</strong></div>
       <div><span>Verifier</span><strong>${escapeHtml(passRate)}</strong></div>
     `;

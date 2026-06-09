@@ -502,6 +502,7 @@ class Handler(BaseHTTPRequestHandler):
                         verifier_reports=metadata.get("verifier_reports", []),
                         plan=metadata.get("plan"),
                         file_writes=metadata.get("file_writes", []),
+                        usage=metadata.get("usage", {}),
                     )
                     add_run(session_id, prompt, run)
                     for write in run.file_writes:
@@ -544,6 +545,7 @@ class Handler(BaseHTTPRequestHandler):
                     "verifier_reports": run.verifier_reports,
                     "plan": run.plan,
                     "file_writes": run.file_writes,
+                    "usage": run.usage,
                 },
             }
         )

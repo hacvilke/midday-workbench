@@ -38,6 +38,7 @@ class RunLogTests(unittest.TestCase):
             provider_attempts=[{"provider": "offline", "ok": True, "duration_ms": 1, "error": None}],
             plan={"intent": "test", "tool": None},
             file_writes=[{"path": "tmp.py", "sha256": "c" * 64, "bytes_written": 3, "lines": 1, "created": True}],
+            usage={"prompt_chars": 6, "answer_chars": 6, "context_chars": 0},
         )
         session_id = "run-log-test"
         clear_runs(session_id)
@@ -47,10 +48,12 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(rows[0]["tools_used"], ["tool"])
         self.assertEqual(rows[0]["plan"]["intent"], "test")
         self.assertEqual(rows[0]["file_writes"][0]["path"], "tmp.py")
+        self.assertEqual(rows[0]["usage"]["prompt_chars"], 6)
         detail = get_run("run-test")
         self.assertIsNotNone(detail)
         self.assertEqual(detail["prompt"], "prompt")
         self.assertEqual(detail["file_writes"][0]["sha256"], "c" * 64)
+        self.assertEqual(detail["usage"]["answer_chars"], 6)
         clear_runs(session_id)
 
     def test_get_run_missing_returns_none(self):
@@ -142,11 +145,13 @@ class RunLogTests(unittest.TestCase):
         self.assertIn("runs", metrics)
         self.assertIn("commands", metrics)
         self.assertIn("files", metrics)
+        self.assertIn("usage", metrics)
         self.assertIn("decisions", metrics)
         self.assertIn("verifier", metrics)
         self.assertEqual(metrics["runs"]["count"], 1)
         self.assertEqual(metrics["runs"]["ambiguous_routes"], 1)
         self.assertEqual(metrics["runs"]["low_confidence_routes"], 1)
+        self.assertEqual(metrics["usage"]["average_prompt_chars"], 0)
         clear_runs(session_id)
 
     def test_activity_timeline_merges_events(self):

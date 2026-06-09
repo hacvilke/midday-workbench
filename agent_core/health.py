@@ -107,6 +107,7 @@ def run_health_checks() -> list[HealthCheck]:
                 "verifier_reports",
                 "plan",
                 "file_writes",
+                "usage",
             },
             "AgentRun metadata contract available",
         ),

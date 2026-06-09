@@ -51,6 +51,7 @@ class AgentRun:
     verifier_reports: list[dict] = field(default_factory=list)
     plan: dict | None = None
     file_writes: list[dict[str, object]] = field(default_factory=list)
+    usage: dict[str, int] = field(default_factory=dict)
 
 
 class Agent:
@@ -102,6 +103,7 @@ class Agent:
                 provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
                 verifier_reports=[],
                 plan=plan,
+                usage=self._usage(prompt, direct, history=history or []),
             )
 
         route = self.router.classify(prompt)
@@ -125,6 +127,7 @@ class Agent:
                     provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
                     verifier_reports=[asdict(r) for r in v_reports],
                     plan=plan,
+                    usage=self._usage(prompt, visual, tool_results=tool_results, history=history or []),
                 )
 
         # General path
@@ -147,6 +150,7 @@ class Agent:
                 provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
                 verifier_reports=[asdict(r) for r in v_reports],
                 plan=plan,
+                usage=self._usage(prompt, visual, context=context, tool_results=tool_results, history=history or []),
             )
 
         messages = self._build_messages(prompt, context, react_steps, tool_results, v_reports, history or [])
@@ -190,6 +194,7 @@ class Agent:
             verifier_reports=[asdict(r) for r in v_reports],
             plan=plan,
             file_writes=file_writes,
+            usage=self._usage(prompt, answer, context=context, tool_results=tool_results, history=history or []),
         )
 
     def stream_with_events(
@@ -227,7 +232,7 @@ class Agent:
                 "metadata": self._make_stream_metadata(
                     run_id, direct, [], [], False, False, None,
                     [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
-                    "local", started, [], plan,
+                    "local", started, [], plan, usage=self._usage(prompt, direct, history=history or []),
                 ),
             }
             return
@@ -250,6 +255,7 @@ class Agent:
                         [asdict(s) for s in react_steps], False, False, None,
                         [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
                         "local", started, [asdict(r) for r in v_reports], plan,
+                        usage=self._usage(prompt, visual, tool_results=tool_results, history=history or []),
                     ),
                 }
                 return
@@ -272,6 +278,7 @@ class Agent:
                     [asdict(s) for s in react_steps], bool(context), False, None,
                     [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
                     "local", started, [asdict(r) for r in v_reports], plan,
+                    usage=self._usage(prompt, visual, context=context, tool_results=tool_results, history=history or []),
                 ),
             }
             return
@@ -330,6 +337,7 @@ class Agent:
                 run_id, full_answer, [r.name for r in tool_results],
                 [asdict(s) for s in react_steps], bool(context), fallback_used, error,
                 provider_attempts, provider_name, started, [asdict(r) for r in v_reports], plan, file_writes,
+                usage=self._usage(prompt, full_answer, context=context, tool_results=tool_results, history=history or []),
             ),
         }
 
@@ -444,11 +452,35 @@ class Agent:
         except (ValueError, OSError) as exc:
             return answer + f"\n\n> File write failed: {exc}", []
 
+    def _usage(
+        self,
+        prompt: str,
+        answer: str,
+        context: str = "",
+        tool_results=None,
+        history: list[dict[str, object]] | None = None,
+    ) -> dict[str, int]:
+        """Return lightweight character-count telemetry for run observability."""
+
+        tool_results = tool_results or []
+        history = history or []
+        tool_chars = sum(len(str(getattr(result, "content", ""))) for result in tool_results)
+        history_chars = sum(len(str(item.get("content", ""))) for item in history)
+        return {
+            "prompt_chars": len(prompt),
+            "answer_chars": len(answer),
+            "context_chars": len(context),
+            "tool_result_chars": tool_chars,
+            "history_items": len(history),
+            "history_chars": history_chars,
+        }
+
     def _make_stream_metadata(
         self, run_id, answer, tools_used, react_steps,
         context_attached, fallback_used, error,
         provider_attempts, provider_name, started, verifier_reports, plan,
         file_writes: list[dict[str, object]] | None = None,
+        usage: dict[str, int] | None = None,
     ) -> dict:
         return {
             "run_id": run_id,
@@ -465,4 +497,5 @@ class Agent:
             "verifier_reports": verifier_reports,
             "plan": plan,
             "file_writes": file_writes or [],
+            "usage": usage or self._usage("", answer),
         }

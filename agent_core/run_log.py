@@ -41,7 +41,8 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
             created_at INTEGER NOT NULL,
             verifier_reports TEXT DEFAULT '[]',
             plan TEXT DEFAULT '{}',
-            file_writes TEXT DEFAULT '[]'
+            file_writes TEXT DEFAULT '[]',
+            usage TEXT DEFAULT '{}'
         )
         """
     )
@@ -58,6 +59,11 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
         pass  # Column already present
     try:
         con.execute("ALTER TABLE runs ADD COLUMN file_writes TEXT DEFAULT '[]'")
+        con.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already present
+    try:
+        con.execute("ALTER TABLE runs ADD COLUMN usage TEXT DEFAULT '{}'")
         con.commit()
     except sqlite3.OperationalError:
         pass  # Column already present
@@ -135,9 +141,9 @@ def add_run(session_id: str, prompt: str, run: AgentRun) -> None:
         INSERT INTO runs(
             run_id, session_id, prompt, provider, tools_used, react_steps,
             provider_attempts, duration_ms, fallback_used, error, created_at,
-            verifier_reports, plan, file_writes
+            verifier_reports, plan, file_writes, usage
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             run.run_id,
@@ -154,6 +160,7 @@ def add_run(session_id: str, prompt: str, run: AgentRun) -> None:
             json.dumps(run.verifier_reports),
             json.dumps(run.plan or {}),
             json.dumps(run.file_writes or []),
+            json.dumps(run.usage or {}),
         ),
     )
     con.commit()
@@ -176,7 +183,7 @@ def recent_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str
             """
             SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
                    provider_attempts, duration_ms, fallback_used, error, created_at,
-                   verifier_reports, plan, file_writes
+                   verifier_reports, plan, file_writes, usage
             FROM runs WHERE session_id = ? ORDER BY id DESC LIMIT ?
             """,
             (session_id, limit),
@@ -186,7 +193,7 @@ def recent_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str
             """
             SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
                    provider_attempts, duration_ms, fallback_used, error, created_at,
-                   verifier_reports, plan, file_writes
+                   verifier_reports, plan, file_writes, usage
             FROM runs ORDER BY id DESC LIMIT ?
             """,
             (limit,),
@@ -210,7 +217,7 @@ def get_run(run_id: str) -> dict[str, object] | None:
         """
         SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
                provider_attempts, duration_ms, fallback_used, error, created_at,
-               verifier_reports, plan, file_writes
+               verifier_reports, plan, file_writes, usage
         FROM runs WHERE run_id = ? ORDER BY id DESC LIMIT 1
         """,
         (run_id,),
@@ -270,6 +277,7 @@ def row_to_dict(row: tuple[object, ...]) -> dict[str, object]:
         "verifier_reports": json.loads(row[11]) if len(row) > 11 and row[11] else [],
         "plan": json.loads(row[12]) if len(row) > 12 and row[12] else {},
         "file_writes": json.loads(row[13]) if len(row) > 13 and row[13] else [],
+        "usage": json.loads(row[14]) if len(row) > 14 and row[14] else {},
     }
 
 
@@ -585,6 +593,9 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
     verifier_passed = 0
     fallback_count = 0
     total_duration = 0
+    total_prompt_chars = 0
+    total_answer_chars = 0
+    total_context_chars = 0
     ambiguous_routes = 0
     low_confidence_routes = 0
 
@@ -592,6 +603,10 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
         provider = str(run.get("provider", "unknown"))
         provider_counts[provider] = provider_counts.get(provider, 0) + 1
         total_duration += int(run.get("duration_ms") or 0)
+        usage = run.get("usage") or {}
+        total_prompt_chars += int(usage.get("prompt_chars") or 0)
+        total_answer_chars += int(usage.get("answer_chars") or 0)
+        total_context_chars += int(usage.get("context_chars") or 0)
         if run.get("fallback_used"):
             fallback_count += 1
         plan = run.get("plan") or {}
@@ -625,6 +640,11 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "average_duration_ms": int(total_duration / len(runs)) if runs else 0,
             "providers": provider_counts,
             "tools": tool_counts,
+        },
+        "usage": {
+            "average_prompt_chars": int(total_prompt_chars / len(runs)) if runs else 0,
+            "average_answer_chars": int(total_answer_chars / len(runs)) if runs else 0,
+            "average_context_chars": int(total_context_chars / len(runs)) if runs else 0,
         },
         "verifier": {
             "count": verifier_total,

@@ -220,7 +220,9 @@ class RunsEndpointTests(unittest.TestCase):
         self.assertEqual(data["run"]["run_id"], run_id)
         self.assertEqual(data["run"]["plan"]["intent"], "plain_chat")
         self.assertIn("file_writes", chat["metadata"])
+        self.assertIn("usage", chat["metadata"])
         self.assertIn("file_writes", data["run"])
+        self.assertIn("usage", data["run"])
 
     def test_missing_run_detail_returns_404(self):
         status, data = _get_status("/api/runs/not-a-real-run")
@@ -234,6 +236,7 @@ class MetricsEndpointTests(unittest.TestCase):
         self.assertIn("runs", data)
         self.assertIn("commands", data)
         self.assertIn("files", data)
+        self.assertIn("usage", data)
         self.assertIn("decisions", data)
         self.assertIn("verifier", data)
 

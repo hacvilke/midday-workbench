@@ -25,6 +25,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("plan.ambiguous", app_js)
         self.assertIn("metadata.file_writes", app_js)
         self.assertIn("file writes ${fileWrites", app_js)
+        self.assertIn("metadata.usage", app_js)
+        self.assertIn("data.usage?.average_answer_chars", app_js)
 
 
 if __name__ == "__main__":

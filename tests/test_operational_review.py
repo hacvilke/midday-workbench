@@ -33,6 +33,7 @@ class OperationalReviewTests(unittest.TestCase):
             },
             "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
             "commands": {"count": 0, "failures": 0, "successes": 0},
+            "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
             "decisions": {"count": 0, "kinds": {}},
         }
         index = {"chunk_count": 1, "repo_count": 1, "age_seconds": 0}
@@ -56,6 +57,7 @@ class OperationalReviewTests(unittest.TestCase):
             },
             "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
             "commands": {"count": 0, "failures": 0, "successes": 0},
+            "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
             "decisions": {"count": 0, "kinds": {}},
         }
         review = operational_review(health=health, metrics=metrics, index={"chunk_count": 0, "repo_count": 0})
@@ -79,6 +81,7 @@ class OperationalReviewTests(unittest.TestCase):
             },
             "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
             "commands": {"count": 0, "failures": 0, "successes": 0},
+            "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
             "decisions": {"count": 0, "kinds": {}},
         }
         review = operational_review(
@@ -105,6 +108,7 @@ class OperationalReviewTests(unittest.TestCase):
             },
             "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
             "commands": {"count": 0, "failures": 0, "successes": 0},
+            "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
             "files": {"count": 0, "created": 0, "patched": 0, "written": 0},
             "decisions": {"count": 0, "kinds": {}},
         }

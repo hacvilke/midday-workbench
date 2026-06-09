@@ -945,6 +945,12 @@ def activity_timeline(session_id: str | None = None, limit: int = 30) -> list[di
         )
     for decision in recent_decisions(session_id=session_id, limit=limit):
         payload = decision.get("decision") or {}
+        status = "ok"
+        if decision.get("kind") == "route" and isinstance(payload, dict):
+            alternatives = payload.get("alternatives") or []
+            confidence = payload.get("confidence")
+            if len(alternatives) > 1 or (isinstance(confidence, (int, float)) and confidence < 0.75):
+                status = "review"
         events.append(
             {
                 "type": "decision",
@@ -952,7 +958,7 @@ def activity_timeline(session_id: str | None = None, limit: int = 30) -> list[di
                 "session_id": decision["session_id"],
                 "title": decision["input"],
                 "summary": str(payload.get("intent") or payload.get("action_type") or decision["kind"]),
-                "status": "ok",
+                "status": status,
                 "created_at": decision["created_at"],
             }
         )

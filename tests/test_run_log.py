@@ -277,7 +277,16 @@ class RunLogTests(unittest.TestCase):
             1,
             {"allowed": True, "matched_prefix": "git status"},
         )
-        add_decision(session_id, "route", "hi", {"intent": "plain_chat"})
+        add_decision(
+            session_id,
+            "route",
+            "show graph",
+            {
+                "intent": "visualize",
+                "confidence": 0.7,
+                "alternatives": [{"intent": "visualize"}, {"intent": "system_design"}],
+            },
+        )
         add_file_event(
             session_id,
             "patch",
@@ -292,6 +301,8 @@ class RunLogTests(unittest.TestCase):
         )
         events = activity_timeline(session_id=session_id)
         self.assertEqual({"run", "command", "decision", "file"}, {event["type"] for event in events})
+        decision_event = next(event for event in events if event["type"] == "decision")
+        self.assertEqual(decision_event["status"], "review")
         clear_runs(session_id)
         clear_command_runs(session_id)
         clear_file_events(session_id)

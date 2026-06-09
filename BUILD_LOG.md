@@ -81,3 +81,4 @@
 2026-06-09: [UPGRADE] Added operational scorecard penalties for inspected route-decision ambiguity and low confidence so route-inspector telemetry influences system quality before full agent runs.
 2026-06-09: [UPGRADE] Expanded the recent decision UI with route confidence, selected tool, review flags, and alternative summaries so inspected routes are visible from the workbench sidebar.
 2026-06-09: [UPGRADE] Added a canonical route-decision summary API with top intents/tools and review-worthy examples, then surfaced the summary in the decision sidebar.
+2026-06-09: [UPGRADE] Marked ambiguous or low-confidence route decisions as review events in the activity timeline so routing drift is visible in operator history.

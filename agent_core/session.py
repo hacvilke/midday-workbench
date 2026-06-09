@@ -30,6 +30,28 @@ def load_session_state(path: Path = SESSION_STATE_PATH) -> ContextWindow:
     return ContextWindow.deserialize(data.get("context_window", {}))
 
 
+def session_state_snapshot(path: Path = SESSION_STATE_PATH) -> dict[str, object]:
+    """Return persisted context-window state with metadata.
+
+    Args:
+        path: Session state JSON path.
+
+    Returns:
+        JSON-compatible state snapshot.
+    """
+
+    if not path.exists():
+        return {"updated_at": None, "context_window": ContextWindow().serialize()}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"updated_at": None, "context_window": ContextWindow().serialize(), "error": "unreadable session state"}
+    return {
+        "updated_at": data.get("updated_at"),
+        "context_window": ContextWindow.deserialize(data.get("context_window", {})).serialize(),
+    }
+
+
 def save_session_state(context_window: ContextWindow, path: Path = SESSION_STATE_PATH) -> None:
     """Persist ReAct context window state to disk.
 
@@ -49,3 +71,16 @@ def save_session_state(context_window: ContextWindow, path: Path = SESSION_STATE
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     except OSError:
         return
+
+
+def clear_session_state(path: Path = SESSION_STATE_PATH) -> None:
+    """Clear persisted ReAct context-window state.
+
+    Args:
+        path: Session state JSON path.
+
+    Returns:
+        None.
+    """
+
+    save_session_state(ContextWindow(), path=path)

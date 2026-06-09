@@ -226,6 +226,7 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)
         self.assertIn("delegation", data)
+        self.assertIn("context_window", data)
         self.assertIn("prompts", data)
         self.assertIn("tools", data)
         self.assertIn("coordinator", data["prompts"]["names"])
@@ -239,6 +240,16 @@ class DelegationEndpointTests(unittest.TestCase):
         self.assertIn("manifest", data)
         self.assertIn("manager", [assignment["agent_id"] for assignment in data["assignments"]])
         self.assertIn("reviewer", [assignment["agent_id"] for assignment in data["assignments"]])
+
+
+class ContextWindowEndpointTests(unittest.TestCase):
+    def test_context_window_endpoint_shape_and_clear(self):
+        data = _get("/api/context-window")
+        self.assertIn("context_window", data)
+        self.assertIn("items", data["context_window"])
+        status, cleared = _post("/api/context-window/clear", {})
+        self.assertEqual(status, 200)
+        self.assertTrue(cleared.get("ok"))
 
 
 class SessionsEndpointTests(unittest.TestCase):

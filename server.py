@@ -43,6 +43,7 @@ from agent_core.run_log import (
     operational_metrics,
 )
 from agent_core.sandbox import ExecutionSandbox
+from agent_core.session import clear_session_state, session_state_snapshot
 from agent_core.verifier import ReActVerifier
 from agent_core.router import IntentRouter
 
@@ -95,6 +96,7 @@ class Handler(BaseHTTPRequestHandler):
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),
                     "delegation": DelegationPlanner().manifest(),
+                    "context_window": session_state_snapshot(),
                     "prompts": {
                         "names": sorted(prompts.keys()),
                         "count": len(prompts),
@@ -187,6 +189,9 @@ class Handler(BaseHTTPRequestHandler):
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json(operational_metrics(session_id=session_id))
 
+        if parsed.path == "/api/context-window":
+            return self.send_json(session_state_snapshot())
+
         if parsed.path == "/api/sandbox":
             sandbox = ExecutionSandbox(get_config().workspace_root)
             return self.send_json({"allowed_commands": sandbox.allowed_commands()})
@@ -239,6 +244,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/decisions/clear":
             body = self._read_json()
             clear_decisions(body.get("session_id"))
+            return self.send_json({"ok": True})
+
+        if self.path == "/api/context-window/clear":
+            clear_session_state()
             return self.send_json({"ok": True})
 
         if self.path == "/api/tools/run":

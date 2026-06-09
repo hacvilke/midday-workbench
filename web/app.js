@@ -29,6 +29,8 @@ const recentRuns = document.querySelector("#recentRuns");
 const runDetail = document.querySelector("#runDetail");
 const sessionList = document.querySelector("#sessionList");
 const promptHarness = document.querySelector("#promptHarness");
+const contextWindow = document.querySelector("#contextWindow");
+const clearContextWindowButton = document.querySelector("#clearContextWindow");
 const clearRunsButton = document.querySelector("#clearRuns");
 const fileEditorPath = document.querySelector("#fileEditorPath");
 const fileEditorContent = document.querySelector("#fileEditorContent");
@@ -593,6 +595,7 @@ async function streamChat(prompt) {
 
   loadRecentRuns();
   loadSessions();
+  loadContextWindow();
   loadMetrics();
   isStreaming = false;
 }
@@ -775,6 +778,30 @@ async function loadPromptHarness() {
   }
 }
 
+async function loadContextWindow() {
+  try {
+    const response = await fetch("/api/context-window");
+    const data = await response.json();
+    const items = data.context_window?.items || [];
+    contextWindow.innerHTML = "";
+    if (!items.length) {
+      contextWindow.textContent = "No chained tool context.";
+      return;
+    }
+    items.slice(-5).reverse().forEach((item) => {
+      const row = document.createElement("div");
+      row.innerHTML = `
+        <strong>${escapeHtml(item.tool)}</strong>
+        <span>${escapeHtml(item.summary)}</span>
+        <em>${escapeHtml(String(item.content || "").slice(0, 90))}</em>
+      `;
+      contextWindow.appendChild(row);
+    });
+  } catch {
+    contextWindow.textContent = "Context window unavailable.";
+  }
+}
+
 async function loadSandboxPolicy() {
   try {
     const response = await fetch("/api/sandbox");
@@ -878,6 +905,7 @@ showStatus()
   .then(loadRecentRuns)
   .then(loadSessions)
   .then(loadPromptHarness)
+  .then(loadContextWindow)
   .then(loadSandboxPolicy)
   .then(loadRecentCommands)
   .then(loadRecentDecisions)
@@ -907,6 +935,15 @@ clearRunsButton.addEventListener("click", async () => {
   loadMetrics();
 });
 
+clearContextWindowButton.addEventListener("click", async () => {
+  await fetch("/api/context-window/clear", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  loadContextWindow();
+});
+
 runToolButton.addEventListener("click", async () => {
   const tool = toolSelect.value;
   const query = toolQuery.value.trim() || "overview";
@@ -923,6 +960,7 @@ runToolButton.addEventListener("click", async () => {
       return;
     }
     toolOutput.textContent = `${data.name}\n${data.summary}\n\n${data.content}`;
+    loadContextWindow();
   } catch (error) {
     toolOutput.textContent = `Tool request failed: ${error}`;
   }

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from agent_core.context_window import ContextWindow
 from agent_core.oss_tools import ToolResult
-from agent_core.session import clear_session_state, load_session_state, save_session_state, session_state_snapshot, session_state_stats
+from agent_core.session import clear_session_state, load_session_state, prune_session_state, save_session_state, session_state_snapshot, session_state_stats
 
 
 class ContextWindowTests(unittest.TestCase):
@@ -46,6 +46,18 @@ class ContextWindowTests(unittest.TestCase):
             self.assertEqual(stats["item_count"], 1)
             self.assertEqual(stats["tools"]["tool_d"], 1)
             self.assertGreater(stats["content_chars"], 0)
+
+    def test_prune_session_state_keeps_newest_items(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "session_state.json"
+            window = ContextWindow()
+            for index in range(4):
+                window.add_tool_result(ToolResult(f"tool_{index}", "summary", "content"))
+            save_session_state(window, path=path)
+            result = prune_session_state(keep=2, path=path)
+            self.assertEqual(result["deleted"], 2)
+            loaded = load_session_state(path=path)
+            self.assertEqual([item.tool for item in loaded.items], ["tool_2", "tool_3"])
 
 
 if __name__ == "__main__":

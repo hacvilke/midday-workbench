@@ -53,7 +53,7 @@ from agent_core.run_log import (
     retention_stats,
 )
 from agent_core.sandbox import ExecutionSandbox
-from agent_core.session import clear_session_state, session_state_snapshot
+from agent_core.session import clear_session_state, prune_session_state, session_state_snapshot
 from agent_core.verifier import ReActVerifier
 from agent_core.router import IntentRouter
 
@@ -323,6 +323,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/context-window/clear":
             clear_session_state()
             return self.send_json({"ok": True})
+
+        if self.path == "/api/context-window/prune":
+            body = self._read_json()
+            keep = int(body.get("keep", 8))
+            return self.send_json(prune_session_state(keep=keep))
 
         if self.path == "/api/retention/prune":
             body = self._read_json()

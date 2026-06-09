@@ -58,6 +58,18 @@ class ContextWindow:
             )
         )
 
+    def prune(self, keep: int = 8) -> dict[str, object]:
+        """Keep only the newest context observations."""
+
+        keep = max(1, int(keep))
+        before = len(self.items)
+        self.items = self.items[-keep:]
+        return {
+            "keep": keep,
+            "deleted": max(0, before - len(self.items)),
+            "remaining": len(self.items),
+        }
+
     def chained_query(self, prompt: str) -> str:
         """Create a prompt augmented with compact prior observations.
 

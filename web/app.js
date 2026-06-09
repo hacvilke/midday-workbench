@@ -39,6 +39,7 @@ const promptHarness = document.querySelector("#promptHarness");
 const contextWindow = document.querySelector("#contextWindow");
 const indexStats = document.querySelector("#indexStats");
 const clearContextWindowButton = document.querySelector("#clearContextWindow");
+const pruneContextWindowButton = document.querySelector("#pruneContextWindow");
 const clearRunsButton = document.querySelector("#clearRuns");
 const fileEditorPath = document.querySelector("#fileEditorPath");
 const fileEditorContent = document.querySelector("#fileEditorContent");
@@ -1169,6 +1170,18 @@ clearContextWindowButton.addEventListener("click", async () => {
     body: "{}",
   });
   loadContextWindow();
+});
+
+pruneContextWindowButton.addEventListener("click", async () => {
+  const response = await fetch("/api/context-window/prune", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keep: 8 }),
+  });
+  const data = await response.json();
+  operationalReview.textContent = `context prune deleted ${Number(data.deleted || 0)} item(s); remaining ${Number(data.remaining || 0)}`;
+  loadContextWindow();
+  loadMetrics();
 });
 
 runToolButton.addEventListener("click", async () => {

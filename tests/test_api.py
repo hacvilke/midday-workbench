@@ -372,6 +372,12 @@ class ContextWindowEndpointTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(cleared.get("ok"))
 
+    def test_context_window_prune_endpoint_shape(self):
+        status, data = _post("/api/context-window/prune", {"keep": 4})
+        self.assertEqual(status, 200)
+        self.assertIn("deleted", data)
+        self.assertEqual(data["keep"], 4)
+
 
 class TimelineEndpointTests(unittest.TestCase):
     def test_timeline_endpoint_shape(self):

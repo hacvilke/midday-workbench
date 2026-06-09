@@ -105,3 +105,12 @@ def clear_session_state(path: Path = SESSION_STATE_PATH) -> None:
     """
 
     save_session_state(ContextWindow(), path=path)
+
+
+def prune_session_state(keep: int = 8, path: Path = SESSION_STATE_PATH) -> dict[str, object]:
+    """Prune persisted context-window observations while preserving newest items."""
+
+    window = load_session_state(path=path)
+    result = window.prune(keep=keep)
+    save_session_state(window, path=path)
+    return result | {"context_window": window.serialize()}

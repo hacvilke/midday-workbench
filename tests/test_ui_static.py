@@ -23,6 +23,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("session_id: sessionId", app_js)
         self.assertIn("plan?.confidence", app_js)
         self.assertIn("plan.ambiguous", app_js)
+        self.assertIn("plan.concurrency", app_js)
+        self.assertIn("concurrency serial", app_js)
         self.assertIn("metadata.file_writes", app_js)
         self.assertIn("file writes ${fileWrites", app_js)
         self.assertIn("metadata.usage", app_js)

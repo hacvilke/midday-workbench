@@ -782,6 +782,7 @@ async function loadRunDetail(runId) {
     const run = data.run || {};
     const plan = run.plan || {};
     const delegations = plan.delegations || [];
+    const concurrency = plan.concurrency || {};
     const verifier = run.verifier_reports || [];
     const fileWrites = run.file_writes || [];
     const usage = run.usage || {};
@@ -796,6 +797,7 @@ async function loadRunDetail(runId) {
       `usage prompt ${Number(usage.prompt_chars || 0)} chars - answer ${Number(usage.answer_chars || 0)} chars - context ${Number(usage.context_chars || 0)} chars`,
       formatRouteAlternatives(alternatives),
       `delegations ${delegations.map((item) => item.agent_id).join(", ") || "none"}`,
+      `concurrency serial ${(concurrency.serial_order || []).join(" -> ") || "none"}; parallel ${(concurrency.parallel_groups || []).map((group) => group.join(" + ")).join("; ") || "none"}`,
       `verifier ${verifier.map((item) => (item.passed ? "pass" : "fail")).join(", ") || "none"}`,
       `file writes ${fileWrites.map((write) => `${write.path} ${String(write.sha256 || "").slice(0, 12)}`).join(", ") || "none"}`,
     ].join("\n");

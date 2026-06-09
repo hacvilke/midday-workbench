@@ -91,3 +91,4 @@
 2026-06-09: [UPGRADE] Added a required frontend syntax quality gate using `node --check web/app.js` with sandbox allowlist coverage for JavaScript verification.
 2026-06-09: [UPGRADE] Added a named frontend syntax health check so `/api/health` exposes JavaScript quality-gate readiness separately from generic gate allowlisting.
 2026-06-09: [UPGRADE] Added health badge hover details for failed platform checks, frontend syntax readiness, and failed tool probes in the sidebar.
+2026-06-09: [UPGRADE] Added `latest_failed` quality-history telemetry and surfaced the newest failed gate in the command-runner history panel.

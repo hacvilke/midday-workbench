@@ -46,6 +46,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("/api/context-window/prune", app_js)
         self.assertIn("/api/memory/prune", app_js)
         self.assertIn("/api/quality/history", app_js)
+        self.assertIn("data.latest_failed", app_js)
         self.assertIn("loadQualityHistory", app_js)
         self.assertIn("data.retention?.total", app_js)
         self.assertIn("(data.risks || []).slice(0, 2)", app_js)

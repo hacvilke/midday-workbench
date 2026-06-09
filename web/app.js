@@ -1133,6 +1133,7 @@ async function loadQualityHistory() {
     summary.innerHTML = `
       <strong>${Number(data.passed || 0)} passed / ${Number(data.failed || 0)} failed</strong>
       <span>${Number(data.count || 0)} quality gate run(s)</span>
+      ${data.latest_failed ? `<em>latest failed: ${escapeHtml(data.latest_failed.gate || "quality")}</em>` : ""}
     `;
     qualityHistory.appendChild(summary);
     (data.latest || []).slice(0, 4).forEach((entry) => {

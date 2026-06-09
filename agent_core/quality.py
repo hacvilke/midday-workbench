@@ -196,5 +196,6 @@ def quality_history(session_id: str | None = None, limit: int = 50) -> dict[str,
         "count": len(rows),
         "passed": passed,
         "failed": failed,
+        "latest_failed": next((row for row in rows if not row["passed"]), None),
         "latest": rows[:10],
     }

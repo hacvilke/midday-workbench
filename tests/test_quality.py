@@ -77,7 +77,26 @@ class QualityGateTests(unittest.TestCase):
         history = quality_history(session_id=session_id)
         self.assertEqual(history["count"], 1)
         self.assertEqual(history["passed"], 1)
+        self.assertIsNone(history["latest_failed"])
         self.assertEqual(history["latest"][0]["gate"], "diff_stat")
+        clear_command_runs(session_id)
+
+    def test_quality_history_exposes_latest_failed_gate(self):
+        """Verify failed gate summaries are easy for UI/control-plane consumers to find."""
+
+        session_id = "quality-history-failed-test"
+        clear_command_runs(session_id)
+        add_command_run(
+            session_id,
+            "node --check web/app.js",
+            1,
+            "SyntaxError",
+            {"passed": False, "issues": ["exit=1"], "summary": "quality:frontend_syntax exit=1"},
+            5,
+        )
+        history = quality_history(session_id=session_id)
+        self.assertEqual(history["failed"], 1)
+        self.assertEqual(history["latest_failed"]["gate"], "frontend_syntax")
         clear_command_runs(session_id)
 
 

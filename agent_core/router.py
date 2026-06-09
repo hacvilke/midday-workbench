@@ -115,7 +115,7 @@ def is_visual_request(text: str) -> bool:
         "draw a graph", "show diagram", "make diagram", "draw diagram",
         "show chart", "make chart", "draw chart", "show map", "make map", "draw map",
     )
-    return contains_any(text, visual_patterns) or any(
+    return bool(re.search(r"\b(show|make|draw|plot|visualize)\b.*\b(graph|chart|diagram|map)\b", text)) or contains_any(text, visual_patterns) or any(
         word in text for word in ("diagram", "mermaid", "dashboard", "kanban", "mind map", "repo map", "repository map")
     )
 
@@ -127,7 +127,7 @@ def is_graph_algorithm_request(text: str) -> bool:
 def is_greeting_or_identity(text: str) -> bool:
     if text in IntentRouter.GREETING_WORDS:
         return True
-    return text in {"who are you?", "what are you?", "can you help?", "help me"}
+    return text in {"who are you?", "what are you?", "can you help?", "help me", "what can you do"}
 
 
 def is_file_edit_request(text: str) -> bool:

@@ -53,5 +53,5 @@ def get_config() -> AgentConfig:
         openrouter_model=os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct"),
         local_base_url=os.getenv("LOCAL_BASE_URL", "http://127.0.0.1:11434/v1"),
         local_model=os.getenv("LOCAL_MODEL", "llama3.1"),
-        provider_max_tokens=int(os.getenv("PROVIDER_MAX_TOKENS", "512")),
+        provider_max_tokens=int(os.getenv("PROVIDER_MAX_TOKENS", "128")),
     )

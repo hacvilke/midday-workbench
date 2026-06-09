@@ -11,7 +11,7 @@ class RouterTests(unittest.TestCase):
     def test_greeting_uses_no_tool(self):
         """Verify greetings and identity questions do not invoke tools."""
 
-        for message in ("hi", "hello", "help", "thanks", "who are you"):
+        for message in ("hi", "hello", "help", "thanks", "who are you", "what can you do"):
             route = IntentRouter().classify(message)
             self.assertEqual(route.intent, "plain_chat")
             self.assertEqual(route.tools, [])
@@ -139,6 +139,22 @@ class RouterTests(unittest.TestCase):
         self.assertTrue(run.completion_evidence["tools_verified"])
         self.assertIn("xychart-beta", run.answer)
         self.assertIn("Potential Energy", run.answer)
+
+    def test_agent_trading_graph_routes_to_visual_tool(self):
+        """Verify natural graph wording uses local visual tooling."""
+
+        run = Agent().run_with_metadata("make me a trading graph")
+        self.assertEqual(run.tools_used, ["rich_output_template_tool"])
+        self.assertEqual(run.provider, "local")
+        self.assertTrue(run.answer.startswith("```mermaid\n"))
+
+    def test_agent_capabilities_question_is_local(self):
+        """Verify capability questions do not spend provider credits."""
+
+        run = Agent().run_with_metadata("what can you do")
+        self.assertEqual(run.tools_used, [])
+        self.assertEqual(run.provider, "local")
+        self.assertIn("Midday Workbench", run.answer)
 
     def test_agent_streaming_visual_has_plan_metadata(self):
         """Verify streaming visual fast path includes planner metadata."""

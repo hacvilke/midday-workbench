@@ -378,7 +378,7 @@ class Agent:
         if route.intent != "plain_chat":
             return None
         normalized = re.sub(r"\s+", " ", prompt.strip().lower())
-        if "who are you" in normalized or "what are you" in normalized or "help" in normalized:
+        if "who are you" in normalized or "what are you" in normalized or "what can you do" in normalized or "help" in normalized:
             return (
                 "I am Midday Workbench — a local-first engineering agent. "
                 "I use OSS tools, web search, and file editing when needed, "

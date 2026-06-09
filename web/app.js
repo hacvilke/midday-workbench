@@ -26,6 +26,7 @@ const graphEdges = document.querySelector("#graphEdges");
 const graphCentrality = document.querySelector("#graphCentrality");
 const recentRuns = document.querySelector("#recentRuns");
 const sessionList = document.querySelector("#sessionList");
+const promptHarness = document.querySelector("#promptHarness");
 const clearRunsButton = document.querySelector("#clearRuns");
 const fileEditorPath = document.querySelector("#fileEditorPath");
 const fileEditorContent = document.querySelector("#fileEditorContent");
@@ -713,6 +714,30 @@ async function loadSessions() {
   }
 }
 
+async function loadPromptHarness() {
+  try {
+    const response = await fetch("/api/prompts");
+    const data = await response.json();
+    promptHarness.innerHTML = "";
+    Object.entries(data)
+      .slice(0, 6)
+      .forEach(([name, prompt]) => {
+        const row = document.createElement("div");
+        const preview = String(prompt).replace(/\s+/g, " ").trim().slice(0, 90);
+        row.innerHTML = `
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(preview)}${preview.length >= 90 ? "..." : ""}</span>
+        `;
+        promptHarness.appendChild(row);
+      });
+    if (!promptHarness.children.length) {
+      promptHarness.textContent = "No prompt harness entries.";
+    }
+  } catch {
+    promptHarness.textContent = "Prompt harness unavailable.";
+  }
+}
+
 async function loadSandboxPolicy() {
   try {
     const response = await fetch("/api/sandbox");
@@ -815,6 +840,7 @@ showStatus()
   .then(loadRepoGraph)
   .then(loadRecentRuns)
   .then(loadSessions)
+  .then(loadPromptHarness)
   .then(loadSandboxPolicy)
   .then(loadRecentCommands)
   .then(loadRecentDecisions)

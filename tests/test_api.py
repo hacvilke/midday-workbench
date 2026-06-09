@@ -186,6 +186,15 @@ class MetricsEndpointTests(unittest.TestCase):
         self.assertIn("verifier", data)
 
 
+class PromptsEndpointTests(unittest.TestCase):
+    def test_prompts_endpoint_exposes_harness_entries(self):
+        data = _get("/api/prompts")
+        self.assertIn("coordinator", data)
+        self.assertIn("read_only_research", data)
+        self.assertIn("implementation", data)
+        self.assertIn("Midday Workbench", data["coordinator"])
+
+
 class SessionsEndpointTests(unittest.TestCase):
     def test_returns_sessions_list(self):
         data = _get("/api/sessions")

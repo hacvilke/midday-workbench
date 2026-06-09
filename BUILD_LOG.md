@@ -65,3 +65,4 @@
 2026-06-09: [UPGRADE] Added provider-route verification reports for model failover metadata so streamed and non-streamed runs explicitly record provider success, fallback failures, or missing attempt data.
 2026-06-09: [UPGRADE] Added a provider diagnostics panel to the sidebar showing selected provider, provider kind, configured state, model names, and fallback route readiness without exposing secrets.
 2026-06-09: [UPGRADE] Added provider-route degradation telemetry to operational metrics and scorecard risks so fallback chains are tracked separately from generic verifier failures.
+2026-06-09: [UPGRADE] Surfaced provider-route degradation counts in the sidebar metrics panel so operator telemetry matches the new backend scorecard.

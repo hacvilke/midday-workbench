@@ -86,14 +86,16 @@ class Handler(BaseHTTPRequestHandler):
             config = get_config()
             registry = OssToolRegistry(config)
             prompts = prompt_registry()
+            health = health_report()
+            metrics = operational_metrics(session_id=session_id)
             return self.send_json(
                 {
                     "provider": config.provider,
                     "provider_route": [p.name for p in configured_providers(config)],
                     "tools": registry.tool_records(),
-                    "health": health_report(),
-                    "metrics": operational_metrics(session_id=session_id),
-                    "operational_review": operational_review(session_id=session_id),
+                    "health": health,
+                    "metrics": metrics,
+                    "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics),
                     "sessions": get_sessions(limit=10),
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),

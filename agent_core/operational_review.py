@@ -5,18 +5,24 @@ from .health import health_report
 from .run_log import operational_metrics
 
 
-def operational_review(session_id: str | None = None) -> dict[str, object]:
+def operational_review(
+    session_id: str | None = None,
+    health: dict[str, object] | None = None,
+    metrics: dict[str, object] | None = None,
+) -> dict[str, object]:
     """Build a deterministic scorecard from health and runtime telemetry.
 
     Args:
         session_id: Optional session filter.
+        health: Optional precomputed health report.
+        metrics: Optional precomputed operational metrics.
 
     Returns:
         JSON-compatible scorecard with risks and recommended next actions.
     """
 
-    health = health_report()
-    metrics = operational_metrics(session_id=session_id)
+    health = health or health_report()
+    metrics = metrics or operational_metrics(session_id=session_id)
     risks: list[str] = []
     recommendations: list[str] = []
     score = 100

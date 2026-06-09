@@ -68,6 +68,43 @@ def clear_session(session_id: str) -> None:
     con.close()
 
 
+def prune_messages(session_id: str, keep: int = 100) -> dict[str, object]:
+    """Prune raw chat messages while preserving the condensed summary."""
+
+    keep = max(1, int(keep))
+    con = connect()
+    before = con.execute(
+        "SELECT COUNT(*) FROM messages WHERE session_id = ?",
+        (session_id,),
+    ).fetchone()[0]
+    con.execute(
+        """
+        DELETE FROM messages
+        WHERE session_id = ?
+          AND id NOT IN (
+            SELECT id FROM messages
+            WHERE session_id = ?
+            ORDER BY id DESC
+            LIMIT ?
+          )
+        """,
+        (session_id, session_id, keep),
+    )
+    con.commit()
+    after = con.execute(
+        "SELECT COUNT(*) FROM messages WHERE session_id = ?",
+        (session_id,),
+    ).fetchone()[0]
+    con.close()
+    return {
+        "session_id": session_id,
+        "keep": keep,
+        "deleted": max(0, int(before) - int(after)),
+        "remaining": int(after),
+        "summary_preserved": bool(get_session_summary(session_id).get("summary")),
+    }
+
+
 def get_session_summary(session_id: str) -> dict[str, object]:
     """Fetch the condensed session memory summary.
 

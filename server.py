@@ -20,6 +20,7 @@ from agent_core.memory import (
     clear_session,
     get_recent_messages,
     get_session_summary,
+    prune_messages,
     update_session_summary,
 )
 from agent_core.oss_tools import OssToolRegistry
@@ -287,6 +288,12 @@ class Handler(BaseHTTPRequestHandler):
             body = self._read_json()
             clear_session(body.get("session_id", "default"))
             return self.send_json({"ok": True})
+
+        if self.path == "/api/memory/prune":
+            body = self._read_json()
+            session_id = str(body.get("session_id", "default"))
+            keep = int(body.get("keep", 100))
+            return self.send_json(prune_messages(session_id=session_id, keep=keep))
 
         if self.path == "/api/runs/clear":
             body = self._read_json()

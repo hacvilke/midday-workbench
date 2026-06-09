@@ -419,6 +419,12 @@ class MemoryEndpointTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(data.get("ok"))
 
+    def test_prune_memory_endpoint_shape(self):
+        status, data = _post("/api/memory/prune", {"session_id": "test-smoke-session", "keep": 5})
+        self.assertEqual(status, 200)
+        self.assertIn("deleted", data)
+        self.assertEqual(data["keep"], 5)
+
 
 class GraphEndpointTests(unittest.TestCase):
     def test_returns_nodes_and_edges(self):

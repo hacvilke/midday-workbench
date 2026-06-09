@@ -29,6 +29,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("data.usage?.average_answer_chars", app_js)
         self.assertIn("data.provider_routes?.degraded", app_js)
         self.assertIn("data.memory?.message_count", app_js)
+        self.assertIn("/api/memory/prune", app_js)
         self.assertIn("data.retention?.total", app_js)
         self.assertIn("(data.risks || []).slice(0, 2)", app_js)
         self.assertIn("provider_diagnostics", app_js)

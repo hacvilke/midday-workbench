@@ -12,6 +12,7 @@ const operationalReview = document.querySelector("#operationalReview");
 const routingAudit = document.querySelector("#routingAudit");
 const activityTimeline = document.querySelector("#activityTimeline");
 const clearMemoryButton = document.querySelector("#clearMemory");
+const pruneMemoryButton = document.querySelector("#pruneMemory");
 const toolSelect = document.querySelector("#toolSelect");
 const toolQuery = document.querySelector("#toolQuery");
 const runToolButton = document.querySelector("#runTool");
@@ -1101,6 +1102,19 @@ clearMemoryButton.addEventListener("click", async () => {
   });
   messages.innerHTML = "";
   addMessage("agent", "Memory cleared for this browser session.");
+  await loadMetrics();
+});
+
+pruneMemoryButton.addEventListener("click", async () => {
+  const response = await fetch("/api/memory/prune", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId, keep: 40 }),
+  });
+  const data = await response.json();
+  operationalReview.textContent = `memory prune deleted ${Number(data.deleted || 0)} row(s); remaining ${Number(data.remaining || 0)}`;
+  await loadMemory();
+  await loadMetrics();
 });
 
 clearRunsButton.addEventListener("click", async () => {

@@ -5,6 +5,7 @@ from agent_core.memory import (
     get_session_summary,
     add_message,
     memory_stats,
+    prune_messages,
     summarize_exchange,
     update_session_summary,
 )
@@ -42,6 +43,22 @@ class MemorySummaryTests(unittest.TestCase):
         stats = memory_stats(session_id=session_id)
         self.assertTrue(stats["has_summary"])
         self.assertGreater(stats["summary_chars"], 0)
+        clear_session(session_id)
+
+    def test_prune_messages_keeps_newest_and_preserves_summary(self):
+        """Verify raw memory pruning keeps latest messages and summary."""
+
+        session_id = "memory-prune-test"
+        clear_session(session_id)
+        update_session_summary(session_id, "first", "stored")
+        for index in range(4):
+            add_message(session_id, "user", f"message {index}")
+        result = prune_messages(session_id=session_id, keep=2)
+        self.assertEqual(result["deleted"], 2)
+        self.assertEqual(result["remaining"], 2)
+        self.assertTrue(result["summary_preserved"])
+        stats = memory_stats(session_id=session_id)
+        self.assertEqual(stats["message_count"], 2)
         clear_session(session_id)
 
 

@@ -77,12 +77,14 @@ class QualityGateTests(unittest.TestCase):
             "",
             {"passed": True, "issues": [], "summary": "quality:diff_stat exit=0"},
             3,
+            {"allowed": True, "matched_prefix": "git diff --stat"},
         )
         history = quality_history(session_id=session_id)
         self.assertEqual(history["count"], 1)
         self.assertEqual(history["passed"], 1)
         self.assertIsNone(history["latest_failed"])
         self.assertEqual(history["latest"][0]["gate"], "diff_stat")
+        self.assertTrue(history["latest"][0]["policy_decision"]["allowed"])
         clear_command_runs(session_id)
 
     def test_quality_history_exposes_latest_failed_gate(self):
@@ -97,10 +99,12 @@ class QualityGateTests(unittest.TestCase):
             "SyntaxError",
             {"passed": False, "issues": ["exit=1"], "summary": "quality:frontend_syntax exit=1"},
             5,
+            {"allowed": True, "matched_prefix": "node --check"},
         )
         history = quality_history(session_id=session_id)
         self.assertEqual(history["failed"], 1)
         self.assertEqual(history["latest_failed"]["gate"], "frontend_syntax")
+        self.assertEqual(history["latest_failed"]["policy_decision"]["matched_prefix"], "node --check")
         clear_command_runs(session_id)
 
 

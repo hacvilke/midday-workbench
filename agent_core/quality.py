@@ -200,6 +200,7 @@ def quality_history(session_id: str | None = None, limit: int = 50) -> dict[str,
                 "command": command.get("command"),
                 "passed": ok,
                 "summary": summary,
+                "policy_decision": command.get("policy_decision") or {},
                 "duration_ms": command.get("duration_ms"),
                 "created_at": command.get("created_at"),
             }

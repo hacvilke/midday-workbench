@@ -21,6 +21,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("function formatSandboxDecision", app_js)
         self.assertIn("formatSandboxDecision(entry.policy_decision)", app_js)
         self.assertIn("formatSandboxDecision(gate.policy_decision)", app_js)
+        self.assertIn("entry.policy_decision", app_js)
         self.assertIn("Current command:", app_js)
         self.assertIn("commandInput.addEventListener(\"input\"", app_js)
         self.assertIn("async function loadIndexStats", app_js)

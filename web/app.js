@@ -1146,6 +1146,7 @@ async function loadQualityHistory() {
         <strong>${escapeHtml(entry.gate || "quality")}</strong>
         <span>${escapeHtml(entry.summary || "")}</span>
         <em>${Number(entry.duration_ms || 0)}ms</em>
+        <small>${escapeHtml(formatSandboxDecision(entry.policy_decision))}</small>
       `;
       qualityHistory.appendChild(row);
     });

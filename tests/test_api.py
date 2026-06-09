@@ -127,6 +127,7 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertIn("count", data)
         self.assertIn("latest", data)
         self.assertIsInstance(data["latest"], list)
+        self.assertIn("latest_failed", data)
 
 
 class HealthEndpointTests(unittest.TestCase):

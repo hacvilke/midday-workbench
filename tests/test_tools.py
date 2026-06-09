@@ -128,6 +128,9 @@ class SandboxTests(unittest.TestCase):
     def test_is_allowed_git_log_true(self):
         self.assertTrue(self.sandbox.is_allowed("git log --oneline -5"))
 
+    def test_secret_scan_allowed(self):
+        self.assertTrue(self.sandbox.is_allowed("python -m agent_core.secret_scan"))
+
     def test_decide_allowed_command_explains_prefix(self):
         decision = self.sandbox.decide("git status")
         self.assertTrue(decision.allowed)

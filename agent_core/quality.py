@@ -34,6 +34,7 @@ QUALITY_GATES: tuple[QualityGate, ...] = (
     QualityGate("compile", "python -m compileall agent_core", "Python source compiles."),
     QualityGate("unit_tests", "python -m unittest discover tests", "Full test suite passes."),
     QualityGate("evals", "python -m agent_core.evals", "Agent routing, tools, health, memory, and run log evals pass."),
+    QualityGate("secret_scan", "python -m agent_core.secret_scan", "Configured provider key patterns are absent from the workspace."),
     QualityGate("git_status", "git status --short", "Working tree state is visible."),
     QualityGate("diff_stat", "git diff --stat", "Change size is visible.", required=False),
 )

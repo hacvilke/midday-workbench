@@ -21,6 +21,7 @@ from .execution_policy import decide, policy_manifest
 from .indexer import index_stats
 from .quality import required_quality_commands
 from .sandbox import ExecutionSandbox
+from .secret_scan import SECRET_PATTERNS
 
 
 @dataclass(frozen=True)
@@ -158,6 +159,11 @@ def run_health_checks() -> list[HealthCheck]:
             "quality_gates_allowlisted",
             all(sandbox.is_allowed(command) for command in required_quality_commands()),
             "required quality gates can run through the sandbox",
+        ),
+        HealthCheck(
+            "secret_scan",
+            "python -m agent_core.secret_scan" in required_quality_commands() and len(SECRET_PATTERNS) >= 2,
+            "secret scan quality gate is configured",
         ),
     ]
 

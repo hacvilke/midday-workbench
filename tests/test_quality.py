@@ -19,6 +19,7 @@ class QualityGateTests(unittest.TestCase):
 
         gates = quality_gate_manifest()
         self.assertGreaterEqual(len(gates), 3)
+        self.assertIn("secret_scan", [gate["name"] for gate in gates])
         first = gates[0]
         self.assertIn("name", first)
         self.assertIn("command", first)
@@ -41,6 +42,8 @@ class QualityGateTests(unittest.TestCase):
         report = run_quality_gates(required_only=True, dry_run=True)
         git_status = [item for item in report["results"] if item["name"] == "git_status"][0]
         self.assertTrue(git_status["verified"]["passed"])
+        secret_scan = [item for item in report["results"] if item["name"] == "secret_scan"][0]
+        self.assertTrue(secret_scan["verified"]["passed"])
 
     def test_quality_gate_run_persists_command_audit(self):
         """Verify actual quality runs can write command audit rows."""

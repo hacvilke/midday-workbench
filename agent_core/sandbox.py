@@ -43,6 +43,7 @@ class ExecutionSandbox:
         "python -m unittest",
         "python -m pytest",
         "python -m agent_core.evals",
+        "python -m agent_core.secret_scan",
         "python -c \"import",
         # Node version check
         "node --version",

@@ -26,6 +26,7 @@ const graphNodes = document.querySelector("#graphNodes");
 const graphEdges = document.querySelector("#graphEdges");
 const graphCentrality = document.querySelector("#graphCentrality");
 const recentRuns = document.querySelector("#recentRuns");
+const runDetail = document.querySelector("#runDetail");
 const sessionList = document.querySelector("#sessionList");
 const promptHarness = document.querySelector("#promptHarness");
 const clearRunsButton = document.querySelector("#clearRuns");
@@ -684,10 +685,45 @@ async function loadRecentRuns() {
         <span>${escapeHtml(run.provider)} · ${Number(run.duration_ms || 0)}ms</span>
         <em>${escapeHtml(tools)}</em>
       `;
+      row.tabIndex = 0;
+      row.title = "Inspect run metadata";
+      row.addEventListener("click", () => loadRunDetail(run.run_id));
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          loadRunDetail(run.run_id);
+        }
+      });
       recentRuns.appendChild(row);
     });
   } catch {
     recentRuns.textContent = "Runs unavailable.";
+  }
+}
+
+async function loadRunDetail(runId) {
+  runDetail.textContent = "Loading run detail...";
+  try {
+    const response = await fetch(`/api/runs/${encodeURIComponent(runId)}`);
+    const data = await response.json();
+    if (!response.ok) {
+      runDetail.textContent = data.error || "Run detail unavailable.";
+      return;
+    }
+    const run = data.run || {};
+    const plan = run.plan || {};
+    const delegations = plan.delegations || [];
+    const verifier = run.verifier_reports || [];
+    runDetail.textContent = [
+      `run ${run.run_id}`,
+      `intent ${plan.intent || "unknown"}`,
+      `tool ${plan.tool || "direct"}`,
+      `provider ${run.provider || "unknown"} - ${Number(run.duration_ms || 0)}ms`,
+      `delegations ${delegations.map((item) => item.agent_id).join(", ") || "none"}`,
+      `verifier ${verifier.map((item) => (item.passed ? "pass" : "fail")).join(", ") || "none"}`,
+    ].join("\n");
+  } catch {
+    runDetail.textContent = "Run detail unavailable.";
   }
 }
 

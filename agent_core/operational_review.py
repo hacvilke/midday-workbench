@@ -154,6 +154,7 @@ def operational_review(
         "grade": _grade(score),
         "risks": risks,
         "recommendations": recommendations,
+        "next_action": recommendations[0] if recommendations else "",
         "metrics": metrics,
         "index": index,
         "health_passed": bool(health["passed"]),

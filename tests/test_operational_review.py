@@ -15,6 +15,7 @@ class OperationalReviewTests(unittest.TestCase):
         self.assertIn(review["grade"], {"excellent", "good", "needs_attention", "unstable"})
         self.assertIn("risks", review)
         self.assertIn("recommendations", review)
+        self.assertIn("next_action", review)
         self.assertIn("metrics", review)
 
     def test_operational_review_accepts_precomputed_inputs(self):
@@ -264,6 +265,7 @@ class OperationalReviewTests(unittest.TestCase):
         self.assertLess(review["score"], 100)
         self.assertTrue(any("quality gate run(s) failed" in risk for risk in review["risks"]))
         self.assertTrue(any("frontend_syntax" in item for item in review["recommendations"]))
+        self.assertIn("frontend_syntax", review["next_action"])
 
     def test_context_window_bloat_reduces_score(self):
         """Verify oversized context windows are operationally visible."""

@@ -50,6 +50,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("loadQualityHistory", app_js)
         self.assertIn("data.retention?.total", app_js)
         self.assertIn("(data.risks || []).slice(0, 2)", app_js)
+        self.assertIn("data.next_action", app_js)
         self.assertIn("provider_diagnostics", app_js)
         self.assertIn("remote_ready", app_js)
         self.assertIn("providerPanel", app_js)

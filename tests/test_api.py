@@ -307,6 +307,7 @@ class OperationalReviewEndpointTests(unittest.TestCase):
         data = _get("/api/operational-review?session_id=nonexistent-session-xyz")
         self.assertIn("score", data)
         self.assertIn("grade", data)
+        self.assertIn("next_action", data)
         self.assertIn("risks", data)
         self.assertIn("recommendations", data)
         self.assertIn("index", data)

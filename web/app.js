@@ -1016,7 +1016,7 @@ async function loadOperationalReview() {
     operationalReview.textContent = [
       `score ${Number(data.score || 0)}/100 (${data.grade || "unknown"})`,
       `risk ${risks.join(" | ") || "No risk summary."}`,
-      `next ${recommendations.join(" | ") || "No recommendation."}`,
+      `next ${data.next_action || recommendations.join(" | ") || "No recommendation."}`,
     ].join("\n");
   } catch {
     operationalReview.textContent = "Operational review unavailable.";

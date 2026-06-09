@@ -160,6 +160,7 @@ def format_environment_context(context: EnvironmentContext) -> str:
 def format_operational_guardrails(config: AgentConfig) -> str:
     """Return compact live routing/sandbox guardrails for provider prompts."""
 
+    from .quality import quality_readiness
     from .run_log import operational_metrics, route_decision_summary
 
     sandbox = ExecutionSandbox(config.workspace_root)
@@ -168,6 +169,7 @@ def format_operational_guardrails(config: AgentConfig) -> str:
     delegation = DelegationPlanner().manifest()
     route_summary = route_decision_summary(limit=50)
     metrics = operational_metrics()
+    readiness = quality_readiness()
     quality = metrics.get("quality_history", {})
     commands = metrics.get("commands", {})
     latest_failed = quality.get("latest_failed") or {}
@@ -193,6 +195,9 @@ def format_operational_guardrails(config: AgentConfig) -> str:
         f"from `{route_summary.get('count', 0)}` inspected route(s); top intents: `{top_intents}`\n"
         f"- Quality Action: `{quality.get('failed', 0)}` failed gate(s); "
         f"latest failed: `{latest_failed_gate or 'none'}`\n"
+        f"- Quality Readiness: `{'ready' if readiness.get('ready') else 'not_ready'}` "
+        f"({readiness.get('known_required_count', 0)}/{readiness.get('required_count', 0)} required known; "
+        f"missing {len(readiness.get('missing_required', []))}; failed {len(readiness.get('failed_required', []))})\n"
         f"- Command Action: `{commands.get('failures', 0)}` failed command(s); "
         f"latest failed: `{latest_failed_command_name or 'none'}`\n"
         f"- Top Operational Action: `{top_action_label}`\n"

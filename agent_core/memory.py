@@ -25,6 +25,15 @@ def connect(path: Path = MEMORY_PATH) -> sqlite3.Connection:
         """
     )
     con.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, id)")
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS session_summaries (
+            session_id TEXT PRIMARY KEY,
+            summary TEXT NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        """
+    )
     return con
 
 
@@ -54,5 +63,91 @@ def get_recent_messages(session_id: str, limit: int = 8) -> list[dict[str, objec
 def clear_session(session_id: str) -> None:
     con = connect()
     con.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+    con.execute("DELETE FROM session_summaries WHERE session_id = ?", (session_id,))
     con.commit()
     con.close()
+
+
+def get_session_summary(session_id: str) -> dict[str, object]:
+    """Fetch the condensed session memory summary.
+
+    Args:
+        session_id: Browser/session id.
+
+    Returns:
+        Summary payload with text and timestamp, or an empty summary.
+    """
+
+    con = connect()
+    row = con.execute(
+        "SELECT summary, updated_at FROM session_summaries WHERE session_id = ?",
+        (session_id,),
+    ).fetchone()
+    con.close()
+    if not row:
+        return {"summary": "", "updated_at": None}
+    return {"summary": row[0], "updated_at": row[1]}
+
+
+def update_session_summary(session_id: str, user_message: str, agent_answer: str) -> dict[str, object]:
+    """Update deterministic condensed memory for a session.
+
+    This is intentionally model-free: it keeps durable facts about recent user
+    requests, tools, and outcomes without storing huge transcripts in prompts.
+
+    Args:
+        session_id: Browser/session id.
+        user_message: Latest user prompt.
+        agent_answer: Latest agent answer.
+
+    Returns:
+        Updated summary payload.
+    """
+
+    previous = str(get_session_summary(session_id).get("summary") or "")
+    bullets = [line.strip("- ").strip() for line in previous.splitlines() if line.strip()]
+    new_fact = summarize_exchange(user_message, agent_answer)
+    if new_fact:
+        bullets.append(new_fact)
+    compact = []
+    for bullet in bullets[-8:]:
+        if bullet and bullet not in compact:
+            compact.append(bullet[:220])
+    summary = "\n".join(f"- {bullet}" for bullet in compact)
+    now = int(time.time())
+    con = connect()
+    con.execute(
+        """
+        INSERT INTO session_summaries(session_id, summary, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(session_id) DO UPDATE SET summary = excluded.summary, updated_at = excluded.updated_at
+        """,
+        (session_id, summary, now),
+    )
+    con.commit()
+    con.close()
+    return {"summary": summary, "updated_at": now}
+
+
+def summarize_exchange(user_message: str, agent_answer: str) -> str:
+    """Create one compact memory bullet from an exchange.
+
+    Args:
+        user_message: Latest user prompt.
+        agent_answer: Latest agent answer.
+
+    Returns:
+        A short durable memory bullet.
+    """
+
+    prompt = " ".join(user_message.split())[:120]
+    answer = " ".join(agent_answer.split())[:120]
+    if not prompt:
+        return ""
+    if answer.startswith("```mermaid"):
+        outcome = "returned a visual Mermaid response"
+    elif "Provider failed" in answer:
+        outcome = "used local fallback after provider failure"
+    else:
+        outcome = answer
+    return f"User asked: {prompt}; outcome: {outcome}"

@@ -375,7 +375,8 @@ class Agent:
         for item in history[-8:]:
             role = str(item.get("role", "unknown"))
             content = str(item.get("content", ""))[:1200]
-            safe.append(f"{role}: {content}")
+            label = "condensed_session_memory" if role == "summary" else role
+            safe.append(f"{label}: {content}")
         return "\n".join(safe)
 
     def _build_messages(self, prompt, context, react_steps, tool_results, v_reports, history) -> list[Message]:

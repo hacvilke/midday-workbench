@@ -12,7 +12,13 @@ from agent_core.agent import Agent, AgentRun
 from agent_core.config import PROJECT_ROOT, get_config
 from agent_core.file_editor import FileEditorTool
 from agent_core.health import health_report
-from agent_core.memory import add_message, clear_session, get_recent_messages
+from agent_core.memory import (
+    add_message,
+    clear_session,
+    get_recent_messages,
+    get_session_summary,
+    update_session_summary,
+)
 from agent_core.oss_tools import OssToolRegistry
 from agent_core.output_templates import template_registry
 from agent_core.prompt_harness import prompt_registry
@@ -78,7 +84,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/memory":
             session_id = _query_param(parsed.query, "session_id") or "default"
-            return self.send_json({"messages": get_recent_messages(session_id, limit=20)})
+            return self.send_json(
+                {
+                    "messages": get_recent_messages(session_id, limit=20),
+                    "summary": get_session_summary(session_id),
+                }
+            )
 
         if parsed.path == "/api/runs":
             session_id = _query_param(parsed.query, "session_id")
@@ -206,6 +217,9 @@ class Handler(BaseHTTPRequestHandler):
             session_id = body.get("session_id", "default")
             prompt = body.get("prompt", "")
             history = get_recent_messages(session_id, limit=8)
+            summary = get_session_summary(session_id).get("summary")
+            if summary:
+                history = [{"role": "summary", "content": summary}] + history
             add_message(session_id, "user", prompt)
 
             self.send_response(200)
@@ -240,6 +254,7 @@ class Handler(BaseHTTPRequestHandler):
 
             if full_answer:
                 add_message(session_id, "agent", full_answer)
+                update_session_summary(session_id, prompt, full_answer)
             if metadata:
                 try:
                     run = AgentRun(
@@ -269,10 +284,14 @@ class Handler(BaseHTTPRequestHandler):
         session_id = body.get("session_id", "default")
         prompt = body.get("prompt", "")
         history = get_recent_messages(session_id, limit=8)
+        summary = get_session_summary(session_id).get("summary")
+        if summary:
+            history = [{"role": "summary", "content": summary}] + history
         add_message(session_id, "user", prompt)
         run = Agent().run_with_metadata(prompt, history=history)
         add_run(session_id, prompt, run)
         add_message(session_id, "agent", run.answer)
+        update_session_summary(session_id, prompt, run.answer)
         self.send_json(
             {
                 "answer": run.answer,

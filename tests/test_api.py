@@ -151,6 +151,8 @@ class MemoryEndpointTests(unittest.TestCase):
         data = _get("/api/memory?session_id=test-smoke-session")
         self.assertIn("messages", data)
         self.assertIsInstance(data["messages"], list)
+        self.assertIn("summary", data)
+        self.assertIn("summary", data["summary"])
 
     def test_clear_memory_ok(self):
         status, data = _post("/api/memory/clear", {"session_id": "test-smoke-session"})

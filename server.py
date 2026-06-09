@@ -127,7 +127,13 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/delegation":
             message = _query_param(parsed.query, "message") or ""
             planner = DelegationPlanner()
-            return self.send_json({"assignments": planner.as_dicts(message), "manifest": planner.manifest()})
+            return self.send_json(
+                {
+                    "assignments": planner.as_dicts(message),
+                    "concurrency": planner.concurrency_plan(message),
+                    "manifest": planner.manifest(),
+                }
+            )
 
         if parsed.path == "/api/prompts":
             return self.send_json(prompt_registry())

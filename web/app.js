@@ -1148,6 +1148,17 @@ inspectRouteButton.addEventListener("click", async () => {
     const delegationResponse = await fetch(`/api/delegation?message=${encodeURIComponent(query)}`);
     const delegation = await delegationResponse.json();
     delegationOutput.innerHTML = "";
+    const concurrency = delegation.concurrency || {};
+    const summary = document.createElement("div");
+    const parallelGroups = (concurrency.parallel_groups || [])
+      .map((group) => group.join(" + "))
+      .join("; ") || "none";
+    summary.innerHTML = `
+      <strong>Concurrency Plan</strong>
+      <span>serial: ${escapeHtml((concurrency.serial_order || []).join(" -> ") || "none")}</span>
+      <em>parallel candidates: ${escapeHtml(parallelGroups)}</em>
+    `;
+    delegationOutput.appendChild(summary);
     (delegation.assignments || []).forEach((assignment) => {
       const row = document.createElement("div");
       row.innerHTML = `

@@ -31,6 +31,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("(data.risks || []).slice(0, 2)", app_js)
         self.assertIn("provider_diagnostics", app_js)
         self.assertIn("remote_ready", app_js)
+        self.assertIn("Concurrency Plan", app_js)
+        self.assertIn("parallel_groups", app_js)
 
 
 if __name__ == "__main__":

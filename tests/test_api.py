@@ -337,9 +337,12 @@ class DelegationEndpointTests(unittest.TestCase):
     def test_delegation_endpoint_returns_assignments(self):
         data = _get("/api/delegation?message=fix%20web/app.js")
         self.assertIn("assignments", data)
+        self.assertIn("concurrency", data)
         self.assertIn("manifest", data)
         self.assertIn("manager", [assignment["agent_id"] for assignment in data["assignments"]])
         self.assertIn("reviewer", [assignment["agent_id"] for assignment in data["assignments"]])
+        self.assertIn("serial_order", data["concurrency"])
+        self.assertIn("parallel_groups", data["concurrency"])
 
 
 class ContextWindowEndpointTests(unittest.TestCase):

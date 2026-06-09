@@ -118,12 +118,63 @@ class DelegationPlanner:
             ],
             "modes": ["serial", "direct", "parallel_candidate"],
             "parallel_policy": "parallel_candidate assignments must be read-only or verifier-only until an isolated worker runtime is attached",
+            "parallel_plan_schema": {
+                "serial_order": "agent IDs that must run in order",
+                "parallel_groups": "agent IDs that can run together after serial prerequisites",
+                "blocked_parallel": "assignments held back from parallel execution and the reason",
+            },
         }
 
     def as_dicts(self, message: str) -> list[dict[str, object]]:
         """Return JSON-compatible assignments for APIs and run metadata."""
 
         return [asdict(assignment) for assignment in self.build(message)]
+
+    def concurrency_plan(self, message: str) -> dict[str, object]:
+        """Return safe execution ordering metadata for planned assignments.
+
+        The plan is intentionally conservative: only read-only or verifier-only
+        parallel candidates are grouped, and executor roles remain serial until
+        Midday has a hardened isolated worker runtime.
+        """
+
+        assignments = self.as_dicts(message)
+        serial_order = [
+            assignment["agent_id"]
+            for assignment in assignments
+            if assignment["mode"] in {"serial", "direct"}
+        ]
+        parallel_candidates = [
+            assignment
+            for assignment in assignments
+            if assignment["mode"] == "parallel_candidate"
+        ]
+        safe_parallel = [
+            assignment["agent_id"]
+            for assignment in parallel_candidates
+            if self._is_parallel_safe(assignment)
+        ]
+        blocked_parallel = [
+            {
+                "agent_id": assignment["agent_id"],
+                "reason": "requires read-only tools or verifier-only scope",
+            }
+            for assignment in parallel_candidates
+            if assignment["agent_id"] not in safe_parallel
+        ]
+        return {
+            "serial_order": serial_order,
+            "parallel_groups": [safe_parallel] if safe_parallel else [],
+            "blocked_parallel": blocked_parallel,
+            "policy": "only verifier-only or read-only assignments may run as parallel candidates",
+        }
+
+    def _is_parallel_safe(self, assignment: dict[str, object]) -> bool:
+        tools = set(assignment.get("tools") or [])
+        if assignment.get("agent_id") == "verifier":
+            return True
+        readonly_tools = {"repomix_context_pack_tool", "gitingest_remote_context_tool", "last30days_research_tool"}
+        return bool(tools) and tools.issubset(readonly_tools)
 
     def _executor_role(self, intent: str) -> str:
         if intent == "visualize":

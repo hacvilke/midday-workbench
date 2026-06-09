@@ -77,6 +77,28 @@ class Handler(BaseHTTPRequestHandler):
                 }
             )
 
+        if parsed.path == "/api/control-plane":
+            session_id = _query_param(parsed.query, "session_id")
+            config = get_config()
+            registry = OssToolRegistry(config)
+            prompts = prompt_registry()
+            return self.send_json(
+                {
+                    "provider": config.provider,
+                    "provider_route": [p.name for p in configured_providers(config)],
+                    "tools": registry.tool_records(),
+                    "health": health_report(),
+                    "metrics": operational_metrics(session_id=session_id),
+                    "sessions": get_sessions(limit=10),
+                    "policy": policy_manifest(),
+                    "quality_gates": quality_gate_manifest(),
+                    "prompts": {
+                        "names": sorted(prompts.keys()),
+                        "count": len(prompts),
+                    },
+                }
+            )
+
         if parsed.path == "/api/prompts":
             return self.send_json(prompt_registry())
 

@@ -26,3 +26,4 @@
 2026-06-09: [FIX] Fixed streaming fast paths to build planner metadata before greeting/visual responses, with regression tests for streaming plan metadata.
 2026-06-09: [UPGRADE] Aligned internal coordinator prompt, package docstring, and CLI description with the Midday Workbench name, with prompt-harness tests for identity/context.
 2026-06-09: [UPGRADE] Added a Prompt Harness sidebar panel backed by `/api/prompts`, showing coordinator and sub-agent prompt previews for local control-plane inspection.
+2026-06-09: [UPGRADE] Added `/api/control-plane`, an aggregate local endpoint for provider route, tool records, health, metrics, sessions, execution policy, quality gates, and prompt harness names.

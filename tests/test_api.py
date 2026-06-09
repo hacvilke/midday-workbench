@@ -195,6 +195,19 @@ class PromptsEndpointTests(unittest.TestCase):
         self.assertIn("Midday Workbench", data["coordinator"])
 
 
+class ControlPlaneEndpointTests(unittest.TestCase):
+    def test_control_plane_endpoint_aggregates_operational_state(self):
+        data = _get("/api/control-plane?session_id=nonexistent-session-xyz")
+        self.assertIn("health", data)
+        self.assertIn("metrics", data)
+        self.assertIn("sessions", data)
+        self.assertIn("policy", data)
+        self.assertIn("quality_gates", data)
+        self.assertIn("prompts", data)
+        self.assertIn("tools", data)
+        self.assertIn("coordinator", data["prompts"]["names"])
+
+
 class SessionsEndpointTests(unittest.TestCase):
     def test_returns_sessions_list(self):
         data = _get("/api/sessions")

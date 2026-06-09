@@ -98,7 +98,9 @@ def run_quality_gates(
     for gate in gates:
         started = time.perf_counter()
         if dry_run:
-            allowed = sandbox.is_allowed(gate.command)
+            decision = sandbox.decide(gate.command, timeout=60)
+            policy_decision = _policy_decision_payload(decision)
+            allowed = bool(decision.allowed)
             results.append(
                 {
                     "name": gate.name,
@@ -107,6 +109,7 @@ def run_quality_gates(
                     "exit_code": None,
                     "output": "",
                     "duration_ms": 0,
+                    "policy_decision": policy_decision,
                     "verified": {
                         "passed": allowed,
                         "issues": [] if allowed else ["command is not allowlisted"],
@@ -120,14 +123,7 @@ def run_quality_gates(
             result = sandbox.run_read_only(gate.command, timeout=60)
             report = verifier.verify_command_result(result.command, result.exit_code, result.output)
             verified = {"passed": report.passed, "issues": report.issues, "summary": f"quality:{gate.name} {report.summary}"}
-            policy_decision = {
-                "command": decision.command,
-                "allowed": decision.allowed,
-                "reason": decision.reason,
-                "matched_prefix": decision.matched_prefix,
-                "blocked_pattern": decision.blocked_pattern,
-                "timeout_seconds": decision.timeout_seconds,
-            }
+            policy_decision = _policy_decision_payload(decision)
             duration_ms = int((time.perf_counter() - started) * 1000)
             if session_id:
                 add_command_run(session_id, result.command, result.exit_code, result.output, verified, duration_ms, policy_decision)
@@ -163,6 +159,17 @@ def run_quality_gates(
         "gate_names": gate_names or [],
         "duration_ms": int((time.perf_counter() - started_all) * 1000),
         "results": results,
+    }
+
+
+def _policy_decision_payload(decision) -> dict[str, object]:
+    return {
+        "command": decision.command,
+        "allowed": decision.allowed,
+        "reason": decision.reason,
+        "matched_prefix": decision.matched_prefix,
+        "blocked_pattern": decision.blocked_pattern,
+        "timeout_seconds": decision.timeout_seconds,
     }
 
 

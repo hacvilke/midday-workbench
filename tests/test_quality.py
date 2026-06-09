@@ -35,6 +35,8 @@ class QualityGateTests(unittest.TestCase):
         self.assertIn("results", report)
         self.assertGreaterEqual(len(report["results"]), 1)
         self.assertIn("verified", report["results"][0])
+        self.assertIn("policy_decision", report["results"][0])
+        self.assertTrue(report["results"][0]["policy_decision"]["allowed"])
 
     def test_quality_gates_target_app_repo(self):
         """Verify quality gates run from the Midday app repo, not parent OSS workspace."""

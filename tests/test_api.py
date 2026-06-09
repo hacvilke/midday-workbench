@@ -118,6 +118,8 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertTrue(data["dry_run"])
         self.assertIn("results", data)
         self.assertEqual([item["name"] for item in data["results"]], ["diff_stat"])
+        self.assertIn("policy_decision", data["results"][0])
+        self.assertTrue(data["results"][0]["policy_decision"]["allowed"])
 
     def test_quality_history_endpoint_shape(self):
         data = _get("/api/quality/history?session_id=nonexistent-session-xyz")

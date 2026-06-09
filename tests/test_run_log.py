@@ -3,9 +3,12 @@ import unittest
 from agent_core.agent import AgentRun
 from agent_core.run_log import (
     add_command_run,
+    add_decision,
     add_run,
     clear_command_runs,
+    clear_decisions,
     clear_runs,
+    recent_decisions,
     recent_command_runs,
     recent_runs,
 )
@@ -55,6 +58,17 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(rows[0]["command"], "python --version")
         self.assertTrue(rows[0]["verified"]["passed"])
         clear_command_runs(session_id)
+
+    def test_decision_roundtrip(self):
+        """Verify route/policy decisions can be persisted and retrieved."""
+
+        session_id = "decision-log-test"
+        clear_decisions(session_id)
+        add_decision(session_id, "route", "show graph", {"intent": "visualize"})
+        rows = recent_decisions(session_id=session_id)
+        self.assertEqual(rows[0]["kind"], "route")
+        self.assertEqual(rows[0]["decision"]["intent"], "visualize")
+        clear_decisions(session_id)
 
 
 if __name__ == "__main__":

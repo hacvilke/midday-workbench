@@ -73,6 +73,19 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
         """
     )
     con.execute("CREATE INDEX IF NOT EXISTS idx_command_runs_session ON command_runs(session_id, id)")
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS decisions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            input TEXT NOT NULL,
+            decision TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
+    con.execute("CREATE INDEX IF NOT EXISTS idx_decisions_session ON decisions(session_id, id)")
     return con
 
 
@@ -315,5 +328,90 @@ def clear_command_runs(session_id: str | None = None) -> None:
         con.execute("DELETE FROM command_runs WHERE session_id = ?", (session_id,))
     else:
         con.execute("DELETE FROM command_runs")
+    con.commit()
+    con.close()
+
+
+def add_decision(session_id: str, kind: str, input_text: str, decision: dict[str, object]) -> None:
+    """Persist an autonomous control-plane decision.
+
+    Args:
+        session_id: Browser/session id.
+        kind: Decision kind, such as route or policy.
+        input_text: Prompt, action type, or command being evaluated.
+        decision: JSON-compatible decision payload.
+
+    Returns:
+        None.
+    """
+
+    con = connect()
+    con.execute(
+        """
+        INSERT INTO decisions(session_id, kind, input, decision, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (session_id, kind, input_text[:1000], json.dumps(decision), int(time.time())),
+    )
+    con.commit()
+    con.close()
+
+
+def recent_decisions(session_id: str | None = None, limit: int = 50) -> list[dict[str, object]]:
+    """Fetch recent autonomous decisions.
+
+    Args:
+        session_id: Optional session filter.
+        limit: Maximum rows.
+
+    Returns:
+        List of decision dictionaries.
+    """
+
+    con = connect()
+    if session_id:
+        rows = con.execute(
+            """
+            SELECT session_id, kind, input, decision, created_at
+            FROM decisions WHERE session_id = ? ORDER BY id DESC LIMIT ?
+            """,
+            (session_id, limit),
+        ).fetchall()
+    else:
+        rows = con.execute(
+            """
+            SELECT session_id, kind, input, decision, created_at
+            FROM decisions ORDER BY id DESC LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    con.close()
+    return [
+        {
+            "session_id": row[0],
+            "kind": row[1],
+            "input": row[2],
+            "decision": json.loads(row[3]),
+            "created_at": row[4],
+        }
+        for row in rows
+    ]
+
+
+def clear_decisions(session_id: str | None = None) -> None:
+    """Clear autonomous decision history.
+
+    Args:
+        session_id: Optional session filter.
+
+    Returns:
+        None.
+    """
+
+    con = connect()
+    if session_id:
+        con.execute("DELETE FROM decisions WHERE session_id = ?", (session_id,))
+    else:
+        con.execute("DELETE FROM decisions")
     con.commit()
     con.close()

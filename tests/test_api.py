@@ -96,6 +96,13 @@ class PolicyEndpointTests(unittest.TestCase):
         self.assertIn("confirmation_actions", data)
         self.assertIn("blocked_actions", data)
 
+    def test_policy_action_records_decision(self):
+        _post("/api/decisions/clear", {"session_id": "api-policy-decision"})
+        data = _get("/api/policy?action_type=write_file&session_id=api-policy-decision")
+        self.assertIn("decision", data)
+        decisions = _get("/api/decisions?session_id=api-policy-decision")
+        self.assertEqual(decisions["decisions"][0]["kind"], "policy")
+
 
 class RouteEndpointTests(unittest.TestCase):
     def test_route_endpoint_returns_decision(self):
@@ -103,6 +110,13 @@ class RouteEndpointTests(unittest.TestCase):
         self.assertEqual(data["intent"], "visualize")
         self.assertEqual(data["tools"], ["rich_output_template_tool"])
         self.assertIn("confidence", data)
+
+    def test_route_records_decision(self):
+        _post("/api/decisions/clear", {"session_id": "api-route-decision"})
+        _get("/api/route?message=show%20graph&session_id=api-route-decision")
+        data = _get("/api/decisions?session_id=api-route-decision")
+        self.assertEqual(data["decisions"][0]["kind"], "route")
+        self.assertEqual(data["decisions"][0]["decision"]["intent"], "visualize")
 
 
 class SandboxEndpointTests(unittest.TestCase):

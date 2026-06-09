@@ -13,6 +13,7 @@ const runToolButton = document.querySelector("#runTool");
 const toolOutput = document.querySelector("#toolOutput");
 const inspectRouteButton = document.querySelector("#inspectRoute");
 const routeOutput = document.querySelector("#routeOutput");
+const recentDecisions = document.querySelector("#recentDecisions");
 const commandInput = document.querySelector("#commandInput");
 const runCommandButton = document.querySelector("#runCommand");
 const commandPolicy = document.querySelector("#commandPolicy");
@@ -708,6 +709,30 @@ async function loadRecentCommands() {
   }
 }
 
+async function loadRecentDecisions() {
+  try {
+    const response = await fetch(`/api/decisions?session_id=${encodeURIComponent(sessionId)}`);
+    const data = await response.json();
+    recentDecisions.innerHTML = "";
+    if (!data.decisions?.length) {
+      recentDecisions.textContent = "No decisions yet.";
+      return;
+    }
+    data.decisions.slice(0, 5).forEach((entry) => {
+      const row = document.createElement("div");
+      const decision = entry.decision || {};
+      row.innerHTML = `
+        <strong>${escapeHtml(entry.kind)}</strong>
+        <span>${escapeHtml(entry.input)}</span>
+        <em>${escapeHtml(decision.intent || decision.action_type || "decision")}</em>
+      `;
+      recentDecisions.appendChild(row);
+    });
+  } catch {
+    recentDecisions.textContent = "Decision history unavailable.";
+  }
+}
+
 async function loadQualityGates() {
   try {
     const response = await fetch("/api/quality");
@@ -738,6 +763,7 @@ showStatus()
   .then(loadRecentRuns)
   .then(loadSandboxPolicy)
   .then(loadRecentCommands)
+  .then(loadRecentDecisions)
   .then(loadQualityGates);
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
@@ -786,9 +812,10 @@ inspectRouteButton.addEventListener("click", async () => {
   const query = toolQuery.value.trim() || promptInput.value.trim() || "hi";
   routeOutput.textContent = "Inspecting route...";
   try {
-    const response = await fetch(`/api/route?message=${encodeURIComponent(query)}`);
+    const response = await fetch(`/api/route?message=${encodeURIComponent(query)}&session_id=${encodeURIComponent(sessionId)}`);
     const data = await response.json();
     routeOutput.textContent = `intent: ${data.intent}\ntools: ${(data.tools || []).join(", ") || "none"}\nconfidence: ${Number(data.confidence || 0).toFixed(2)}\nreason: ${data.rationale}`;
+    loadRecentDecisions();
   } catch {
     routeOutput.textContent = "Route inspector unavailable.";
   }

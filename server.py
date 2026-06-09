@@ -29,10 +29,13 @@ from agent_core.tool_schemas import oss_tool_schemas
 from agent_core.providers import configured_providers
 from agent_core.run_log import (
     add_command_run,
+    add_decision,
     add_run,
     clear_command_runs,
+    clear_decisions,
     clear_runs,
     get_sessions,
+    recent_decisions,
     recent_command_runs,
     recent_runs,
 )
@@ -86,19 +89,32 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"gates": quality_gate_manifest()})
 
         if parsed.path == "/api/policy":
-            return self.send_json(policy_manifest())
+            session_id = _query_param(parsed.query, "session_id") or "default"
+            action_type = _query_param(parsed.query, "action_type")
+            payload = policy_manifest()
+            if action_type:
+                decision = decide(action_type)
+                payload["decision"] = {
+                    "action_type": decision.action_type,
+                    "allowed": decision.allowed,
+                    "requires_confirmation": decision.requires_confirmation,
+                    "reason": decision.reason,
+                }
+                add_decision(session_id, "policy", action_type, payload["decision"])
+            return self.send_json(payload)
 
         if parsed.path == "/api/route":
             message = _query_param(parsed.query, "message") or ""
+            session_id = _query_param(parsed.query, "session_id") or "default"
             route = IntentRouter().classify(message)
-            return self.send_json(
-                {
-                    "intent": route.intent,
-                    "tools": route.tools,
-                    "confidence": route.confidence,
-                    "rationale": route.rationale,
-                }
-            )
+            payload = {
+                "intent": route.intent,
+                "tools": route.tools,
+                "confidence": route.confidence,
+                "rationale": route.rationale,
+            }
+            add_decision(session_id, "route", message, payload)
+            return self.send_json(payload)
 
         if parsed.path == "/api/graph":
             return self.send_json(build_repo_graph(get_config().workspace_root).to_dict())
@@ -122,6 +138,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/commands":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json({"commands": recent_command_runs(session_id=session_id, limit=20)})
+
+        if parsed.path == "/api/decisions":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json({"decisions": recent_decisions(session_id=session_id, limit=50)})
 
         if parsed.path == "/api/sandbox":
             sandbox = ExecutionSandbox(get_config().workspace_root)
@@ -170,6 +190,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/commands/clear":
             body = self._read_json()
             clear_command_runs(body.get("session_id"))
+            return self.send_json({"ok": True})
+
+        if self.path == "/api/decisions/clear":
+            body = self._read_json()
+            clear_decisions(body.get("session_id"))
             return self.send_json({"ok": True})
 
         if self.path == "/api/tools/run":

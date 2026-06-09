@@ -415,3 +415,71 @@ def clear_decisions(session_id: str | None = None) -> None:
         con.execute("DELETE FROM decisions")
     con.commit()
     con.close()
+
+
+def operational_metrics(session_id: str | None = None) -> dict[str, object]:
+    """Summarize operational telemetry for runs, commands, and decisions.
+
+    Args:
+        session_id: Optional session filter.
+
+    Returns:
+        JSON-compatible metrics payload.
+    """
+
+    runs = recent_runs(session_id=session_id, limit=500)
+    commands = recent_command_runs(session_id=session_id, limit=500)
+    decisions = recent_decisions(session_id=session_id, limit=500)
+    provider_counts: dict[str, int] = {}
+    tool_counts: dict[str, int] = {}
+    verifier_total = 0
+    verifier_passed = 0
+    fallback_count = 0
+    total_duration = 0
+
+    for run in runs:
+        provider = str(run.get("provider", "unknown"))
+        provider_counts[provider] = provider_counts.get(provider, 0) + 1
+        total_duration += int(run.get("duration_ms") or 0)
+        if run.get("fallback_used"):
+            fallback_count += 1
+        tools = run.get("tools_used") or []
+        for tool in tools:
+            name = str(tool)
+            tool_counts[name] = tool_counts.get(name, 0) + 1
+        for report in run.get("verifier_reports") or []:
+            verifier_total += 1
+            if report.get("passed"):
+                verifier_passed += 1
+
+    command_failures = sum(1 for command in commands if int(command.get("exit_code") or 0) != 0)
+    decision_counts: dict[str, int] = {}
+    for decision in decisions:
+        kind = str(decision.get("kind", "unknown"))
+        decision_counts[kind] = decision_counts.get(kind, 0) + 1
+
+    return {
+        "session_id": session_id,
+        "runs": {
+            "count": len(runs),
+            "fallback_count": fallback_count,
+            "average_duration_ms": int(total_duration / len(runs)) if runs else 0,
+            "providers": provider_counts,
+            "tools": tool_counts,
+        },
+        "verifier": {
+            "count": verifier_total,
+            "passed": verifier_passed,
+            "failed": max(0, verifier_total - verifier_passed),
+            "pass_rate": round(verifier_passed / verifier_total, 3) if verifier_total else None,
+        },
+        "commands": {
+            "count": len(commands),
+            "failures": command_failures,
+            "successes": max(0, len(commands) - command_failures),
+        },
+        "decisions": {
+            "count": len(decisions),
+            "kinds": decision_counts,
+        },
+    }

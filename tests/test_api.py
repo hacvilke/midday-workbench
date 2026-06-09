@@ -177,6 +177,15 @@ class RunsEndpointTests(unittest.TestCase):
         self.assertTrue(data.get("ok"))
 
 
+class MetricsEndpointTests(unittest.TestCase):
+    def test_metrics_endpoint_shape(self):
+        data = _get("/api/metrics?session_id=nonexistent-session-xyz")
+        self.assertIn("runs", data)
+        self.assertIn("commands", data)
+        self.assertIn("decisions", data)
+        self.assertIn("verifier", data)
+
+
 class SessionsEndpointTests(unittest.TestCase):
     def test_returns_sessions_list(self):
         data = _get("/api/sessions")

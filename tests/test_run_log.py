@@ -11,6 +11,7 @@ from agent_core.run_log import (
     recent_decisions,
     recent_command_runs,
     recent_runs,
+    operational_metrics,
 )
 
 
@@ -69,6 +70,16 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(rows[0]["kind"], "route")
         self.assertEqual(rows[0]["decision"]["intent"], "visualize")
         clear_decisions(session_id)
+
+    def test_operational_metrics_shape(self):
+        """Verify metrics summarize runs, commands, decisions, and verifier state."""
+
+        metrics = operational_metrics(session_id="missing-metrics-session")
+        self.assertIn("runs", metrics)
+        self.assertIn("commands", metrics)
+        self.assertIn("decisions", metrics)
+        self.assertIn("verifier", metrics)
+        self.assertEqual(metrics["runs"]["count"], 0)
 
 
 if __name__ == "__main__":

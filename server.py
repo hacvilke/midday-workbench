@@ -38,6 +38,7 @@ from agent_core.run_log import (
     recent_decisions,
     recent_command_runs,
     recent_runs,
+    operational_metrics,
 )
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.verifier import ReActVerifier
@@ -142,6 +143,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/decisions":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json({"decisions": recent_decisions(session_id=session_id, limit=50)})
+
+        if parsed.path == "/api/metrics":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json(operational_metrics(session_id=session_id))
 
         if parsed.path == "/api/sandbox":
             sandbox = ExecutionSandbox(get_config().workspace_root)

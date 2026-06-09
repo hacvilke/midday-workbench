@@ -765,7 +765,17 @@ select {
   gap: 8px;
 }
 
+.metrics-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+  color: #8f9aaa;
+  font-size: 12px;
+}
+
 .graph-stats div,
+.metrics-panel div,
 .centrality-list div {
   border: 1px solid #313946;
   border-radius: 8px;
@@ -774,6 +784,7 @@ select {
 }
 
 .graph-stats span,
+.metrics-panel span,
 .centrality-list span {
   display: block;
   color: #8f9aaa;
@@ -781,6 +792,7 @@ select {
 }
 
 .graph-stats strong,
+.metrics-panel strong,
 .centrality-list strong {
   color: #edf1f6;
   font-size: 14px;

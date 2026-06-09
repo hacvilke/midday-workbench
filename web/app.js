@@ -6,6 +6,7 @@ const toolList = document.querySelector("#toolList");
 const topbarBadge = document.querySelector("#topbarBadge");
 const healthStatus = document.querySelector("#healthStatus");
 const toolHealthStatus = document.querySelector("#toolHealthStatus");
+const metricsPanel = document.querySelector("#metricsPanel");
 const clearMemoryButton = document.querySelector("#clearMemory");
 const toolSelect = document.querySelector("#toolSelect");
 const toolQuery = document.querySelector("#toolQuery");
@@ -578,6 +579,7 @@ async function streamChat(prompt) {
   if (prompt.toLowerCase().includes("trading chart")) addTradingChart();
 
   loadRecentRuns();
+  loadMetrics();
   isStreaming = false;
 }
 
@@ -709,6 +711,22 @@ async function loadRecentCommands() {
   }
 }
 
+async function loadMetrics() {
+  try {
+    const response = await fetch(`/api/metrics?session_id=${encodeURIComponent(sessionId)}`);
+    const data = await response.json();
+    const passRate = data.verifier?.pass_rate == null ? "n/a" : `${Math.round(data.verifier.pass_rate * 100)}%`;
+    metricsPanel.innerHTML = `
+      <div><span>Runs</span><strong>${Number(data.runs?.count || 0)}</strong></div>
+      <div><span>Commands</span><strong>${Number(data.commands?.count || 0)}</strong></div>
+      <div><span>Decisions</span><strong>${Number(data.decisions?.count || 0)}</strong></div>
+      <div><span>Verifier</span><strong>${escapeHtml(passRate)}</strong></div>
+    `;
+  } catch {
+    metricsPanel.textContent = "Metrics unavailable.";
+  }
+}
+
 async function loadRecentDecisions() {
   try {
     const response = await fetch(`/api/decisions?session_id=${encodeURIComponent(sessionId)}`);
@@ -764,6 +782,7 @@ showStatus()
   .then(loadSandboxPolicy)
   .then(loadRecentCommands)
   .then(loadRecentDecisions)
+  .then(loadMetrics)
   .then(loadQualityGates);
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
@@ -785,6 +804,7 @@ clearRunsButton.addEventListener("click", async () => {
     body: JSON.stringify({ session_id: sessionId }),
   });
   recentRuns.textContent = "No runs yet.";
+  loadMetrics();
 });
 
 runToolButton.addEventListener("click", async () => {
@@ -816,6 +836,7 @@ inspectRouteButton.addEventListener("click", async () => {
     const data = await response.json();
     routeOutput.textContent = `intent: ${data.intent}\ntools: ${(data.tools || []).join(", ") || "none"}\nconfidence: ${Number(data.confidence || 0).toFixed(2)}\nreason: ${data.rationale}`;
     loadRecentDecisions();
+    loadMetrics();
   } catch {
     routeOutput.textContent = "Route inspector unavailable.";
   }
@@ -838,6 +859,7 @@ runCommandButton.addEventListener("click", async () => {
     }
     commandOutput.textContent = `$ ${data.command}\nexit ${data.exit_code} - ${Number(data.duration_ms || 0)}ms\nverify ${data.verified?.summary || "unknown"}\n\n${data.output || "(no output)"}`;
     loadRecentCommands();
+    loadMetrics();
   } catch {
     commandOutput.textContent = "Command runner unavailable.";
   }

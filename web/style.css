@@ -535,10 +535,17 @@ details[open] .run-meta summary::before {
 
 .plan-card span,
 .plan-card em,
+.plan-card small,
 .verifier-list span {
   color: #8f9aaa;
   font-size: 12px;
   font-style: normal;
+}
+
+.plan-card small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.45;
 }
 
 .verifier-list div.ok {

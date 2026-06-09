@@ -97,6 +97,7 @@ function renderRunMetadata(metadata) {
   const attempts = metadata.provider_attempts || [];
   const plan = metadata.plan || null;
   const verifierReports = metadata.verifier_reports || [];
+  const routeAlternatives = plan?.alternatives || [];
   const stepHtml = steps.length
     ? steps
         .map(
@@ -140,6 +141,11 @@ function renderRunMetadata(metadata) {
               <strong>${escapeHtml(plan.intent || "plan")}</strong>
               <span>${escapeHtml(plan.tool || "direct response")}</span>
               <em>${escapeHtml(plan.stop_condition || "")}</em>
+              ${
+                routeAlternatives.length
+                  ? `<small>${escapeHtml(formatRouteAlternatives(routeAlternatives))}</small>`
+                  : ""
+              }
             </div>`
           : ""
       }
@@ -180,6 +186,17 @@ function formatTimestamp(epochSeconds) {
   } catch {
     return "unknown";
   }
+}
+
+function formatRouteAlternatives(alternatives) {
+  if (!alternatives?.length) return "alternatives: none";
+  return `alternatives: ${alternatives
+    .slice(0, 4)
+    .map((item) => {
+      const tools = item.tools?.length ? item.tools.join("+") : "direct";
+      return `${item.intent}/${tools}/${Number(item.confidence || 0).toFixed(2)}`;
+    })
+    .join(" | ")}`;
 }
 
 function renderInline(value) {
@@ -722,11 +739,13 @@ async function loadRunDetail(runId) {
     const plan = run.plan || {};
     const delegations = plan.delegations || [];
     const verifier = run.verifier_reports || [];
+    const alternatives = plan.alternatives || [];
     runDetail.textContent = [
       `run ${run.run_id}`,
       `intent ${plan.intent || "unknown"}`,
       `tool ${plan.tool || "direct"}`,
       `provider ${run.provider || "unknown"} - ${Number(run.duration_ms || 0)}ms`,
+      formatRouteAlternatives(alternatives),
       `delegations ${delegations.map((item) => item.agent_id).join(", ") || "none"}`,
       `verifier ${verifier.map((item) => (item.passed ? "pass" : "fail")).join(", ") || "none"}`,
     ].join("\n");
@@ -1021,7 +1040,13 @@ inspectRouteButton.addEventListener("click", async () => {
   try {
     const response = await fetch(`/api/route?message=${encodeURIComponent(query)}&session_id=${encodeURIComponent(sessionId)}`);
     const data = await response.json();
-    routeOutput.textContent = `intent: ${data.intent}\ntools: ${(data.tools || []).join(", ") || "none"}\nconfidence: ${Number(data.confidence || 0).toFixed(2)}\nreason: ${data.rationale}`;
+    routeOutput.textContent = [
+      `intent: ${data.intent}`,
+      `tools: ${(data.tools || []).join(", ") || "none"}`,
+      `confidence: ${Number(data.confidence || 0).toFixed(2)}`,
+      `reason: ${data.rationale}`,
+      formatRouteAlternatives(data.alternatives || []),
+    ].join("\n");
     const delegationResponse = await fetch(`/api/delegation?message=${encodeURIComponent(query)}`);
     const delegation = await delegationResponse.json();
     delegationOutput.innerHTML = "";

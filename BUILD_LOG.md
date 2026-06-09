@@ -37,3 +37,4 @@
 2026-06-09: [UPGRADE] Quality gate runs now support `gate_names` filtering and persist non-dry-run command audit rows with `quality:<gate>` verifier summaries when a session id is provided.
 2026-06-09: [UPGRADE] Added unified activity timeline aggregation for runs, commands, and decisions with `/api/timeline`, control-plane inclusion, tests, and an Activity sidebar panel.
 2026-06-09: [UPGRADE] Added route alternative metadata across routing, planning, and route diagnostics so Midday Workbench can audit why a tool was selected over other matching candidates.
+2026-06-09: [UI] Exposed route alternatives in chat run metadata, run-detail inspection, and the Route Inspector so operators can see ranked routing candidates without leaving the workbench.

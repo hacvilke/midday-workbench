@@ -1,0 +1,6 @@
+# Runtime intentionally uses Python standard library only.
+# Optional future upgrades:
+# fastapi
+# uvicorn
+# sentence-transformers
+# chromadb

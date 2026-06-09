@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OSS Agent Workbench</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">OA</div>
+          <div>
+            <h1>OSS Agent</h1>
+            <div id="providerStatus" class="status">Starting local workbench</div>
+          </div>
+        </div>
+        <section>
+          <h2>Active Tools</h2>
+          <ul id="toolList" class="tool-list">
+            <li>Loading tools</li>
+          </ul>
+        </section>
+        <section>
+          <h2>Execution</h2>
+          <div class="policy">
+            <span>Read-only sandbox</span>
+            <strong>On</strong>
+          </div>
+          <div class="policy">
+            <span>ReAct loop</span>
+            <strong>On</strong>
+          </div>
+          <div class="policy">
+            <span>Health checks</span>
+            <strong id="healthStatus">Checking</strong>
+          </div>
+          <div class="policy">
+            <span>Tool health</span>
+            <strong id="toolHealthStatus">Checking</strong>
+          </div>
+          <button id="clearMemory" class="secondary-button" type="button">Clear memory</button>
+        </section>
+        <section>
+          <h2>Tool Workbench</h2>
+          <label class="field-label" for="toolSelect">Tool</label>
+          <select id="toolSelect"></select>
+          <label class="field-label" for="toolQuery">Query</label>
+          <textarea id="toolQuery" rows="3" placeholder="Run a focused OSS tool query..."></textarea>
+          <button id="runTool" class="secondary-button" type="button">Run tool</button>
+          <div id="toolOutput" class="tool-output">No tool run yet.</div>
+        </section>
+        <section>
+          <h2>Command Runner</h2>
+          <label class="field-label" for="commandInput">Command</label>
+          <input id="commandInput" class="command-input" value="python -m unittest discover tests" />
+          <button id="runCommand" class="secondary-button" type="button">Run command</button>
+          <div id="commandPolicy" class="command-policy">Loading allowed commands...</div>
+          <pre id="commandOutput" class="command-output">No command run yet.</pre>
+        </section>
+        <section>
+          <h2>Repo Graph</h2>
+          <div class="graph-stats">
+            <div><span>Nodes</span><strong id="graphNodes">-</strong></div>
+            <div><span>Edges</span><strong id="graphEdges">-</strong></div>
+          </div>
+          <div id="graphCentrality" class="centrality-list">Loading graph...</div>
+        </section>
+        <section>
+          <h2>Recent Runs</h2>
+          <div id="recentRuns" class="recent-runs">No runs yet.</div>
+          <button id="clearRuns" class="secondary-button" type="button">Clear runs</button>
+        </section>
+      </aside>
+      <section class="chat">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">Local-first tool agent</div>
+            <h2>Ask, inspect, build, and reason across your OSS stack.</h2>
+          </div>
+          <div class="topbar-badge">OpenRouter ready</div>
+        </header>
+        <div id="messages" class="messages"></div>
+        <form id="composer" class="composer">
+          <textarea id="prompt" placeholder="Ask the agent to use ERPNext, Julia, cuGraph, system design, repo maps, or packed context..." rows="3"></textarea>
+          <button type="submit" aria-label="Run agent">Run</button>
+        </form>
+      </section>
+    </main>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: false, theme: "dark" });
+      window.mermaid = mermaid;
+      window.dispatchEvent(new Event("mermaid-ready"));
+    </script>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+
+data/
+session_state.json
+
+.venv/
+venv/
+node_modules/
+dist/
+build/
+
+*.log

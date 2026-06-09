@@ -160,19 +160,27 @@ def format_environment_context(context: EnvironmentContext) -> str:
 def format_operational_guardrails(config: AgentConfig) -> str:
     """Return compact live routing/sandbox guardrails for provider prompts."""
 
+    from .run_log import route_decision_summary
+
     sandbox = ExecutionSandbox(config.workspace_root)
     audit = routing_audit()
     providers = provider_diagnostics(config)
     delegation = DelegationPlanner().manifest()
+    route_summary = route_decision_summary(limit=50)
     failed = [
         str(result.get("name"))
         for result in audit.get("results", [])
         if not result.get("passed")
     ]
+    top_intents = ", ".join(
+        f"{item['name']}:{item['count']}" for item in route_summary.get("top_intents", [])[:3]
+    ) or "none"
     return (
         "# Operational Guardrails\n"
         f"- Routing Audit: `{'passed' if audit.get('passed') else 'review'}` "
         f"({audit.get('probe_count', 0)} probes; failed: {', '.join(failed) if failed else 'none'})\n"
+        f"- Route Decision Drift: `{route_summary.get('review_count', 0)}` review signal(s) "
+        f"from `{route_summary.get('count', 0)}` inspected route(s); top intents: `{top_intents}`\n"
         "- Command Sandbox: `read-only allowlist` with blocked shell metacharacters and destructive/network commands.\n"
         f"- Allowed Command Prefixes: `{', '.join(sandbox.allowed_commands()[:12])}`\n"
         f"- Blocked Command Patterns: `{', '.join(sandbox.BLOCKED_PATTERNS[:12])}`\n"

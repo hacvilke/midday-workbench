@@ -30,6 +30,7 @@ class PromptHarnessTests(unittest.TestCase):
         self.assertIn("Command Sandbox", prompt)
         self.assertIn("Provider Route", prompt)
         self.assertIn("Parallel Policy", prompt)
+        self.assertIn("Route Decision Drift", prompt)
         self.assertIn("Route Confidence Policy", prompt)
         self.assertIn("Verification Rule", prompt)
 

@@ -317,6 +317,16 @@ class OperationalReviewEndpointTests(unittest.TestCase):
         self.assertIn("recommendations", data)
         self.assertIn("index", data)
 
+    def test_operational_actions_endpoint_shape(self):
+        data = _get("/api/operational-actions?session_id=nonexistent-session-xyz")
+        self.assertIn("score", data)
+        self.assertIn("grade", data)
+        self.assertIn("next_action", data)
+        self.assertIn("action_items", data)
+        self.assertNotIn("metrics", data)
+        self.assertGreaterEqual(len(data["action_items"]), 1)
+        self.assertIn("category", data["action_items"][0])
+
 
 class PromptsEndpointTests(unittest.TestCase):
     def test_prompts_endpoint_exposes_harness_entries(self):

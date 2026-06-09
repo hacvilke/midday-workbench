@@ -259,6 +259,19 @@ class Handler(BaseHTTPRequestHandler):
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json(operational_review(session_id=session_id))
 
+        if parsed.path == "/api/operational-actions":
+            session_id = _query_param(parsed.query, "session_id")
+            review = operational_review(session_id=session_id)
+            return self.send_json(
+                {
+                    "session_id": review["session_id"],
+                    "score": review["score"],
+                    "grade": review["grade"],
+                    "next_action": review["next_action"],
+                    "action_items": review["action_items"],
+                }
+            )
+
         if parsed.path == "/api/context-window":
             return self.send_json(session_state_snapshot())
 

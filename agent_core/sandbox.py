@@ -32,6 +32,7 @@ class ExecutionSandbox:
         "python -m py_compile",
         "python -m unittest",
         "python -m pytest",
+        "python -m agent_core.evals",
         "python -c \"import",
         # Node version check
         "node --version",

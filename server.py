@@ -22,6 +22,7 @@ from agent_core.memory import (
 from agent_core.oss_tools import OssToolRegistry
 from agent_core.output_templates import template_registry
 from agent_core.prompt_harness import prompt_registry
+from agent_core.quality import quality_gate_manifest
 from agent_core.repo_graph import build_repo_graph
 from agent_core.tool_schemas import oss_tool_schemas
 from agent_core.providers import configured_providers
@@ -78,6 +79,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/health":
             return self.send_json(health_report())
+
+        if parsed.path == "/api/quality":
+            return self.send_json({"gates": quality_gate_manifest()})
 
         if parsed.path == "/api/graph":
             return self.send_json(build_repo_graph(get_config().workspace_root).to_dict())

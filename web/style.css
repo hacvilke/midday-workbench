@@ -549,6 +549,42 @@ details[open] .run-meta summary::before {
   border-color: #593438;
 }
 
+.quality-gates {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.quality-gate {
+  width: 100%;
+  border: 1px solid #313946;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #111820;
+  color: #edf1f6;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quality-gate:hover {
+  border-color: #5fbca4;
+  background: #14211d;
+}
+
+.quality-gate strong,
+.quality-gate span {
+  display: block;
+}
+
+.quality-gate strong {
+  font-size: 12px;
+}
+
+.quality-gate span {
+  color: #8f9aaa;
+  font-size: 11px;
+}
+
 .trace-step {
   border-left: 2px solid #5fbca4;
   padding: 3px 0 3px 10px;

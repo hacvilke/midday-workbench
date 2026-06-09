@@ -81,6 +81,14 @@ class StatusEndpointTests(unittest.TestCase):
         self.assertIsInstance(data["provider_route"], list)
 
 
+class QualityEndpointTests(unittest.TestCase):
+    def test_quality_returns_gates(self):
+        data = _get("/api/quality")
+        self.assertIn("gates", data)
+        self.assertIsInstance(data["gates"], list)
+        self.assertGreater(len(data["gates"]), 0)
+
+
 class SandboxEndpointTests(unittest.TestCase):
     def test_allowed_commands_returned(self):
         data = _get("/api/sandbox")

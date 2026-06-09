@@ -16,6 +16,7 @@ const runCommandButton = document.querySelector("#runCommand");
 const commandPolicy = document.querySelector("#commandPolicy");
 const commandOutput = document.querySelector("#commandOutput");
 const recentCommands = document.querySelector("#recentCommands");
+const qualityGates = document.querySelector("#qualityGates");
 const graphNodes = document.querySelector("#graphNodes");
 const graphEdges = document.querySelector("#graphEdges");
 const graphCentrality = document.querySelector("#graphCentrality");
@@ -705,7 +706,37 @@ async function loadRecentCommands() {
   }
 }
 
-showStatus().then(loadMemory).then(loadRepoGraph).then(loadRecentRuns).then(loadSandboxPolicy).then(loadRecentCommands);
+async function loadQualityGates() {
+  try {
+    const response = await fetch("/api/quality");
+    const data = await response.json();
+    qualityGates.innerHTML = "";
+    (data.gates || []).forEach((gate) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "quality-gate";
+      button.innerHTML = `<strong>${escapeHtml(gate.name)}</strong><span>${escapeHtml(gate.purpose)}</span>`;
+      button.addEventListener("click", () => {
+        commandInput.value = gate.command;
+        commandInput.focus();
+      });
+      qualityGates.appendChild(button);
+    });
+    if (!qualityGates.children.length) {
+      qualityGates.textContent = "No quality gates configured.";
+    }
+  } catch {
+    qualityGates.textContent = "Quality gates unavailable.";
+  }
+}
+
+showStatus()
+  .then(loadMemory)
+  .then(loadRepoGraph)
+  .then(loadRecentRuns)
+  .then(loadSandboxPolicy)
+  .then(loadRecentCommands)
+  .then(loadQualityGates);
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
 

@@ -23,3 +23,4 @@
 2026-06-09: [UPGRADE] Added persistent decision audit logging for route and policy decisions with `/api/decisions`, `/api/decisions/clear`, API tests, and a UI recent-decisions panel.
 2026-06-09: [UPGRADE] Added operational metrics aggregation with `/api/metrics`, run/command/decision/verifier summaries, API/run-log tests, and a sidebar metrics panel that refreshes after agent, command, and route activity.
 2026-06-09: [UPGRADE] Added a Sessions sidebar panel backed by `/api/sessions`, showing current and recent work contexts with run counts and last-active timestamps.
+2026-06-09: [FIX] Fixed streaming fast paths to build planner metadata before greeting/visual responses, with regression tests for streaming plan metadata.

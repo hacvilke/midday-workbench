@@ -213,6 +213,7 @@ class Agent:
         """
         started = time.perf_counter()
         run_id = uuid.uuid4().hex[:12]
+        plan = asdict(self.planner.build_plan(prompt))
 
         # Fast path: greetings
         direct = self.direct_answer(prompt)

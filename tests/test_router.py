@@ -77,6 +77,16 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(run.provider, "local")
         self.assertIn("Midday Workbench", run.answer)
 
+    def test_agent_streaming_greeting_has_plan_metadata(self):
+        """Verify streaming greetings finish with structured plan metadata."""
+
+        events = list(Agent().stream_with_events("hi"))
+        done = events[-1]
+        self.assertEqual(done["type"], "done")
+        self.assertEqual(done["metadata"]["provider"], "local")
+        self.assertEqual(done["metadata"]["tools_used"], [])
+        self.assertEqual(done["metadata"]["plan"]["intent"], "plain_chat")
+
     def test_agent_visual_answer_is_mermaid_only(self):
         """Verify visual requests return a single Mermaid fence."""
 
@@ -96,6 +106,15 @@ class RouterTests(unittest.TestCase):
         self.assertFalse(run.context_attached)
         self.assertIn("xychart-beta", run.answer)
         self.assertIn("Potential Energy", run.answer)
+
+    def test_agent_streaming_visual_has_plan_metadata(self):
+        """Verify streaming visual fast path includes planner metadata."""
+
+        events = list(Agent().stream_with_events("show me a graph"))
+        done = events[-1]
+        self.assertEqual(done["type"], "done")
+        self.assertEqual(done["metadata"]["tools_used"], ["rich_output_template_tool"])
+        self.assertEqual(done["metadata"]["plan"]["intent"], "visualize")
 
 
 if __name__ == "__main__":

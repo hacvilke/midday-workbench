@@ -18,6 +18,7 @@ from .session import load_session_state
 from .run_log import recent_runs
 from .tool_schemas import oss_tool_schemas
 from .execution_policy import decide, policy_manifest
+from .indexer import index_stats
 from .quality import required_quality_commands
 from .sandbox import ExecutionSandbox
 
@@ -78,6 +79,7 @@ def run_health_checks() -> list[HealthCheck]:
     prompt = build_system_prompt(config)
     prompts = prompt_registry()
     sandbox = ExecutionSandbox(config.workspace_root)
+    stats = index_stats(config.index_path)
 
     checks = [
         HealthCheck("tool_count", len(TOOLS) >= 9, f"{len(TOOLS)} tools registered"),
@@ -85,6 +87,7 @@ def run_health_checks() -> list[HealthCheck]:
         HealthCheck("template_count", len(TEMPLATES) >= 10, f"{len(TEMPLATES)} rich templates registered"),
         HealthCheck("prompt_harness", "Current Environment Context" in prompt, "dynamic environment context injected"),
         HealthCheck("prompt_guardrails", "Operational Guardrails" in prompt and "Routing Audit" in prompt, "routing and sandbox guardrails injected"),
+        HealthCheck("search_index", int(stats.get("chunk_count") or 0) > 0, f"{stats.get('chunk_count', 0)} indexed chunks across {stats.get('repo_count', 0)} repos"),
         HealthCheck("sub_agent_prompts", {"coordinator", "read_only_research", "implementation"}.issubset(prompts), "sub-agent templates available"),
         HealthCheck(
             "agent_run_contract",

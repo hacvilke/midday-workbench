@@ -34,6 +34,7 @@ const runDetail = document.querySelector("#runDetail");
 const sessionList = document.querySelector("#sessionList");
 const promptHarness = document.querySelector("#promptHarness");
 const contextWindow = document.querySelector("#contextWindow");
+const indexStats = document.querySelector("#indexStats");
 const clearContextWindowButton = document.querySelector("#clearContextWindow");
 const clearRunsButton = document.querySelector("#clearRuns");
 const fileEditorPath = document.querySelector("#fileEditorPath");
@@ -827,6 +828,31 @@ async function loadContextWindow() {
   }
 }
 
+async function loadIndexStats() {
+  try {
+    const response = await fetch("/api/index");
+    const data = await response.json();
+    indexStats.innerHTML = "";
+    const summary = document.createElement("div");
+    summary.innerHTML = `
+      <strong>${Number(data.chunk_count || 0).toLocaleString()} chunks</strong>
+      <span>${Number(data.repo_count || 0)} repos - ${Number(data.size_bytes || 0).toLocaleString()} bytes</span>
+      <em>${data.modified_at ? `updated ${escapeHtml(formatTimestamp(data.modified_at))}` : "not built"}</em>
+    `;
+    indexStats.appendChild(summary);
+    (data.top_repos || []).slice(0, 4).forEach((repo) => {
+      const row = document.createElement("div");
+      row.innerHTML = `
+        <strong>${escapeHtml(repo.repo)}</strong>
+        <span>${Number(repo.chunks || 0).toLocaleString()} chunks</span>
+      `;
+      indexStats.appendChild(row);
+    });
+  } catch {
+    indexStats.textContent = "Index unavailable.";
+  }
+}
+
 async function loadSandboxPolicy() {
   try {
     const response = await fetch("/api/sandbox");
@@ -1003,6 +1029,7 @@ showStatus()
   .then(loadSessions)
   .then(loadPromptHarness)
   .then(loadContextWindow)
+  .then(loadIndexStats)
   .then(loadSandboxPolicy)
   .then(loadRecentCommands)
   .then(loadRecentDecisions)

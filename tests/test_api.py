@@ -254,6 +254,7 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("operational_review", data)
         self.assertIn("timeline", data)
         self.assertIn("sessions", data)
+        self.assertIn("index", data)
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)
         self.assertIn("routing_audit", data)
@@ -264,6 +265,15 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("coordinator", data["prompts"]["names"])
         self.assertIn("parallel_candidate", data["delegation"]["modes"])
         self.assertTrue(data["routing_audit"]["passed"])
+
+
+class IndexEndpointTests(unittest.TestCase):
+    def test_index_endpoint_shape(self):
+        data = _get("/api/index")
+        self.assertIn("chunk_count", data)
+        self.assertIn("repo_count", data)
+        self.assertIn("top_repos", data)
+        self.assertIsInstance(data["top_repos"], list)
 
 
 class RoutingAuditEndpointTests(unittest.TestCase):

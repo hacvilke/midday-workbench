@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import re
 import sqlite3
+import time
 from pathlib import Path
 
 from .config import get_config
@@ -107,6 +108,39 @@ def search(index_path: Path, query: str, limit: int = 8, repo: str | None = None
     finally:
         con.close()
     return [{"path": path, "repo": repo, "snippet": snip} for path, repo, snip in rows]
+
+
+def index_stats(index_path: Path) -> dict[str, object]:
+    """Return lightweight metadata about the repository search index."""
+
+    exists = index_path.exists()
+    size_bytes = index_path.stat().st_size if exists else 0
+    modified_at = int(index_path.stat().st_mtime) if exists else None
+    con = connect(index_path)
+    try:
+        chunk_count = con.execute("SELECT COUNT(*) FROM docs").fetchone()[0]
+        repo_count = con.execute("SELECT COUNT(DISTINCT repo) FROM docs").fetchone()[0]
+        rows = con.execute(
+            """
+            SELECT repo, COUNT(*) AS chunks
+            FROM docs
+            GROUP BY repo
+            ORDER BY chunks DESC, repo ASC
+            LIMIT 8
+            """
+        ).fetchall()
+    finally:
+        con.close()
+    return {
+        "exists": exists,
+        "path": str(index_path),
+        "size_bytes": size_bytes,
+        "modified_at": modified_at,
+        "age_seconds": int(time.time() - modified_at) if modified_at else None,
+        "chunk_count": int(chunk_count),
+        "repo_count": int(repo_count),
+        "top_repos": [{"repo": repo, "chunks": int(chunks)} for repo, chunks in rows],
+    }
 
 
 def main() -> None:

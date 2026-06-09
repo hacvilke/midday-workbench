@@ -14,6 +14,7 @@ from agent_core.file_editor import FileEditorTool
 from agent_core.execution_policy import decide, policy_manifest
 from agent_core.delegation import DelegationPlanner
 from agent_core.health import health_report
+from agent_core.indexer import index_stats
 from agent_core.memory import (
     add_message,
     clear_session,
@@ -100,6 +101,7 @@ class Handler(BaseHTTPRequestHandler):
                     "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics),
                     "timeline": activity_timeline(session_id=session_id, limit=10),
                     "sessions": get_sessions(limit=10),
+                    "index": index_stats(config.index_path),
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),
                     "routing_audit": routing_audit(),
@@ -163,6 +165,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/graph":
             return self.send_json(build_repo_graph(get_config().workspace_root).to_dict())
+
+        if parsed.path == "/api/index":
+            return self.send_json(index_stats(get_config().index_path))
 
         if parsed.path == "/api/memory":
             session_id = _query_param(parsed.query, "session_id") or "default"

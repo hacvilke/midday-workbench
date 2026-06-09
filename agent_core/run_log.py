@@ -81,6 +81,23 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
     con.execute("CREATE INDEX IF NOT EXISTS idx_command_runs_session ON command_runs(session_id, id)")
     con.execute(
         """
+        CREATE TABLE IF NOT EXISTS file_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            path TEXT NOT NULL,
+            bytes_written INTEGER NOT NULL,
+            lines INTEGER NOT NULL,
+            sha256 TEXT NOT NULL,
+            created INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
+    con.execute("CREATE INDEX IF NOT EXISTS idx_file_events_session ON file_events(session_id, id)")
+    con.execute(
+        """
         CREATE TABLE IF NOT EXISTS decisions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT NOT NULL,
@@ -374,6 +391,87 @@ def clear_command_runs(session_id: str | None = None) -> None:
     con.close()
 
 
+def add_file_event(
+    session_id: str,
+    action: str,
+    write: dict[str, object],
+) -> None:
+    """Persist a file mutation event for auditability."""
+
+    con = connect()
+    con.execute(
+        """
+        INSERT INTO file_events(
+            session_id, action, path, bytes_written, lines, sha256,
+            created, message, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            session_id,
+            action,
+            str(write.get("path", ""))[:500],
+            int(write.get("bytes_written") or 0),
+            int(write.get("lines") or 0),
+            str(write.get("sha256", "")),
+            1 if write.get("created") else 0,
+            str(write.get("message", ""))[:1000],
+            int(time.time()),
+        ),
+    )
+    con.commit()
+    con.close()
+
+
+def recent_file_events(session_id: str | None = None, limit: int = 20) -> list[dict[str, object]]:
+    """Fetch recent file mutation events."""
+
+    con = connect()
+    if session_id:
+        rows = con.execute(
+            """
+            SELECT session_id, action, path, bytes_written, lines, sha256, created, message, created_at
+            FROM file_events WHERE session_id = ? ORDER BY id DESC LIMIT ?
+            """,
+            (session_id, limit),
+        ).fetchall()
+    else:
+        rows = con.execute(
+            """
+            SELECT session_id, action, path, bytes_written, lines, sha256, created, message, created_at
+            FROM file_events ORDER BY id DESC LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    con.close()
+    return [
+        {
+            "session_id": row[0],
+            "action": row[1],
+            "path": row[2],
+            "bytes_written": row[3],
+            "lines": row[4],
+            "sha256": row[5],
+            "created": bool(row[6]),
+            "message": row[7],
+            "created_at": row[8],
+        }
+        for row in rows
+    ]
+
+
+def clear_file_events(session_id: str | None = None) -> None:
+    """Clear file mutation audit events."""
+
+    con = connect()
+    if session_id:
+        con.execute("DELETE FROM file_events WHERE session_id = ?", (session_id,))
+    else:
+        con.execute("DELETE FROM file_events")
+    con.commit()
+    con.close()
+
+
 def add_decision(session_id: str, kind: str, input_text: str, decision: dict[str, object]) -> None:
     """Persist an autonomous control-plane decision.
 
@@ -471,6 +569,7 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
 
     runs = recent_runs(session_id=session_id, limit=500)
     commands = recent_command_runs(session_id=session_id, limit=500)
+    file_events = recent_file_events(session_id=session_id, limit=500)
     decisions = recent_decisions(session_id=session_id, limit=500)
     provider_counts: dict[str, int] = {}
     tool_counts: dict[str, int] = {}
@@ -520,6 +619,12 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "failures": command_failures,
             "successes": max(0, len(commands) - command_failures),
         },
+        "files": {
+            "count": len(file_events),
+            "created": sum(1 for event in file_events if event.get("created")),
+            "patched": sum(1 for event in file_events if event.get("action") == "patch"),
+            "written": sum(1 for event in file_events if event.get("action") == "write"),
+        },
         "decisions": {
             "count": len(decisions),
             "kinds": decision_counts,
@@ -562,6 +667,18 @@ def activity_timeline(session_id: str | None = None, limit: int = 30) -> list[di
                 "summary": verified.get("summary", f"exit={command.get('exit_code')}"),
                 "status": "ok" if int(command.get("exit_code") or 0) == 0 else "failed",
                 "created_at": command["created_at"],
+            }
+        )
+    for file_event in recent_file_events(session_id=session_id, limit=limit):
+        events.append(
+            {
+                "type": "file",
+                "id": file_event["path"],
+                "session_id": file_event["session_id"],
+                "title": f"{file_event.get('action')} {file_event.get('path')}",
+                "summary": f"{file_event.get('bytes_written')} bytes - sha256 {str(file_event.get('sha256', ''))[:12]}",
+                "status": "ok",
+                "created_at": file_event["created_at"],
             }
         )
     for decision in recent_decisions(session_id=session_id, limit=limit):

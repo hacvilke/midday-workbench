@@ -18,6 +18,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("formatSandboxDecision(entry.policy_decision)", app_js)
         self.assertIn("async function loadIndexStats", app_js)
         self.assertIn("write.sha256", app_js)
+        self.assertIn("data.files?.count", app_js)
+        self.assertIn("session_id: sessionId", app_js)
 
 
 if __name__ == "__main__":

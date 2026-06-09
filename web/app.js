@@ -911,6 +911,7 @@ async function loadMetrics() {
     metricsPanel.innerHTML = `
       <div><span>Runs</span><strong>${Number(data.runs?.count || 0)}</strong></div>
       <div><span>Commands</span><strong>${Number(data.commands?.count || 0)}</strong></div>
+      <div><span>Files</span><strong>${Number(data.files?.count || 0)}</strong></div>
       <div><span>Decisions</span><strong>${Number(data.decisions?.count || 0)}</strong></div>
       <div><span>Verifier</span><strong>${escapeHtml(passRate)}</strong></div>
     `;
@@ -1221,7 +1222,7 @@ writeFileButton.addEventListener("click", async () => {
     const resp = await fetch("/api/files/write", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path, content, confirmed: true }),
+      body: JSON.stringify({ path, content, confirmed: true, session_id: sessionId }),
     });
     const data = await resp.json();
     if (data.error) {
@@ -1234,6 +1235,8 @@ writeFileButton.addEventListener("click", async () => {
       data.message,
       `${Number(write.bytes_written || 0).toLocaleString()} bytes - ${Number(write.lines || 0).toLocaleString()} lines - ${checksum}`,
     ].join("\n");
+    loadMetrics();
+    loadActivityTimeline();
   } catch (err) {
     fileEditorStatus.textContent = `Write failed: ${err}`;
   }

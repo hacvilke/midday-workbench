@@ -34,15 +34,18 @@ from agent_core.providers import configured_providers
 from agent_core.run_log import (
     add_command_run,
     add_decision,
+    add_file_event,
     activity_timeline,
     add_run,
     clear_command_runs,
     clear_decisions,
+    clear_file_events,
     clear_runs,
     get_run,
     get_sessions,
     recent_decisions,
     recent_command_runs,
+    recent_file_events,
     recent_runs,
     operational_metrics,
 )
@@ -199,6 +202,10 @@ class Handler(BaseHTTPRequestHandler):
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json({"commands": recent_command_runs(session_id=session_id, limit=20)})
 
+        if parsed.path == "/api/files/events":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json({"events": recent_file_events(session_id=session_id, limit=20)})
+
         if parsed.path == "/api/timeline":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json({"events": activity_timeline(session_id=session_id, limit=30)})
@@ -273,6 +280,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/commands/clear":
             body = self._read_json()
             clear_command_runs(body.get("session_id"))
+            return self.send_json({"ok": True})
+
+        if self.path == "/api/files/events/clear":
+            body = self._read_json()
+            clear_file_events(body.get("session_id"))
             return self.send_json({"ok": True})
 
         if self.path == "/api/decisions/clear":
@@ -367,12 +379,15 @@ class Handler(BaseHTTPRequestHandler):
                 )
             path = body.get("path", "")
             content = body.get("content", "")
+            session_id = str(body.get("session_id", "default"))
             if not path:
                 return self.send_json({"error": "path required"}, status=400)
             editor = FileEditorTool(get_config().workspace_root)
             try:
                 result = editor.write_file_with_metadata(path, content)
-                return self.send_json({"ok": True, "message": result.message, "write": result.to_dict()})
+                write = result.to_dict()
+                add_file_event(session_id, "write", write)
+                return self.send_json({"ok": True, "message": result.message, "write": write})
             except (ValueError, OSError) as exc:
                 return self.send_json({"error": str(exc)}, status=400)
 
@@ -395,13 +410,16 @@ class Handler(BaseHTTPRequestHandler):
             path = body.get("path", "")
             search = body.get("search", "")
             replace = body.get("replace", "")
+            session_id = str(body.get("session_id", "default"))
             if not path or not search:
                 return self.send_json({"error": "path and search required"}, status=400)
             editor = FileEditorTool(get_config().workspace_root)
             try:
                 msg = editor.patch_file(path, search, replace)
                 result = editor.file_metadata(path, message=msg)
-                return self.send_json({"ok": True, "message": msg, "write": result.to_dict()})
+                write = result.to_dict()
+                add_file_event(session_id, "patch", write)
+                return self.send_json({"ok": True, "message": msg, "write": write})
             except (FileNotFoundError, ValueError, OSError) as exc:
                 return self.send_json({"error": str(exc)}, status=400)
 

@@ -4,14 +4,17 @@ from agent_core.agent import AgentRun
 from agent_core.run_log import (
     add_command_run,
     add_decision,
+    add_file_event,
     add_run,
     activity_timeline,
     clear_command_runs,
     clear_decisions,
+    clear_file_events,
     clear_runs,
     get_run,
     recent_decisions,
     recent_command_runs,
+    recent_file_events,
     recent_runs,
     operational_metrics,
 )
@@ -88,12 +91,37 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(rows[0]["decision"]["intent"], "visualize")
         clear_decisions(session_id)
 
+    def test_file_event_roundtrip(self):
+        """Verify file mutation events can be persisted and retrieved."""
+
+        session_id = "file-event-test"
+        clear_file_events(session_id)
+        add_file_event(
+            session_id,
+            "write",
+            {
+                "path": "web/app.js",
+                "bytes_written": 12,
+                "lines": 2,
+                "sha256": "a" * 64,
+                "created": False,
+                "message": "Written 12 bytes",
+            },
+        )
+        rows = recent_file_events(session_id=session_id)
+        self.assertEqual(rows[0]["action"], "write")
+        self.assertEqual(rows[0]["path"], "web/app.js")
+        self.assertEqual(rows[0]["bytes_written"], 12)
+        self.assertEqual(rows[0]["sha256"], "a" * 64)
+        clear_file_events(session_id)
+
     def test_operational_metrics_shape(self):
         """Verify metrics summarize runs, commands, decisions, and verifier state."""
 
         metrics = operational_metrics(session_id="missing-metrics-session")
         self.assertIn("runs", metrics)
         self.assertIn("commands", metrics)
+        self.assertIn("files", metrics)
         self.assertIn("decisions", metrics)
         self.assertIn("verifier", metrics)
         self.assertEqual(metrics["runs"]["count"], 0)
@@ -104,6 +132,7 @@ class RunLogTests(unittest.TestCase):
         session_id = "timeline-test"
         clear_runs(session_id)
         clear_command_runs(session_id)
+        clear_file_events(session_id)
         clear_decisions(session_id)
         run = AgentRun(
             run_id="timeline-run",
@@ -130,10 +159,23 @@ class RunLogTests(unittest.TestCase):
             {"allowed": True, "matched_prefix": "git status"},
         )
         add_decision(session_id, "route", "hi", {"intent": "plain_chat"})
+        add_file_event(
+            session_id,
+            "patch",
+            {
+                "path": "server.py",
+                "bytes_written": 20,
+                "lines": 1,
+                "sha256": "b" * 64,
+                "created": False,
+                "message": "Patched server.py",
+            },
+        )
         events = activity_timeline(session_id=session_id)
-        self.assertEqual({"run", "command", "decision"}, {event["type"] for event in events})
+        self.assertEqual({"run", "command", "decision", "file"}, {event["type"] for event in events})
         clear_runs(session_id)
         clear_command_runs(session_id)
+        clear_file_events(session_id)
         clear_decisions(session_id)
 
 

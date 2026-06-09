@@ -224,6 +224,7 @@ class MetricsEndpointTests(unittest.TestCase):
         data = _get("/api/metrics?session_id=nonexistent-session-xyz")
         self.assertIn("runs", data)
         self.assertIn("commands", data)
+        self.assertIn("files", data)
         self.assertIn("decisions", data)
         self.assertIn("verifier", data)
 
@@ -310,6 +311,37 @@ class TimelineEndpointTests(unittest.TestCase):
         data = _get("/api/timeline?session_id=nonexistent-session-xyz")
         self.assertIn("events", data)
         self.assertIsInstance(data["events"], list)
+
+
+class FileEventsEndpointTests(unittest.TestCase):
+    def test_file_events_endpoint_records_write(self):
+        session_id = "api-file-event"
+        _post("/api/files/events/clear", {"session_id": session_id})
+        status, data = _post(
+            "/api/files/write",
+            {
+                "path": "tmp_file_event_test.txt",
+                "content": "event\n",
+                "confirmed": True,
+                "session_id": session_id,
+            },
+        )
+        self.assertEqual(status, 200)
+        events = _get(f"/api/files/events?session_id={session_id}")
+        self.assertEqual(events["events"][0]["action"], "write")
+        self.assertEqual(events["events"][0]["path"], "tmp_file_event_test.txt")
+        timeline = _get(f"/api/timeline?session_id={session_id}")
+        self.assertIn("file", {event["type"] for event in timeline["events"]})
+        _post("/api/files/events/clear", {"session_id": session_id})
+        try:
+            os.remove(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tmp_file_event_test.txt"))
+        except FileNotFoundError:
+            pass
+
+    def test_file_events_clear_ok(self):
+        status, data = _post("/api/files/events/clear", {"session_id": "empty-file-events"})
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("ok"))
 
 
 class SessionsEndpointTests(unittest.TestCase):

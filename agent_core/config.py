@@ -35,6 +35,7 @@ class AgentConfig:
     local_base_url: str
     local_model: str
     provider_max_tokens: int
+    context_char_budget: int
 
 
 def get_config() -> AgentConfig:
@@ -54,4 +55,5 @@ def get_config() -> AgentConfig:
         local_base_url=os.getenv("LOCAL_BASE_URL", "http://127.0.0.1:11434/v1"),
         local_model=os.getenv("LOCAL_MODEL", "llama3.1"),
         provider_max_tokens=int(os.getenv("PROVIDER_MAX_TOKENS", "128")),
+        context_char_budget=int(os.getenv("AGENT_CONTEXT_CHAR_BUDGET", "6000")),
     )

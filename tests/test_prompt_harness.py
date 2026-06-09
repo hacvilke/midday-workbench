@@ -13,6 +13,7 @@ class PromptHarnessTests(unittest.TestCase):
         prompt = prompt_registry()["coordinator"]
         self.assertIn("You are Midday Workbench", prompt)
         self.assertNotIn("You are OSS Agent Workbench", prompt)
+        self.assertIn("do not use tools", prompt)
 
     def test_system_prompt_includes_environment_context(self):
         """Verify generated system prompts include dynamic environment context."""

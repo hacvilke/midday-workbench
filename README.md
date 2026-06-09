@@ -39,6 +39,7 @@ AGENT_PROVIDER=openrouter
 OPENROUTER_API_KEY=sk-or-...
 OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct
 PROVIDER_MAX_TOKENS=128
+AGENT_CONTEXT_CHAR_BUDGET=6000
 
 # Local Ollama
 AGENT_PROVIDER=local
@@ -47,6 +48,7 @@ LOCAL_MODEL=llama3.1
 ```
 
 If OpenRouter reports a credit error for `max_tokens`, lower `PROVIDER_MAX_TOKENS` in `.env` to a value your account can afford, such as `128` or `256`.
+If the provider reports prompt/context limits, lower `AGENT_CONTEXT_CHAR_BUDGET` to reduce attached repository context.
 
 No keys = offline mode. Local tools and repo context still work.
 

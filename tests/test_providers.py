@@ -44,6 +44,7 @@ def _config(**overrides: object) -> AgentConfig:
         "local_base_url": "http://127.0.0.1:11434/v1",
         "local_model": "local-test-model",
         "provider_max_tokens": 512,
+        "context_char_budget": 6000,
     }
     values.update(overrides)
     return AgentConfig(**values)

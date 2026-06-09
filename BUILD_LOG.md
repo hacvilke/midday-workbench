@@ -40,6 +40,8 @@
 2026-06-09: [UPGRADE] Added completion-evidence review counts to provider guardrails and top-action selection.
 2026-06-09: [FIX] Replaced hardcoded 4096 provider max_tokens with configurable `PROVIDER_MAX_TOKENS` defaulting to 512 so low-credit OpenRouter accounts can avoid immediate 402 fallback.
 2026-06-09: [FIX] Lowered default `PROVIDER_MAX_TOKENS` to 128 for low-credit OpenRouter use, added local fast-path for capability questions, and routed natural "make me a graph" wording to visual tooling.
+2026-06-09: [UPGRADE] Adapted Odysseus-style per-turn no-tools policy into Midday with hard router enforcement, local guide-only replies, and prompt guardrail coverage.
+2026-06-09: [UPGRADE] Adapted Odysseus-style context budgeting into Midday with `AGENT_CONTEXT_CHAR_BUDGET` to cap retrieved repository context before provider calls.
 2026-06-09: [UPGRADE] Added single-run detail lookup with `get_run(run_id)` and `/api/runs/{run_id}` so plan/delegation/verifier metadata can be inspected directly by UI and external agents.
 2026-06-09: [UPGRADE] Added Recent Runs UI detail inspection: run rows are clickable/keyboard accessible and fetch `/api/runs/{run_id}` to show intent, tool, provider, delegation, and verifier summary.
 2026-06-09: [UPGRADE] Added ReAct context-window observability with snapshot/clear helpers, `/api/context-window`, `/api/context-window/clear`, control-plane inclusion, tests, and a sidebar panel for inspecting chained tool observations.

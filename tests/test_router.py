@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import replace
 
 from agent_core.config import get_config
 from agent_core.agent import Agent
@@ -20,6 +21,14 @@ class RouterTests(unittest.TestCase):
         route = IntentRouter().classify("show me a graph of the agent architecture")
         self.assertEqual(route.intent, "visualize")
         self.assertEqual(route.tools, ["rich_output_template_tool"])
+
+    def test_no_tools_request_blocks_visual_tool(self):
+        """Verify explicit no-tool turns override tool routing."""
+
+        route = IntentRouter().classify("do not use tools, make me a graph")
+        self.assertEqual(route.intent, "plain_chat")
+        self.assertEqual(route.tools, [])
+        self.assertIn("tools blocked", route.rationale)
 
     def test_route_records_matching_alternatives(self):
         """Verify ambiguous prompts expose ranked route candidates."""
@@ -155,6 +164,24 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(run.tools_used, [])
         self.assertEqual(run.provider, "local")
         self.assertIn("Midday Workbench", run.answer)
+
+    def test_agent_no_tools_request_is_local(self):
+        """Verify guide-only requests do not invoke providers or tools."""
+
+        run = Agent().run_with_metadata("do not use tools, make me a graph")
+        self.assertEqual(run.tools_used, [])
+        self.assertEqual(run.provider, "local")
+        self.assertIn("without tools", run.answer)
+
+    def test_agent_retrieved_context_is_budgeted(self):
+        """Verify retrieved repository context is capped before provider calls."""
+
+        agent = Agent()
+        agent.config = replace(agent.config, context_char_budget=120)
+        context = agent.retrieve_context("explain repository architecture and code tools")
+        self.assertLessEqual(len(context), 170)
+        if context:
+            self.assertIn("context trimmed", context)
 
     def test_agent_streaming_visual_has_plan_metadata(self):
         """Verify streaming visual fast path includes planner metadata."""

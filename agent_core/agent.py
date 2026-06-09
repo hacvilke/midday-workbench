@@ -20,6 +20,7 @@ from .rich_output_template_tool.render import extract_mermaid_blocks, is_valid_m
 from .router import IntentRouter
 from .tool_schemas import schema_markdown
 from .tools import ToolBox
+from .turn_policy import classify_turn_policy
 from .verifier import ReActVerifier
 
 
@@ -371,13 +372,20 @@ class Agent:
         results = search(self.config.index_path, prompt, limit=10)
         if not results:
             return ""
-        return "\n\n".join(f"[{r['repo']}] {r['path']}\n{r['snippet']}" for r in results)
+        context = "\n\n".join(f"[{r['repo']}] {r['path']}\n{r['snippet']}" for r in results)
+        budget = max(0, int(self.config.context_char_budget or 0))
+        if budget and len(context) > budget:
+            return context[:budget].rstrip() + "\n\n[context trimmed by AGENT_CONTEXT_CHAR_BUDGET]"
+        return context
 
     def direct_answer(self, prompt: str) -> str | None:
         route = self.router.classify(prompt)
         if route.intent != "plain_chat":
             return None
         normalized = re.sub(r"\s+", " ", prompt.strip().lower())
+        policy = classify_turn_policy(prompt)
+        if policy.block_tools and not any(word in normalized for word in ("hi", "hello", "thanks", "thank you")):
+            return "I will answer directly without tools for this turn. Tell me the specific question or task you want handled in guide-only mode."
         if "who are you" in normalized or "what are you" in normalized or "what can you do" in normalized or "help" in normalized:
             return (
                 "I am Midday Workbench — a local-first engineering agent. "

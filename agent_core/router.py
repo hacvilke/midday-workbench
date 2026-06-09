@@ -4,6 +4,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .turn_policy import classify_turn_policy
+
 
 @dataclass(frozen=True)
 class IntentRoute:
@@ -56,6 +58,9 @@ class IntentRouter:
 
         text = normalize(message)
         alternatives = route_alternatives(text)
+        policy = classify_turn_policy(message)
+        if policy.block_tools:
+            return IntentRoute("plain_chat", [], 0.97, f"{policy.reason}; tools blocked for this turn.", alternatives)
         if is_greeting_or_identity(text):
             return IntentRoute("plain_chat", [], 0.96, "Greeting, help, thanks, or identity question needs no tool.", alternatives)
         if is_graph_algorithm_request(text):

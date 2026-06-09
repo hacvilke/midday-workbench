@@ -31,6 +31,7 @@
 2026-06-09: [UPGRADE] Added deterministic categories to operational review action items and surfaced the category in the sidebar scorecard for planner/UI triage.
 2026-06-09: [UPGRADE] Added `/api/operational-actions`, a lightweight agent-facing endpoint for categorized next actions without the full metrics payload.
 2026-06-09: [UPGRADE] Injected the top categorized operational action into provider guardrails so agent reasoning sees the current control-plane priority.
+2026-06-09: [UPGRADE] Added quality readiness summaries, `/api/quality/readiness`, control-plane exposure, and UI readiness counts for required gate coverage.
 2026-06-09: [UPGRADE] Added single-run detail lookup with `get_run(run_id)` and `/api/runs/{run_id}` so plan/delegation/verifier metadata can be inspected directly by UI and external agents.
 2026-06-09: [UPGRADE] Added Recent Runs UI detail inspection: run rows are clickable/keyboard accessible and fetch `/api/runs/{run_id}` to show intent, tool, provider, delegation, and verifier summary.
 2026-06-09: [UPGRADE] Added ReAct context-window observability with snapshot/clear helpers, `/api/context-window`, `/api/context-window/clear`, control-plane inclusion, tests, and a sidebar panel for inspecting chained tool observations.

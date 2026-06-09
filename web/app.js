@@ -1133,11 +1133,18 @@ async function loadQualityGates() {
 
 async function loadQualityHistory() {
   try {
-    const response = await fetch(`/api/quality/history?session_id=${encodeURIComponent(sessionId)}`);
-    const data = await response.json();
+    const [historyResponse, readinessResponse] = await Promise.all([
+      fetch(`/api/quality/history?session_id=${encodeURIComponent(sessionId)}`),
+      fetch(`/api/quality/readiness?session_id=${encodeURIComponent(sessionId)}`),
+    ]);
+    const data = await historyResponse.json();
+    const readiness = await readinessResponse.json();
     qualityHistory.innerHTML = "";
     const summary = document.createElement("div");
     summary.innerHTML = `
+      <strong>${readiness.ready ? "Ready" : "Not ready"}</strong>
+      <span>${Number(readiness.known_required_count || 0)} / ${Number(readiness.required_count || 0)} required gate(s) known</span>
+      <em>missing ${Number(readiness.missing_required?.length || 0)} / failed ${Number(readiness.failed_required?.length || 0)}</em>
       <strong>${Number(data.passed || 0)} passed / ${Number(data.failed || 0)} failed</strong>
       <span>${Number(data.count || 0)} quality gate run(s)</span>
       ${data.latest_failed ? `<em>latest failed: ${escapeHtml(data.latest_failed.gate || "quality")}</em>` : ""}

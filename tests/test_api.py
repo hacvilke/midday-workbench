@@ -129,6 +129,14 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertIsInstance(data["latest"], list)
         self.assertIn("latest_failed", data)
 
+    def test_quality_readiness_endpoint_shape(self):
+        data = _get("/api/quality/readiness?session_id=nonexistent-session-xyz")
+        self.assertIn("ready", data)
+        self.assertIn("required_count", data)
+        self.assertIn("known_required_count", data)
+        self.assertIn("missing_required", data)
+        self.assertIn("failed_required", data)
+
 
 class HealthEndpointTests(unittest.TestCase):
     def test_health_exposes_safe_provider_diagnostics(self):
@@ -351,6 +359,7 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("index", data)
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)
+        self.assertIn("quality_readiness", data)
         self.assertIn("quality_history", data)
         self.assertIn("routing_audit", data)
         self.assertIn("delegation", data)

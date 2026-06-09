@@ -27,7 +27,7 @@ from agent_core.oss_tools import OssToolRegistry
 from agent_core.operational_review import operational_review
 from agent_core.output_templates import template_registry
 from agent_core.prompt_harness import prompt_registry
-from agent_core.quality import quality_gate_manifest, quality_history, run_quality_gates
+from agent_core.quality import quality_gate_manifest, quality_history, quality_readiness, run_quality_gates
 from agent_core.repo_graph import build_repo_graph
 from agent_core.routing_audit import routing_audit
 from agent_core.tool_schemas import oss_tool_schemas
@@ -115,6 +115,7 @@ class Handler(BaseHTTPRequestHandler):
                 "index": index,
                 "policy": policy_manifest(),
                 "quality_gates": quality_gate_manifest(),
+                "quality_readiness": quality_readiness(session_id=session_id),
                 "routing_audit": routing_audit(),
                 "delegation": DelegationPlanner().manifest(),
                 "prompts": {
@@ -163,6 +164,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/quality/history":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json(quality_history(session_id=session_id))
+
+        if parsed.path == "/api/quality/readiness":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json(quality_readiness(session_id=session_id))
 
         if parsed.path == "/api/policy":
             session_id = _query_param(parsed.query, "session_id") or "default"

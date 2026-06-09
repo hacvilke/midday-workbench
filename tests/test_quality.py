@@ -1,6 +1,12 @@
 import unittest
 
-from agent_core.quality import quality_gate_manifest, quality_history, required_quality_commands, run_quality_gates
+from agent_core.quality import (
+    quality_gate_manifest,
+    quality_history,
+    quality_readiness,
+    required_quality_commands,
+    run_quality_gates,
+)
 from agent_core.run_log import add_command_run, clear_command_runs, recent_command_runs
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.config import PROJECT_ROOT, get_config
@@ -105,6 +111,27 @@ class QualityGateTests(unittest.TestCase):
         self.assertEqual(history["failed"], 1)
         self.assertEqual(history["latest_failed"]["gate"], "frontend_syntax")
         self.assertEqual(history["latest_failed"]["policy_decision"]["matched_prefix"], "node --check")
+        clear_command_runs(session_id)
+
+    def test_quality_readiness_reports_missing_and_failed_required_gates(self):
+        """Verify readiness summarizes required-gate evidence for agents and UI."""
+
+        session_id = "quality-readiness-test"
+        clear_command_runs(session_id)
+        add_command_run(
+            session_id,
+            "node --check web/app.js",
+            1,
+            "SyntaxError",
+            {"passed": False, "issues": ["exit=1"], "summary": "quality:frontend_syntax exit=1"},
+            5,
+            {"allowed": True, "matched_prefix": "node --check"},
+        )
+        readiness = quality_readiness(session_id=session_id)
+        self.assertFalse(readiness["ready"])
+        self.assertIn("frontend_syntax", readiness["failed_required"])
+        self.assertIn("unit_tests", readiness["missing_required"])
+        self.assertIn("frontend_syntax", readiness["latest_by_gate"])
         clear_command_runs(session_id)
 
 

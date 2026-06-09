@@ -213,3 +213,31 @@ def quality_history(session_id: str | None = None, limit: int = 50) -> dict[str,
         "latest_failed": next((row for row in rows if not row["passed"]), None),
         "latest": rows[:10],
     }
+
+
+def quality_readiness(session_id: str | None = None) -> dict[str, object]:
+    """Return whether required quality gates have recent passing evidence."""
+
+    required = {gate.name: gate for gate in QUALITY_GATES if gate.required}
+    history = quality_history(session_id=session_id, limit=200)
+    latest_by_gate: dict[str, dict[str, object]] = {}
+    for row in history["latest"]:
+        gate = str(row.get("gate") or "")
+        if gate and gate not in latest_by_gate:
+            latest_by_gate[gate] = row
+
+    missing_required = [name for name in required if name not in latest_by_gate]
+    failed_required = [
+        name
+        for name, row in latest_by_gate.items()
+        if name in required and not row.get("passed")
+    ]
+    return {
+        "session_id": session_id,
+        "ready": not missing_required and not failed_required,
+        "required_count": len(required),
+        "known_required_count": len(required) - len(missing_required),
+        "missing_required": missing_required,
+        "failed_required": failed_required,
+        "latest_by_gate": latest_by_gate,
+    }

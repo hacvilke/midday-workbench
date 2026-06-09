@@ -175,6 +175,7 @@ class OperationalReviewTests(unittest.TestCase):
             },
             "verifier": {"count": 2, "passed": 2, "failed": 0, "pass_rate": 1.0},
             "provider_routes": {"count": 2, "failed": 0, "degraded": 2},
+            "quality_history": {"count": 0, "passed": 0, "failed": 0},
             "commands": {"count": 0, "failures": 0, "successes": 0},
             "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
             "files": {"count": 0, "created": 0, "patched": 0, "written": 0},
@@ -187,6 +188,37 @@ class OperationalReviewTests(unittest.TestCase):
         )
         self.assertLess(review["score"], 100)
         self.assertTrue(any("provider route(s) used fallback" in risk for risk in review["risks"]))
+
+    def test_quality_history_failures_reduce_score(self):
+        """Verify failed quality gates are scored as explicit operational risks."""
+
+        health = {"passed": True, "checks": [], "tools": []}
+        metrics = {
+            "runs": {
+                "count": 0,
+                "fallback_count": 0,
+                "ambiguous_routes": 0,
+                "low_confidence_routes": 0,
+                "average_duration_ms": 0,
+                "providers": {},
+                "tools": {},
+            },
+            "verifier": {"count": 0, "passed": 0, "failed": 0, "pass_rate": None},
+            "provider_routes": {"count": 0, "failed": 0, "degraded": 0},
+            "quality_history": {"count": 2, "passed": 1, "failed": 1},
+            "commands": {"count": 2, "failures": 0, "successes": 2},
+            "usage": {"average_prompt_chars": 0, "average_answer_chars": 0, "average_context_chars": 0},
+            "files": {"count": 0, "created": 0, "patched": 0, "written": 0},
+            "decisions": {"count": 0, "kinds": {}},
+            "memory": {"message_count": 0, "has_summary": False, "summary_chars": 0},
+        }
+        review = operational_review(
+            health=health,
+            metrics=metrics,
+            index={"chunk_count": 10, "repo_count": 1, "age_seconds": 0},
+        )
+        self.assertLess(review["score"], 100)
+        self.assertTrue(any("quality gate run(s) failed" in risk for risk in review["risks"]))
 
 
 if __name__ == "__main__":

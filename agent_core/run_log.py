@@ -726,6 +726,19 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
                     provider_route_degraded += 1
 
     command_failures = sum(1 for command in commands if int(command.get("exit_code") or 0) != 0)
+    quality_total = 0
+    quality_failed = 0
+    quality_passed = 0
+    for command in commands:
+        verified = command.get("verified") or {}
+        summary = str(verified.get("summary") or "")
+        if not summary.startswith("quality:"):
+            continue
+        quality_total += 1
+        if verified.get("passed"):
+            quality_passed += 1
+        else:
+            quality_failed += 1
     decision_counts: dict[str, int] = {}
     for decision in decisions:
         kind = str(decision.get("kind", "unknown"))
@@ -764,6 +777,11 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "count": len(commands),
             "failures": command_failures,
             "successes": max(0, len(commands) - command_failures),
+        },
+        "quality_history": {
+            "count": quality_total,
+            "passed": quality_passed,
+            "failed": quality_failed,
         },
         "files": {
             "count": len(file_events),

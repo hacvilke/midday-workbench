@@ -55,6 +55,11 @@ def operational_review(
         score -= min(15, int(commands["failures"]) * 3)
         risks.append(f"{commands['failures']} sandbox command run(s) failed")
         recommendations.append("Inspect command history and convert repeated failures into quality gates or fixes.")
+    quality = metrics.get("quality_history", {})
+    if quality.get("failed"):
+        score -= min(24, int(quality["failed"]) * 6)
+        risks.append(f"{quality['failed']} quality gate run(s) failed")
+        recommendations.append("Run required gates again after fixes and inspect /api/quality/history for repeated failures.")
 
     runs = metrics["runs"]
     if runs["fallback_count"]:

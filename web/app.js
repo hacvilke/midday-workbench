@@ -960,6 +960,7 @@ async function loadMetrics() {
       <div><span>Runs</span><strong>${Number(data.runs?.count || 0)}</strong></div>
       <div><span>Route Review</span><strong>${Number(data.runs?.ambiguous_routes || 0) + Number(data.runs?.low_confidence_routes || 0)}</strong></div>
       <div><span>Commands</span><strong>${Number(data.commands?.count || 0)}</strong></div>
+      <div><span>Quality Fails</span><strong>${Number(data.quality_history?.failed || 0)}</strong></div>
       <div><span>Files</span><strong>${Number(data.files?.count || 0)}</strong></div>
       <div><span>Memory</span><strong>${Number(data.memory?.message_count || 0)}</strong></div>
       <div><span>Avg Answer</span><strong>${Number(data.usage?.average_answer_chars || 0).toLocaleString()}</strong></div>

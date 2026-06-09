@@ -89,12 +89,13 @@ class SandboxEndpointTests(unittest.TestCase):
         self.assertGreater(len(data["allowed_commands"]), 5)
 
     def test_run_allowed_command(self):
-        status, data = _post("/api/sandbox/run", {"command": "python --version"})
+        status, data = _post("/api/sandbox/run", {"command": "python --version", "session_id": "api-command-test"})
         self.assertEqual(status, 200)
         self.assertIn("exit_code", data)
         self.assertEqual(data["exit_code"], 0)
         self.assertIn("verified", data)
         self.assertTrue(data["verified"]["passed"])
+        self.assertIn("duration_ms", data)
 
     def test_run_blocked_command_returns_400(self):
         status, data = _post("/api/sandbox/run", {"command": "rm -rf /"})
@@ -108,6 +109,17 @@ class SandboxEndpointTests(unittest.TestCase):
         self.assertIn("passed", verified)
         self.assertIn("issues", verified)
         self.assertIn("summary", verified)
+
+    def test_command_history_endpoint(self):
+        _post("/api/commands/clear", {"session_id": "api-command-history"})
+        _post("/api/sandbox/run", {"command": "python --version", "session_id": "api-command-history"})
+        data = _get("/api/commands?session_id=api-command-history")
+        self.assertIn("commands", data)
+        self.assertGreaterEqual(len(data["commands"]), 1)
+        self.assertEqual(data["commands"][0]["command"], "python --version")
+        status, cleared = _post("/api/commands/clear", {"session_id": "api-command-history"})
+        self.assertEqual(status, 200)
+        self.assertTrue(cleared.get("ok"))
 
 
 class RunsEndpointTests(unittest.TestCase):

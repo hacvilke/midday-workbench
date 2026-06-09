@@ -15,6 +15,7 @@ const commandInput = document.querySelector("#commandInput");
 const runCommandButton = document.querySelector("#runCommand");
 const commandPolicy = document.querySelector("#commandPolicy");
 const commandOutput = document.querySelector("#commandOutput");
+const recentCommands = document.querySelector("#recentCommands");
 const graphNodes = document.querySelector("#graphNodes");
 const graphEdges = document.querySelector("#graphEdges");
 const graphCentrality = document.querySelector("#graphCentrality");
@@ -681,7 +682,30 @@ async function loadSandboxPolicy() {
   }
 }
 
-showStatus().then(loadMemory).then(loadRepoGraph).then(loadRecentRuns).then(loadSandboxPolicy);
+async function loadRecentCommands() {
+  try {
+    const response = await fetch(`/api/commands?session_id=${encodeURIComponent(sessionId)}`);
+    const data = await response.json();
+    recentCommands.innerHTML = "";
+    if (!data.commands?.length) {
+      recentCommands.textContent = "No command history yet.";
+      return;
+    }
+    data.commands.slice(0, 5).forEach((entry) => {
+      const row = document.createElement("div");
+      row.innerHTML = `
+        <strong>${escapeHtml(entry.command)}</strong>
+        <span>exit ${Number(entry.exit_code)} - ${Number(entry.duration_ms || 0)}ms</span>
+        <em>${escapeHtml(entry.verified?.summary || "")}</em>
+      `;
+      recentCommands.appendChild(row);
+    });
+  } catch {
+    recentCommands.textContent = "Command history unavailable.";
+  }
+}
+
+showStatus().then(loadMemory).then(loadRepoGraph).then(loadRecentRuns).then(loadSandboxPolicy).then(loadRecentCommands);
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
 
@@ -733,14 +757,15 @@ runCommandButton.addEventListener("click", async () => {
     const response = await fetch("/api/sandbox/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify({ command, session_id: sessionId }),
     });
     const data = await response.json();
     if (!response.ok) {
       commandOutput.textContent = data.error || "Command blocked.";
       return;
     }
-    commandOutput.textContent = `$ ${data.command}\nexit ${data.exit_code}\n\n${data.output || "(no output)"}`;
+    commandOutput.textContent = `$ ${data.command}\nexit ${data.exit_code} - ${Number(data.duration_ms || 0)}ms\nverify ${data.verified?.summary || "unknown"}\n\n${data.output || "(no output)"}`;
+    loadRecentCommands();
   } catch {
     commandOutput.textContent = "Command runner unavailable.";
   }

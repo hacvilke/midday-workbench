@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -18,7 +19,15 @@ from agent_core.prompt_harness import prompt_registry
 from agent_core.repo_graph import build_repo_graph
 from agent_core.tool_schemas import oss_tool_schemas
 from agent_core.providers import configured_providers
-from agent_core.run_log import add_run, clear_runs, recent_runs, get_sessions
+from agent_core.run_log import (
+    add_command_run,
+    add_run,
+    clear_command_runs,
+    clear_runs,
+    get_sessions,
+    recent_command_runs,
+    recent_runs,
+)
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.verifier import ReActVerifier
 
@@ -78,6 +87,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/sessions":
             return self.send_json({"sessions": get_sessions(limit=50)})
 
+        if parsed.path == "/api/commands":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json({"commands": recent_command_runs(session_id=session_id, limit=20)})
+
         if parsed.path == "/api/sandbox":
             sandbox = ExecutionSandbox(get_config().workspace_root)
             return self.send_json({"allowed_commands": sandbox.allowed_commands()})
@@ -122,6 +135,11 @@ class Handler(BaseHTTPRequestHandler):
             clear_runs(body.get("session_id"))
             return self.send_json({"ok": True})
 
+        if self.path == "/api/commands/clear":
+            body = self._read_json()
+            clear_command_runs(body.get("session_id"))
+            return self.send_json({"ok": True})
+
         if self.path == "/api/tools/run":
             body = self._read_json()
             registry = OssToolRegistry(get_config())
@@ -135,18 +153,24 @@ class Handler(BaseHTTPRequestHandler):
             body = self._read_json()
             sandbox = ExecutionSandbox(get_config().workspace_root)
             command = str(body.get("command", ""))
+            session_id = str(body.get("session_id", "default"))
+            started = time.perf_counter()
             try:
                 result = sandbox.run_read_only(command, timeout=20)
             except Exception as exc:
                 return self.send_json({"error": str(exc)}, status=400)
             verifier = ReActVerifier()
             report = verifier.verify_command_result(result.command, result.exit_code, result.output)
+            duration_ms = int((time.perf_counter() - started) * 1000)
+            verified = {"passed": report.passed, "issues": report.issues, "summary": report.summary}
+            add_command_run(session_id, result.command, result.exit_code, result.output, verified, duration_ms)
             return self.send_json(
                 {
                     "command": result.command,
                     "exit_code": result.exit_code,
                     "output": result.output,
-                    "verified": {"passed": report.passed, "issues": report.issues, "summary": report.summary},
+                    "verified": verified,
+                    "duration_ms": duration_ms,
                 }
             )
 

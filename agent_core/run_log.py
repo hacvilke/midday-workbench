@@ -58,6 +58,21 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
 
     con.execute("CREATE INDEX IF NOT EXISTS idx_runs_session ON runs(session_id, id)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_runs_run_id ON runs(run_id)")
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS command_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            command TEXT NOT NULL,
+            exit_code INTEGER NOT NULL,
+            output TEXT NOT NULL,
+            verified TEXT NOT NULL,
+            duration_ms INTEGER NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
+    con.execute("CREATE INDEX IF NOT EXISTS idx_command_runs_session ON command_runs(session_id, id)")
     return con
 
 
@@ -204,5 +219,101 @@ def clear_runs(session_id: str | None = None) -> None:
         con.execute("DELETE FROM runs WHERE session_id = ?", (session_id,))
     else:
         con.execute("DELETE FROM runs")
+    con.commit()
+    con.close()
+
+
+def add_command_run(
+    session_id: str,
+    command: str,
+    exit_code: int,
+    output: str,
+    verified: dict[str, object],
+    duration_ms: int,
+) -> None:
+    """Persist a sandbox command run for auditability.
+
+    Args:
+        session_id: Browser/session id.
+        command: Command string requested.
+        exit_code: Process exit code.
+        output: Combined output.
+        verified: Verifier report payload.
+        duration_ms: Execution duration in milliseconds.
+
+    Returns:
+        None.
+    """
+
+    con = connect()
+    con.execute(
+        """
+        INSERT INTO command_runs(session_id, command, exit_code, output, verified, duration_ms, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (session_id, command, exit_code, output[:8000], json.dumps(verified), duration_ms, int(time.time())),
+    )
+    con.commit()
+    con.close()
+
+
+def recent_command_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str, object]]:
+    """Fetch recent sandbox command runs.
+
+    Args:
+        session_id: Optional session filter.
+        limit: Maximum rows.
+
+    Returns:
+        List of command-run dictionaries.
+    """
+
+    con = connect()
+    if session_id:
+        rows = con.execute(
+            """
+            SELECT session_id, command, exit_code, output, verified, duration_ms, created_at
+            FROM command_runs WHERE session_id = ? ORDER BY id DESC LIMIT ?
+            """,
+            (session_id, limit),
+        ).fetchall()
+    else:
+        rows = con.execute(
+            """
+            SELECT session_id, command, exit_code, output, verified, duration_ms, created_at
+            FROM command_runs ORDER BY id DESC LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    con.close()
+    return [
+        {
+            "session_id": row[0],
+            "command": row[1],
+            "exit_code": row[2],
+            "output": row[3],
+            "verified": json.loads(row[4]),
+            "duration_ms": row[5],
+            "created_at": row[6],
+        }
+        for row in rows
+    ]
+
+
+def clear_command_runs(session_id: str | None = None) -> None:
+    """Clear sandbox command run history.
+
+    Args:
+        session_id: Optional session filter.
+
+    Returns:
+        None.
+    """
+
+    con = connect()
+    if session_id:
+        con.execute("DELETE FROM command_runs WHERE session_id = ?", (session_id,))
+    else:
+        con.execute("DELETE FROM command_runs")
     con.commit()
     con.close()

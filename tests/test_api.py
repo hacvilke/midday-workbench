@@ -208,6 +208,15 @@ class MetricsEndpointTests(unittest.TestCase):
         self.assertIn("verifier", data)
 
 
+class OperationalReviewEndpointTests(unittest.TestCase):
+    def test_operational_review_endpoint_shape(self):
+        data = _get("/api/operational-review?session_id=nonexistent-session-xyz")
+        self.assertIn("score", data)
+        self.assertIn("grade", data)
+        self.assertIn("risks", data)
+        self.assertIn("recommendations", data)
+
+
 class PromptsEndpointTests(unittest.TestCase):
     def test_prompts_endpoint_exposes_harness_entries(self):
         data = _get("/api/prompts")
@@ -222,6 +231,7 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         data = _get("/api/control-plane?session_id=nonexistent-session-xyz")
         self.assertIn("health", data)
         self.assertIn("metrics", data)
+        self.assertIn("operational_review", data)
         self.assertIn("sessions", data)
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)

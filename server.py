@@ -22,6 +22,7 @@ from agent_core.memory import (
     update_session_summary,
 )
 from agent_core.oss_tools import OssToolRegistry
+from agent_core.operational_review import operational_review
 from agent_core.output_templates import template_registry
 from agent_core.prompt_harness import prompt_registry
 from agent_core.quality import quality_gate_manifest
@@ -92,6 +93,7 @@ class Handler(BaseHTTPRequestHandler):
                     "tools": registry.tool_records(),
                     "health": health_report(),
                     "metrics": operational_metrics(session_id=session_id),
+                    "operational_review": operational_review(session_id=session_id),
                     "sessions": get_sessions(limit=10),
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),
@@ -188,6 +190,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/metrics":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json(operational_metrics(session_id=session_id))
+
+        if parsed.path == "/api/operational-review":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json(operational_review(session_id=session_id))
 
         if parsed.path == "/api/context-window":
             return self.send_json(session_state_snapshot())

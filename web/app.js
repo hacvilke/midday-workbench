@@ -7,6 +7,7 @@ const topbarBadge = document.querySelector("#topbarBadge");
 const healthStatus = document.querySelector("#healthStatus");
 const toolHealthStatus = document.querySelector("#toolHealthStatus");
 const metricsPanel = document.querySelector("#metricsPanel");
+const operationalReview = document.querySelector("#operationalReview");
 const clearMemoryButton = document.querySelector("#clearMemory");
 const toolSelect = document.querySelector("#toolSelect");
 const toolQuery = document.querySelector("#toolQuery");
@@ -597,6 +598,7 @@ async function streamChat(prompt) {
   loadSessions();
   loadContextWindow();
   loadMetrics();
+  loadOperationalReview();
   isStreaming = false;
 }
 
@@ -851,6 +853,22 @@ async function loadMetrics() {
   }
 }
 
+async function loadOperationalReview() {
+  try {
+    const response = await fetch(`/api/operational-review?session_id=${encodeURIComponent(sessionId)}`);
+    const data = await response.json();
+    const risk = (data.risks || [])[0] || "No risk summary.";
+    const next = (data.recommendations || [])[0] || "No recommendation.";
+    operationalReview.textContent = [
+      `score ${Number(data.score || 0)}/100 (${data.grade || "unknown"})`,
+      `risk ${risk}`,
+      `next ${next}`,
+    ].join("\n");
+  } catch {
+    operationalReview.textContent = "Operational review unavailable.";
+  }
+}
+
 async function loadRecentDecisions() {
   try {
     const response = await fetch(`/api/decisions?session_id=${encodeURIComponent(sessionId)}`);
@@ -910,6 +928,7 @@ showStatus()
   .then(loadRecentCommands)
   .then(loadRecentDecisions)
   .then(loadMetrics)
+  .then(loadOperationalReview)
   .then(loadQualityGates);
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
@@ -933,6 +952,7 @@ clearRunsButton.addEventListener("click", async () => {
   recentRuns.textContent = "No runs yet.";
   loadSessions();
   loadMetrics();
+  loadOperationalReview();
 });
 
 clearContextWindowButton.addEventListener("click", async () => {
@@ -991,6 +1011,7 @@ inspectRouteButton.addEventListener("click", async () => {
     }
     loadRecentDecisions();
     loadMetrics();
+    loadOperationalReview();
   } catch {
     routeOutput.textContent = "Route inspector unavailable.";
     delegationOutput.textContent = "Delegation unavailable.";
@@ -1015,6 +1036,7 @@ runCommandButton.addEventListener("click", async () => {
     commandOutput.textContent = `$ ${data.command}\nexit ${data.exit_code} - ${Number(data.duration_ms || 0)}ms\nverify ${data.verified?.summary || "unknown"}\n\n${data.output || "(no output)"}`;
     loadRecentCommands();
     loadMetrics();
+    loadOperationalReview();
   } catch {
     commandOutput.textContent = "Command runner unavailable.";
   }

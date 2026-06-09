@@ -32,6 +32,7 @@ from agent_core.providers import configured_providers
 from agent_core.run_log import (
     add_command_run,
     add_decision,
+    activity_timeline,
     add_run,
     clear_command_runs,
     clear_decisions,
@@ -96,6 +97,7 @@ class Handler(BaseHTTPRequestHandler):
                     "health": health,
                     "metrics": metrics,
                     "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics),
+                    "timeline": activity_timeline(session_id=session_id, limit=10),
                     "sessions": get_sessions(limit=10),
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),
@@ -184,6 +186,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/commands":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json({"commands": recent_command_runs(session_id=session_id, limit=20)})
+
+        if parsed.path == "/api/timeline":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json({"events": activity_timeline(session_id=session_id, limit=30)})
 
         if parsed.path == "/api/decisions":
             session_id = _query_param(parsed.query, "session_id")

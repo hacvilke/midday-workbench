@@ -5,6 +5,7 @@ from agent_core.run_log import (
     add_command_run,
     add_decision,
     add_run,
+    activity_timeline,
     clear_command_runs,
     clear_decisions,
     clear_runs,
@@ -89,6 +90,36 @@ class RunLogTests(unittest.TestCase):
         self.assertIn("decisions", metrics)
         self.assertIn("verifier", metrics)
         self.assertEqual(metrics["runs"]["count"], 0)
+
+    def test_activity_timeline_merges_events(self):
+        """Verify runs, commands, and decisions merge into one activity stream."""
+
+        session_id = "timeline-test"
+        clear_runs(session_id)
+        clear_command_runs(session_id)
+        clear_decisions(session_id)
+        run = AgentRun(
+            run_id="timeline-run",
+            answer="answer",
+            tools_used=[],
+            react_steps=[],
+            context_attached=False,
+            memory_items=0,
+            provider="local",
+            duration_ms=1,
+            fallback_used=False,
+            error=None,
+            provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 1, "error": None}],
+            plan={"intent": "plain_chat"},
+        )
+        add_run(session_id, "hi", run)
+        add_command_run(session_id, "git status", 0, "ok", {"passed": True, "issues": [], "summary": "exit=0"}, 1)
+        add_decision(session_id, "route", "hi", {"intent": "plain_chat"})
+        events = activity_timeline(session_id=session_id)
+        self.assertEqual({"run", "command", "decision"}, {event["type"] for event in events})
+        clear_runs(session_id)
+        clear_command_runs(session_id)
+        clear_decisions(session_id)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ const healthStatus = document.querySelector("#healthStatus");
 const toolHealthStatus = document.querySelector("#toolHealthStatus");
 const metricsPanel = document.querySelector("#metricsPanel");
 const operationalReview = document.querySelector("#operationalReview");
+const activityTimeline = document.querySelector("#activityTimeline");
 const clearMemoryButton = document.querySelector("#clearMemory");
 const toolSelect = document.querySelector("#toolSelect");
 const toolQuery = document.querySelector("#toolQuery");
@@ -600,6 +601,7 @@ async function streamChat(prompt) {
   loadContextWindow();
   loadMetrics();
   loadOperationalReview();
+  loadActivityTimeline();
   isStreaming = false;
 }
 
@@ -870,6 +872,29 @@ async function loadOperationalReview() {
   }
 }
 
+async function loadActivityTimeline() {
+  try {
+    const response = await fetch(`/api/timeline?session_id=${encodeURIComponent(sessionId)}`);
+    const data = await response.json();
+    activityTimeline.innerHTML = "";
+    if (!data.events?.length) {
+      activityTimeline.textContent = "No activity yet.";
+      return;
+    }
+    data.events.slice(0, 8).forEach((event) => {
+      const row = document.createElement("div");
+      row.innerHTML = `
+        <strong>${escapeHtml(event.type)} - ${escapeHtml(event.status)}</strong>
+        <span>${escapeHtml(event.title)}</span>
+        <em>${escapeHtml(event.summary)}</em>
+      `;
+      activityTimeline.appendChild(row);
+    });
+  } catch {
+    activityTimeline.textContent = "Activity unavailable.";
+  }
+}
+
 async function loadRecentDecisions() {
   try {
     const response = await fetch(`/api/decisions?session_id=${encodeURIComponent(sessionId)}`);
@@ -930,6 +955,7 @@ showStatus()
   .then(loadRecentDecisions)
   .then(loadMetrics)
   .then(loadOperationalReview)
+  .then(loadActivityTimeline)
   .then(loadQualityGates);
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
@@ -954,6 +980,7 @@ clearRunsButton.addEventListener("click", async () => {
   loadSessions();
   loadMetrics();
   loadOperationalReview();
+  loadActivityTimeline();
 });
 
 clearContextWindowButton.addEventListener("click", async () => {
@@ -1013,6 +1040,7 @@ inspectRouteButton.addEventListener("click", async () => {
     loadRecentDecisions();
     loadMetrics();
     loadOperationalReview();
+    loadActivityTimeline();
   } catch {
     routeOutput.textContent = "Route inspector unavailable.";
     delegationOutput.textContent = "Delegation unavailable.";
@@ -1038,6 +1066,7 @@ runCommandButton.addEventListener("click", async () => {
     loadRecentCommands();
     loadMetrics();
     loadOperationalReview();
+    loadActivityTimeline();
   } catch {
     commandOutput.textContent = "Command runner unavailable.";
   }
@@ -1063,6 +1092,7 @@ runQualityGatesButton.addEventListener("click", async () => {
     loadRecentCommands();
     loadMetrics();
     loadOperationalReview();
+    loadActivityTimeline();
   } catch {
     commandOutput.textContent = "Quality gates unavailable.";
   }

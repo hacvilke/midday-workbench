@@ -507,3 +507,56 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "kinds": decision_counts,
         },
     }
+
+
+def activity_timeline(session_id: str | None = None, limit: int = 30) -> list[dict[str, object]]:
+    """Return a merged chronological activity stream.
+
+    Args:
+        session_id: Optional session filter.
+        limit: Maximum timeline items.
+
+    Returns:
+        List of run, command, and decision events ordered newest first.
+    """
+
+    events: list[dict[str, object]] = []
+    for run in recent_runs(session_id=session_id, limit=limit):
+        events.append(
+            {
+                "type": "run",
+                "id": run["run_id"],
+                "session_id": run["session_id"],
+                "title": str(run.get("prompt", ""))[:120],
+                "summary": f"{run.get('provider')} · {len(run.get('tools_used') or [])} tool(s)",
+                "status": "failed" if run.get("error") else "ok",
+                "created_at": run["created_at"],
+            }
+        )
+    for command in recent_command_runs(session_id=session_id, limit=limit):
+        verified = command.get("verified") or {}
+        events.append(
+            {
+                "type": "command",
+                "id": command["command"],
+                "session_id": command["session_id"],
+                "title": command["command"],
+                "summary": verified.get("summary", f"exit={command.get('exit_code')}"),
+                "status": "ok" if int(command.get("exit_code") or 0) == 0 else "failed",
+                "created_at": command["created_at"],
+            }
+        )
+    for decision in recent_decisions(session_id=session_id, limit=limit):
+        payload = decision.get("decision") or {}
+        events.append(
+            {
+                "type": "decision",
+                "id": decision["kind"],
+                "session_id": decision["session_id"],
+                "title": decision["input"],
+                "summary": str(payload.get("intent") or payload.get("action_type") or decision["kind"]),
+                "status": "ok",
+                "created_at": decision["created_at"],
+            }
+        )
+    return sorted(events, key=lambda item: int(item.get("created_at") or 0), reverse=True)[:limit]

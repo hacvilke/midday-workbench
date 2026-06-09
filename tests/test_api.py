@@ -240,6 +240,7 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("health", data)
         self.assertIn("metrics", data)
         self.assertIn("operational_review", data)
+        self.assertIn("timeline", data)
         self.assertIn("sessions", data)
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)
@@ -268,6 +269,13 @@ class ContextWindowEndpointTests(unittest.TestCase):
         status, cleared = _post("/api/context-window/clear", {})
         self.assertEqual(status, 200)
         self.assertTrue(cleared.get("ok"))
+
+
+class TimelineEndpointTests(unittest.TestCase):
+    def test_timeline_endpoint_shape(self):
+        data = _get("/api/timeline?session_id=nonexistent-session-xyz")
+        self.assertIn("events", data)
+        self.assertIsInstance(data["events"], list)
 
 
 class SessionsEndpointTests(unittest.TestCase):

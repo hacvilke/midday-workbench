@@ -576,6 +576,68 @@ def clear_decisions(session_id: str | None = None) -> None:
     con.close()
 
 
+def route_decision_summary(session_id: str | None = None, limit: int = 100) -> dict[str, object]:
+    """Summarize inspected route decisions for operator review.
+
+    Args:
+        session_id: Optional session filter.
+        limit: Maximum recent decisions to inspect.
+
+    Returns:
+        Counts plus newest review-worthy route examples.
+    """
+
+    route_rows = [
+        row
+        for row in recent_decisions(session_id=session_id, limit=limit)
+        if row.get("kind") == "route" and isinstance(row.get("decision"), dict)
+    ]
+    intents: dict[str, int] = {}
+    tools: dict[str, int] = {}
+    review_examples: list[dict[str, object]] = []
+    ambiguous = 0
+    low_confidence = 0
+    for row in route_rows:
+        payload = row["decision"]
+        intent = str(payload.get("intent") or "unknown")
+        intents[intent] = intents.get(intent, 0) + 1
+        for tool in payload.get("tools") or []:
+            name = str(tool)
+            tools[name] = tools.get(name, 0) + 1
+        alternatives = payload.get("alternatives") or []
+        confidence = payload.get("confidence")
+        is_ambiguous = len(alternatives) > 1
+        is_low_confidence = isinstance(confidence, (int, float)) and confidence < 0.75
+        if is_ambiguous:
+            ambiguous += 1
+        if is_low_confidence:
+            low_confidence += 1
+        if (is_ambiguous or is_low_confidence) and len(review_examples) < 5:
+            review_examples.append(
+                {
+                    "input": row.get("input", ""),
+                    "intent": intent,
+                    "tools": payload.get("tools") or [],
+                    "confidence": confidence,
+                    "ambiguous": is_ambiguous,
+                    "low_confidence": is_low_confidence,
+                    "alternatives": alternatives[:4],
+                    "created_at": row.get("created_at"),
+                }
+            )
+    review_count = ambiguous + low_confidence
+    return {
+        "session_id": session_id,
+        "count": len(route_rows),
+        "ambiguous": ambiguous,
+        "low_confidence": low_confidence,
+        "review_count": review_count,
+        "top_intents": _top_counts(intents),
+        "top_tools": _top_counts(tools),
+        "review_examples": review_examples,
+    }
+
+
 def retention_stats(session_id: str | None = None) -> dict[str, object]:
     """Return audit-log row counts for retention visibility."""
 
@@ -663,6 +725,13 @@ def _prune_table(con: sqlite3.Connection, table: str, session_id: str | None, ke
         )
         after = _count_all(con, table)
     return max(0, before - after)
+
+
+def _top_counts(counts: dict[str, int], limit: int = 5) -> list[dict[str, object]]:
+    return [
+        {"name": name, "count": count}
+        for name, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]
+    ]
 
 
 def operational_metrics(session_id: str | None = None) -> dict[str, object]:

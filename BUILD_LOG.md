@@ -80,3 +80,4 @@
 2026-06-09: [HARDENING] Added `light=1` control-plane mode that keeps core health, metrics, scorecard, policy, routing, and provider state while skipping heavier history payloads for faster probes.
 2026-06-09: [UPGRADE] Added operational scorecard penalties for inspected route-decision ambiguity and low confidence so route-inspector telemetry influences system quality before full agent runs.
 2026-06-09: [UPGRADE] Expanded the recent decision UI with route confidence, selected tool, review flags, and alternative summaries so inspected routes are visible from the workbench sidebar.
+2026-06-09: [UPGRADE] Added a canonical route-decision summary API with top intents/tools and review-worthy examples, then surfaced the summary in the decision sidebar.

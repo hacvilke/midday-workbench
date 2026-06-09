@@ -1047,13 +1047,24 @@ async function loadActivityTimeline() {
 
 async function loadRecentDecisions() {
   try {
-    const response = await fetch(`/api/decisions?session_id=${encodeURIComponent(sessionId)}`);
+    const [response, summaryResponse] = await Promise.all([
+      fetch(`/api/decisions?session_id=${encodeURIComponent(sessionId)}`),
+      fetch(`/api/decisions/routes?session_id=${encodeURIComponent(sessionId)}`),
+    ]);
     const data = await response.json();
+    const summary = await summaryResponse.json();
     recentDecisions.innerHTML = "";
     if (!data.decisions?.length) {
       recentDecisions.textContent = "No decisions yet.";
       return;
     }
+    const summaryRow = document.createElement("div");
+    summaryRow.innerHTML = `
+      <strong>Route Decision Summary</strong>
+      <span>${Number(summary.count || 0)} inspected - ${Number(summary.review_count || 0)} review signal(s)</span>
+      <em>${escapeHtml((summary.top_intents || []).map((item) => `${item.name}:${item.count}`).join(", ") || "no route intents")}</em>
+    `;
+    recentDecisions.appendChild(summaryRow);
     data.decisions.slice(0, 5).forEach((entry) => {
       const row = document.createElement("div");
       const decision = entry.decision || {};

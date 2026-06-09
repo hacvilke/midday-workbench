@@ -13,6 +13,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("function formatRouteAlternatives", app_js)
         self.assertIn("function formatRouteDecisionSummary", app_js)
         self.assertIn("formatRouteDecisionSummary(decision)", app_js)
+        self.assertIn("/api/decisions/routes", app_js)
+        self.assertIn("Route Decision Summary", app_js)
         self.assertIn("formatRouteAlternatives(data.alternatives || [])", app_js)
         self.assertIn("const alternatives = plan.alternatives || []", app_js)
         self.assertIn("async function loadRoutingAudit", app_js)

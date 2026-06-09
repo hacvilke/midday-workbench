@@ -162,6 +162,16 @@ class RouteEndpointTests(unittest.TestCase):
         self.assertEqual(data["decisions"][0]["kind"], "route")
         self.assertEqual(data["decisions"][0]["decision"]["intent"], "visualize")
 
+    def test_route_decision_summary_endpoint(self):
+        session_id = "api-route-summary"
+        _post("/api/decisions/clear", {"session_id": session_id})
+        _get(f"/api/route?message=show%20graph%20of%20architecture&session_id={session_id}")
+        data = _get(f"/api/decisions/routes?session_id={session_id}")
+        self.assertIn("review_count", data)
+        self.assertIn("top_intents", data)
+        self.assertIn("review_examples", data)
+        self.assertGreaterEqual(data["count"], 1)
+
 
 class SandboxEndpointTests(unittest.TestCase):
     def test_allowed_commands_returned(self):

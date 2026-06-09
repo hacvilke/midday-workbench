@@ -19,6 +19,7 @@ from agent_core.run_log import (
     operational_metrics,
     prune_history,
     retention_stats,
+    route_decision_summary,
 )
 
 
@@ -97,6 +98,33 @@ class RunLogTests(unittest.TestCase):
         rows = recent_decisions(session_id=session_id)
         self.assertEqual(rows[0]["kind"], "route")
         self.assertEqual(rows[0]["decision"]["intent"], "visualize")
+        clear_decisions(session_id)
+
+    def test_route_decision_summary_flags_review_examples(self):
+        """Verify route decision summaries expose review-worthy routing drift."""
+
+        session_id = "route-summary-test"
+        clear_decisions(session_id)
+        add_decision(
+            session_id,
+            "route",
+            "show graph",
+            {
+                "intent": "visualize",
+                "tools": ["rich_output_template_tool"],
+                "confidence": 0.7,
+                "alternatives": [{"intent": "visualize"}, {"intent": "system_design"}],
+            },
+        )
+        add_decision(session_id, "policy", "write_file", {"action_type": "write_file"})
+        summary = route_decision_summary(session_id=session_id)
+        self.assertEqual(summary["count"], 1)
+        self.assertEqual(summary["ambiguous"], 1)
+        self.assertEqual(summary["low_confidence"], 1)
+        self.assertEqual(summary["review_count"], 2)
+        self.assertEqual(summary["top_intents"][0]["name"], "visualize")
+        self.assertEqual(summary["top_tools"][0]["name"], "rich_output_template_tool")
+        self.assertEqual(summary["review_examples"][0]["input"], "show graph")
         clear_decisions(session_id)
 
     def test_file_event_roundtrip(self):

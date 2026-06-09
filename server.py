@@ -51,6 +51,7 @@ from agent_core.run_log import (
     operational_metrics,
     prune_history,
     retention_stats,
+    route_decision_summary,
 )
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.session import clear_session_state, prune_session_state, session_state_snapshot
@@ -240,6 +241,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/decisions":
             session_id = _query_param(parsed.query, "session_id")
             return self.send_json({"decisions": recent_decisions(session_id=session_id, limit=50)})
+
+        if parsed.path == "/api/decisions/routes":
+            session_id = _query_param(parsed.query, "session_id")
+            return self.send_json(route_decision_summary(session_id=session_id))
 
         if parsed.path == "/api/metrics":
             session_id = _query_param(parsed.query, "session_id")

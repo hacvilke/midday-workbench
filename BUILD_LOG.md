@@ -70,3 +70,4 @@
 2026-06-09: [UPGRADE] Added raw memory pruning with summary preservation, `/api/memory/prune`, and regression tests so long-running sessions can compact transcript rows without losing durable memory.
 2026-06-09: [HARDENING] Cached deterministic routing audits behind mutation-safe copies to reduce repeated control-plane, health, and prompt-guardrail work while preserving API behavior.
 2026-06-09: [UPGRADE] Added quality gate history summaries with persisted quality-command extraction, `/api/quality/history`, pass/fail counts, latest gate metadata, and regression tests.
+2026-06-09: [UPGRADE] Surfaced quality gate history in the command runner panel with pass/fail counts, latest gate summaries, refresh after gate runs, and UI regression coverage.

@@ -28,6 +28,7 @@ const commandPolicy = document.querySelector("#commandPolicy");
 const commandOutput = document.querySelector("#commandOutput");
 const recentCommands = document.querySelector("#recentCommands");
 const qualityGates = document.querySelector("#qualityGates");
+const qualityHistory = document.querySelector("#qualityHistory");
 const graphNodes = document.querySelector("#graphNodes");
 const graphEdges = document.querySelector("#graphEdges");
 const graphCentrality = document.querySelector("#graphCentrality");
@@ -1075,6 +1076,32 @@ async function loadQualityGates() {
   }
 }
 
+async function loadQualityHistory() {
+  try {
+    const response = await fetch(`/api/quality/history?session_id=${encodeURIComponent(sessionId)}`);
+    const data = await response.json();
+    qualityHistory.innerHTML = "";
+    const summary = document.createElement("div");
+    summary.innerHTML = `
+      <strong>${Number(data.passed || 0)} passed / ${Number(data.failed || 0)} failed</strong>
+      <span>${Number(data.count || 0)} quality gate run(s)</span>
+    `;
+    qualityHistory.appendChild(summary);
+    (data.latest || []).slice(0, 4).forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = entry.passed ? "ok" : "fail";
+      row.innerHTML = `
+        <strong>${escapeHtml(entry.gate || "quality")}</strong>
+        <span>${escapeHtml(entry.summary || "")}</span>
+        <em>${Number(entry.duration_ms || 0)}ms</em>
+      `;
+      qualityHistory.appendChild(row);
+    });
+  } catch {
+    qualityHistory.textContent = "Quality history unavailable.";
+  }
+}
+
 showStatus()
   .then(loadMemory)
   .then(loadRepoGraph)
@@ -1090,7 +1117,8 @@ showStatus()
   .then(loadOperationalReview)
   .then(loadRoutingAudit)
   .then(loadActivityTimeline)
-  .then(loadQualityGates);
+  .then(loadQualityGates)
+  .then(loadQualityHistory);
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
 
@@ -1256,6 +1284,7 @@ runQualityGatesButton.addEventListener("click", async () => {
       ...(data.results || []).map((gate) => `${gate.name}: ${gate.verified?.summary || "unknown"} (${Number(gate.duration_ms || 0)}ms)`),
     ].join("\n");
     loadRecentCommands();
+    loadQualityHistory();
     loadMetrics();
     loadOperationalReview();
     loadActivityTimeline();

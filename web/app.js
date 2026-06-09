@@ -1049,7 +1049,7 @@ runQualityGatesButton.addEventListener("click", async () => {
     const response = await fetch("/api/quality/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ required_only: true }),
+      body: JSON.stringify({ required_only: true, session_id: sessionId }),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -1060,6 +1060,8 @@ runQualityGatesButton.addEventListener("click", async () => {
       `quality gates ${data.passed ? "passed" : "failed"} - ${Number(data.duration_ms || 0)}ms`,
       ...(data.results || []).map((gate) => `${gate.name}: ${gate.verified?.summary || "unknown"} (${Number(gate.duration_ms || 0)}ms)`),
     ].join("\n");
+    loadRecentCommands();
+    loadMetrics();
     loadOperationalReview();
   } catch {
     commandOutput.textContent = "Quality gates unavailable.";

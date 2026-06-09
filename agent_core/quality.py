@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 import time
 
 from .config import PROJECT_ROOT
+from .run_log import add_command_run
 from .sandbox import ExecutionSandbox
 from .verifier import ReActVerifier
 
@@ -64,12 +65,19 @@ def required_quality_commands() -> list[str]:
     return [gate.command for gate in QUALITY_GATES if gate.required]
 
 
-def run_quality_gates(required_only: bool = True, dry_run: bool = False) -> dict[str, object]:
+def run_quality_gates(
+    required_only: bool = True,
+    dry_run: bool = False,
+    session_id: str | None = None,
+    gate_names: list[str] | None = None,
+) -> dict[str, object]:
     """Run quality gates through the read-only sandbox.
 
     Args:
         required_only: Whether to run only required gates.
         dry_run: Return allowlist/plan results without executing commands.
+        session_id: Optional session id for persisted command audit rows.
+        gate_names: Optional gate-name filter.
 
     Returns:
         JSON-compatible report with per-gate verifier results.
@@ -77,7 +85,12 @@ def run_quality_gates(required_only: bool = True, dry_run: bool = False) -> dict
 
     sandbox = ExecutionSandbox(PROJECT_ROOT)
     verifier = ReActVerifier()
-    gates = [gate for gate in QUALITY_GATES if gate.required or not required_only]
+    requested = set(gate_names or [])
+    gates = [
+        gate
+        for gate in QUALITY_GATES
+        if (gate.required or not required_only) and (not requested or gate.name in requested)
+    ]
     results = []
     started_all = time.perf_counter()
     for gate in gates:
@@ -103,6 +116,10 @@ def run_quality_gates(required_only: bool = True, dry_run: bool = False) -> dict
         try:
             result = sandbox.run_read_only(gate.command, timeout=60)
             report = verifier.verify_command_result(result.command, result.exit_code, result.output)
+            verified = {"passed": report.passed, "issues": report.issues, "summary": f"quality:{gate.name} {report.summary}"}
+            duration_ms = int((time.perf_counter() - started) * 1000)
+            if session_id:
+                add_command_run(session_id, result.command, result.exit_code, result.output, verified, duration_ms)
             results.append(
                 {
                     "name": gate.name,
@@ -110,8 +127,8 @@ def run_quality_gates(required_only: bool = True, dry_run: bool = False) -> dict
                     "required": gate.required,
                     "exit_code": result.exit_code,
                     "output": result.output,
-                    "duration_ms": int((time.perf_counter() - started) * 1000),
-                    "verified": {"passed": report.passed, "issues": report.issues, "summary": report.summary},
+                    "duration_ms": duration_ms,
+                    "verified": verified,
                 }
             )
         except Exception as exc:
@@ -131,6 +148,7 @@ def run_quality_gates(required_only: bool = True, dry_run: bool = False) -> dict
         "passed": passed,
         "required_only": required_only,
         "dry_run": dry_run,
+        "gate_names": gate_names or [],
         "duration_ms": int((time.perf_counter() - started_all) * 1000),
         "results": results,
     }

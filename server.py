@@ -262,7 +262,18 @@ class Handler(BaseHTTPRequestHandler):
             body = self._read_json()
             required_only = bool(body.get("required_only", True))
             dry_run = bool(body.get("dry_run", False))
-            return self.send_json(run_quality_gates(required_only=required_only, dry_run=dry_run))
+            session_id = body.get("session_id")
+            gate_names = body.get("gate_names")
+            if not isinstance(gate_names, list):
+                gate_names = None
+            return self.send_json(
+                run_quality_gates(
+                    required_only=required_only,
+                    dry_run=dry_run,
+                    session_id=session_id,
+                    gate_names=[str(name) for name in gate_names] if gate_names else None,
+                )
+            )
 
         if self.path == "/api/tools/run":
             body = self._read_json()

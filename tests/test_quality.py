@@ -1,6 +1,7 @@
 import unittest
 
 from agent_core.quality import quality_gate_manifest, required_quality_commands, run_quality_gates
+from agent_core.run_log import clear_command_runs, recent_command_runs
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.config import PROJECT_ROOT, get_config
 
@@ -40,6 +41,19 @@ class QualityGateTests(unittest.TestCase):
         report = run_quality_gates(required_only=True, dry_run=True)
         git_status = [item for item in report["results"] if item["name"] == "git_status"][0]
         self.assertTrue(git_status["verified"]["passed"])
+
+    def test_quality_gate_run_persists_command_audit(self):
+        """Verify actual quality runs can write command audit rows."""
+
+        session_id = "quality-audit-test"
+        clear_command_runs(session_id)
+        report = run_quality_gates(required_only=False, dry_run=False, session_id=session_id, gate_names=["diff_stat"])
+        diff_stat = [item for item in report["results"] if item["name"] == "diff_stat"][0]
+        self.assertTrue(diff_stat["verified"]["summary"].startswith("quality:diff_stat"))
+        rows = recent_command_runs(session_id=session_id)
+        self.assertGreaterEqual(len(rows), 1)
+        self.assertTrue(any(row["verified"]["summary"].startswith("quality:diff_stat") for row in rows))
+        clear_command_runs(session_id)
 
 
 if __name__ == "__main__":

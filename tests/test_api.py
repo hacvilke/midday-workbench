@@ -97,12 +97,12 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertGreater(len(data["gates"]), 0)
 
     def test_quality_run_returns_results(self):
-        status, data = _post("/api/quality/run", {"required_only": True, "dry_run": True})
+        status, data = _post("/api/quality/run", {"required_only": False, "dry_run": True, "gate_names": ["diff_stat"]})
         self.assertEqual(status, 200)
         self.assertIn("passed", data)
         self.assertTrue(data["dry_run"])
         self.assertIn("results", data)
-        self.assertGreaterEqual(len(data["results"]), 1)
+        self.assertEqual([item["name"] for item in data["results"]], ["diff_stat"])
 
 
 class PolicyEndpointTests(unittest.TestCase):

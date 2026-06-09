@@ -89,6 +89,14 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertGreater(len(data["gates"]), 0)
 
 
+class PolicyEndpointTests(unittest.TestCase):
+    def test_policy_returns_categories(self):
+        data = _get("/api/policy")
+        self.assertIn("safe_actions", data)
+        self.assertIn("confirmation_actions", data)
+        self.assertIn("blocked_actions", data)
+
+
 class RouteEndpointTests(unittest.TestCase):
     def test_route_endpoint_returns_decision(self):
         data = _get("/api/route?message=show%20graph")
@@ -205,6 +213,14 @@ class StaticEndpointTests(unittest.TestCase):
             self.fail("Expected 404")
         except urllib.error.HTTPError as exc:
             self.assertEqual(exc.code, 404)
+
+
+class FilePolicyEndpointTests(unittest.TestCase):
+    def test_file_write_requires_confirmation(self):
+        status, data = _post("/api/files/write", {"path": "tmp_policy_test.txt", "content": "x"})
+        self.assertEqual(status, 409)
+        self.assertEqual(data["error"], "confirmation required")
+        self.assertTrue(data["policy"]["requires_confirmation"])
 
 
 if __name__ == "__main__":

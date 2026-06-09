@@ -11,6 +11,7 @@ from urllib.parse import unquote_plus, urlparse
 from agent_core.agent import Agent, AgentRun
 from agent_core.config import PROJECT_ROOT, get_config
 from agent_core.file_editor import FileEditorTool
+from agent_core.execution_policy import decide, policy_manifest
 from agent_core.health import health_report
 from agent_core.memory import (
     add_message,
@@ -83,6 +84,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/quality":
             return self.send_json({"gates": quality_gate_manifest()})
+
+        if parsed.path == "/api/policy":
+            return self.send_json(policy_manifest())
 
         if parsed.path == "/api/route":
             message = _query_param(parsed.query, "message") or ""
@@ -204,6 +208,20 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/files/write":
             body = self._read_json()
+            policy = decide("write_file")
+            if policy.requires_confirmation and not body.get("confirmed"):
+                return self.send_json(
+                    {
+                        "error": "confirmation required",
+                        "policy": {
+                            "action_type": policy.action_type,
+                            "allowed": policy.allowed,
+                            "requires_confirmation": policy.requires_confirmation,
+                            "reason": policy.reason,
+                        },
+                    },
+                    status=409,
+                )
             path = body.get("path", "")
             content = body.get("content", "")
             if not path:
@@ -217,6 +235,20 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/files/patch":
             body = self._read_json()
+            policy = decide("patch_file")
+            if policy.requires_confirmation and not body.get("confirmed"):
+                return self.send_json(
+                    {
+                        "error": "confirmation required",
+                        "policy": {
+                            "action_type": policy.action_type,
+                            "allowed": policy.allowed,
+                            "requires_confirmation": policy.requires_confirmation,
+                            "reason": policy.reason,
+                        },
+                    },
+                    status=409,
+                )
             path = body.get("path", "")
             search = body.get("search", "")
             replace = body.get("replace", "")

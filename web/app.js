@@ -850,7 +850,7 @@ writeFileButton.addEventListener("click", async () => {
     const resp = await fetch("/api/files/write", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path, content }),
+      body: JSON.stringify({ path, content, confirmed: true }),
     });
     const data = await resp.json();
     if (data.error) {

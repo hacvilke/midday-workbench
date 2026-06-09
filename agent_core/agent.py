@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Iterator
 
 from .config import get_config
+from .execution_policy import decide
 from .file_editor import FileEditorTool, extract_code_block
 from .indexer import search
 from .oss_tools import OssToolRegistry
@@ -81,7 +82,6 @@ class Agent:
         """
         started = time.perf_counter()
         run_id = uuid.uuid4().hex[:12]
-        plan = asdict(self.planner.build_plan(prompt))
         plan = asdict(self.planner.build_plan(prompt))
 
         # Fast path: greetings / identity
@@ -406,6 +406,9 @@ class Agent:
         """Auto-write a file if file_edit_tool was used and model produced a code block."""
         if "file_edit_tool" not in [r.name for r in tool_results]:
             return answer
+        policy = decide("write_file")
+        if policy.requires_confirmation and "confirmed write" not in prompt.lower():
+            return answer + f"\n\n> File write prepared but not applied: {policy.reason}. Say `confirmed write` with the target file path to apply it."
         filename = self.editor.extract_filename_from_prompt(prompt)
         if not filename:
             return answer

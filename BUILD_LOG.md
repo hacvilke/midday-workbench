@@ -18,3 +18,4 @@
 2026-06-09: [UPGRADE] Added deterministic session memory condensation with SQLite `session_summaries`, `/api/memory` summary payloads, prompt injection of condensed memory, and tests for summary update/clear behavior.
 2026-06-09: [UPGRADE] Added quality gate definitions and `/api/quality`, with compile/test/eval/git checks exposed to the UI as clickable safe sandbox commands.
 2026-06-09: [UPGRADE] Added `/api/route` routing diagnostics, fixed URL query decoding, and added a UI route inspector for checking tool selection without running a full agent turn.
+2026-06-09: [UPGRADE] Added execution policy decisions and `/api/policy`; file write/patch API calls now require explicit confirmation, and agent-side file write post-processing refuses to mutate files unless the prompt includes `confirmed write`.

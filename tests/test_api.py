@@ -254,6 +254,7 @@ class MetricsEndpointTests(unittest.TestCase):
         self.assertIn("usage", data)
         self.assertIn("decisions", data)
         self.assertIn("verifier", data)
+        self.assertIn("provider_routes", data)
 
 
 class RetentionEndpointTests(unittest.TestCase):

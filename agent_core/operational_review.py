@@ -61,6 +61,15 @@ def operational_review(
         score -= min(15, int(runs["fallback_count"]) * 3)
         risks.append(f"{runs['fallback_count']} provider fallback(s) recorded")
         recommendations.append("Check provider configuration and keep local fallback outputs concise.")
+    provider_routes = metrics.get("provider_routes", {})
+    if provider_routes.get("failed"):
+        score -= min(16, int(provider_routes["failed"]) * 4)
+        risks.append(f"{provider_routes['failed']} provider route verifier failure(s)")
+        recommendations.append("Inspect provider_route verifier reports and repair provider configuration or fallback order.")
+    if provider_routes.get("degraded"):
+        score -= min(12, int(provider_routes["degraded"]) * 3)
+        risks.append(f"{provider_routes['degraded']} provider route(s) used fallback after failed attempts")
+        recommendations.append("Review provider diagnostics for missing keys, unreachable local models, or rate-limited remote providers.")
     if runs.get("ambiguous_routes"):
         score -= min(12, int(runs["ambiguous_routes"]) * 2)
         risks.append(f"{runs['ambiguous_routes']} ambiguous route decision(s) need review")

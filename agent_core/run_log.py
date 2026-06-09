@@ -687,6 +687,9 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
     total_context_chars = 0
     ambiguous_routes = 0
     low_confidence_routes = 0
+    provider_route_reports = 0
+    provider_route_failed = 0
+    provider_route_degraded = 0
 
     for run in runs:
         provider = str(run.get("provider", "unknown"))
@@ -712,6 +715,13 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             verifier_total += 1
             if report.get("passed"):
                 verifier_passed += 1
+            if report.get("action") == "provider_route":
+                provider_route_reports += 1
+                if not report.get("passed"):
+                    provider_route_failed += 1
+                summary = str(report.get("summary") or "")
+                if "failed=" in summary and "failed=none" not in summary:
+                    provider_route_degraded += 1
 
     command_failures = sum(1 for command in commands if int(command.get("exit_code") or 0) != 0)
     decision_counts: dict[str, int] = {}
@@ -741,6 +751,11 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "passed": verifier_passed,
             "failed": max(0, verifier_total - verifier_passed),
             "pass_rate": round(verifier_passed / verifier_total, 3) if verifier_total else None,
+        },
+        "provider_routes": {
+            "count": provider_route_reports,
+            "failed": provider_route_failed,
+            "degraded": provider_route_degraded,
         },
         "commands": {
             "count": len(commands),

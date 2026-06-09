@@ -19,6 +19,7 @@ const delegationOutput = document.querySelector("#delegationOutput");
 const recentDecisions = document.querySelector("#recentDecisions");
 const commandInput = document.querySelector("#commandInput");
 const runCommandButton = document.querySelector("#runCommand");
+const runQualityGatesButton = document.querySelector("#runQualityGates");
 const commandPolicy = document.querySelector("#commandPolicy");
 const commandOutput = document.querySelector("#commandOutput");
 const recentCommands = document.querySelector("#recentCommands");
@@ -1039,6 +1040,29 @@ runCommandButton.addEventListener("click", async () => {
     loadOperationalReview();
   } catch {
     commandOutput.textContent = "Command runner unavailable.";
+  }
+});
+
+runQualityGatesButton.addEventListener("click", async () => {
+  commandOutput.textContent = "Running required quality gates...";
+  try {
+    const response = await fetch("/api/quality/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ required_only: true }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      commandOutput.textContent = data.error || "Quality gates unavailable.";
+      return;
+    }
+    commandOutput.textContent = [
+      `quality gates ${data.passed ? "passed" : "failed"} - ${Number(data.duration_ms || 0)}ms`,
+      ...(data.results || []).map((gate) => `${gate.name}: ${gate.verified?.summary || "unknown"} (${Number(gate.duration_ms || 0)}ms)`),
+    ].join("\n");
+    loadOperationalReview();
+  } catch {
+    commandOutput.textContent = "Quality gates unavailable.";
   }
 });
 

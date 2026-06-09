@@ -2,6 +2,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import time
+
+from .config import PROJECT_ROOT
+from .sandbox import ExecutionSandbox
+from .verifier import ReActVerifier
 
 
 @dataclass(frozen=True)
@@ -57,3 +62,75 @@ def required_quality_commands() -> list[str]:
     """
 
     return [gate.command for gate in QUALITY_GATES if gate.required]
+
+
+def run_quality_gates(required_only: bool = True, dry_run: bool = False) -> dict[str, object]:
+    """Run quality gates through the read-only sandbox.
+
+    Args:
+        required_only: Whether to run only required gates.
+        dry_run: Return allowlist/plan results without executing commands.
+
+    Returns:
+        JSON-compatible report with per-gate verifier results.
+    """
+
+    sandbox = ExecutionSandbox(PROJECT_ROOT)
+    verifier = ReActVerifier()
+    gates = [gate for gate in QUALITY_GATES if gate.required or not required_only]
+    results = []
+    started_all = time.perf_counter()
+    for gate in gates:
+        started = time.perf_counter()
+        if dry_run:
+            allowed = sandbox.is_allowed(gate.command)
+            results.append(
+                {
+                    "name": gate.name,
+                    "command": gate.command,
+                    "required": gate.required,
+                    "exit_code": None,
+                    "output": "",
+                    "duration_ms": 0,
+                    "verified": {
+                        "passed": allowed,
+                        "issues": [] if allowed else ["command is not allowlisted"],
+                        "summary": "dry-run allowlisted" if allowed else "dry-run blocked",
+                    },
+                }
+            )
+            continue
+        try:
+            result = sandbox.run_read_only(gate.command, timeout=60)
+            report = verifier.verify_command_result(result.command, result.exit_code, result.output)
+            results.append(
+                {
+                    "name": gate.name,
+                    "command": gate.command,
+                    "required": gate.required,
+                    "exit_code": result.exit_code,
+                    "output": result.output,
+                    "duration_ms": int((time.perf_counter() - started) * 1000),
+                    "verified": {"passed": report.passed, "issues": report.issues, "summary": report.summary},
+                }
+            )
+        except Exception as exc:
+            results.append(
+                {
+                    "name": gate.name,
+                    "command": gate.command,
+                    "required": gate.required,
+                    "exit_code": None,
+                    "output": "",
+                    "duration_ms": int((time.perf_counter() - started) * 1000),
+                    "verified": {"passed": False, "issues": [str(exc)], "summary": str(exc)},
+                }
+            )
+    passed = all(item["verified"]["passed"] for item in results if item["required"])
+    return {
+        "passed": passed,
+        "required_only": required_only,
+        "dry_run": dry_run,
+        "duration_ms": int((time.perf_counter() - started_all) * 1000),
+        "results": results,
+    }

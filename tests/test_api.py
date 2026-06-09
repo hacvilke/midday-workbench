@@ -15,14 +15,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from server import Handler
 
-_TEST_PORT = 18_765
-_BASE = f"http://127.0.0.1:{_TEST_PORT}"
+_BASE = ""
 _server: ThreadingHTTPServer | None = None
 
 
 def setUpModule():
-    global _server
-    _server = ThreadingHTTPServer(("127.0.0.1", _TEST_PORT), Handler)
+    global _BASE, _server
+    _server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    _BASE = f"http://127.0.0.1:{_server.server_address[1]}"
     thread = threading.Thread(target=_server.serve_forever, daemon=True)
     thread.start()
     # Wait until the server is actually accepting connections
@@ -95,6 +95,14 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertIn("gates", data)
         self.assertIsInstance(data["gates"], list)
         self.assertGreater(len(data["gates"]), 0)
+
+    def test_quality_run_returns_results(self):
+        status, data = _post("/api/quality/run", {"required_only": True, "dry_run": True})
+        self.assertEqual(status, 200)
+        self.assertIn("passed", data)
+        self.assertTrue(data["dry_run"])
+        self.assertIn("results", data)
+        self.assertGreaterEqual(len(data["results"]), 1)
 
 
 class PolicyEndpointTests(unittest.TestCase):

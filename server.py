@@ -25,7 +25,7 @@ from agent_core.oss_tools import OssToolRegistry
 from agent_core.operational_review import operational_review
 from agent_core.output_templates import template_registry
 from agent_core.prompt_harness import prompt_registry
-from agent_core.quality import quality_gate_manifest
+from agent_core.quality import quality_gate_manifest, run_quality_gates
 from agent_core.repo_graph import build_repo_graph
 from agent_core.tool_schemas import oss_tool_schemas
 from agent_core.providers import configured_providers
@@ -257,6 +257,12 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/context-window/clear":
             clear_session_state()
             return self.send_json({"ok": True})
+
+        if self.path == "/api/quality/run":
+            body = self._read_json()
+            required_only = bool(body.get("required_only", True))
+            dry_run = bool(body.get("dry_run", False))
+            return self.send_json(run_quality_gates(required_only=required_only, dry_run=dry_run))
 
         if self.path == "/api/tools/run":
             body = self._read_json()

@@ -33,3 +33,4 @@
 2026-06-09: [UPGRADE] Added ReAct context-window observability with snapshot/clear helpers, `/api/context-window`, `/api/context-window/clear`, control-plane inclusion, tests, and a sidebar panel for inspecting chained tool observations.
 2026-06-09: [UPGRADE] Added operational review scoring with risks/recommendations, `/api/operational-review`, control-plane inclusion, tests, and an Execution sidebar scorecard.
 2026-06-09: [HARDENING] Optimized `/api/control-plane` to reuse precomputed health and metrics when building the operational review, avoiding duplicate tool-health probes as the control plane grows.
+2026-06-09: [UPGRADE] Added batch quality-gate execution with `run_quality_gates`, `/api/quality/run`, dry-run preview mode, verifier-backed per-gate results, API/unit tests, and a Command Runner button for required gates.

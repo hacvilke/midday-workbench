@@ -134,6 +134,45 @@ class QualityGateTests(unittest.TestCase):
         self.assertIn("frontend_syntax", readiness["latest_by_gate"])
         clear_command_runs(session_id)
 
+    def test_quality_readiness_uses_more_than_displayed_latest_rows(self):
+        """Verify readiness is based on scanned history, not the 10-row UI slice."""
+
+        session_id = "quality-readiness-window-test"
+        clear_command_runs(session_id)
+        for index in range(12):
+            add_command_run(
+                session_id,
+                f"git diff --stat {index}",
+                0,
+                "",
+                {"passed": True, "issues": [], "summary": f"quality:optional_{index} exit=0"},
+                1,
+                {"allowed": True, "matched_prefix": "git diff --stat"},
+            )
+        for gate, command in [
+            ("compile", "python -m compileall agent_core"),
+            ("frontend_syntax", "node --check web/app.js"),
+            ("unit_tests", "python -m unittest discover tests"),
+            ("evals", "python -m agent_core.evals"),
+            ("secret_scan", "python -m agent_core.secret_scan"),
+            ("git_status", "git status --short"),
+        ]:
+            add_command_run(
+                session_id,
+                command,
+                0,
+                "",
+                {"passed": True, "issues": [], "summary": f"quality:{gate} exit=0"},
+                1,
+                {"allowed": True, "matched_prefix": command.split(" ", 1)[0]},
+            )
+        history = quality_history(session_id=session_id)
+        self.assertEqual(len(history["latest"]), 10)
+        readiness = quality_readiness(session_id=session_id)
+        self.assertTrue(readiness["ready"])
+        self.assertEqual(readiness["missing_required"], [])
+        clear_command_runs(session_id)
+
 
 if __name__ == "__main__":
     unittest.main()

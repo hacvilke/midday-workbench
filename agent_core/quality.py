@@ -182,9 +182,23 @@ def _policy_decision_payload(decision) -> dict[str, object]:
 def quality_history(session_id: str | None = None, limit: int = 50) -> dict[str, object]:
     """Summarize persisted quality-gate command runs."""
 
+    rows = _quality_rows(session_id=session_id, limit=limit)
+    passed = sum(1 for row in rows if row["passed"])
+    failed = sum(1 for row in rows if not row["passed"])
+    return {
+        "session_id": session_id,
+        "count": len(rows),
+        "passed": passed,
+        "failed": failed,
+        "latest_failed": next((row for row in rows if not row["passed"]), None),
+        "latest": rows[:10],
+    }
+
+
+def _quality_rows(session_id: str | None = None, limit: int = 50) -> list[dict[str, object]]:
+    """Return persisted quality-gate rows, newest first."""
+
     rows = []
-    passed = 0
-    failed = 0
     for command in recent_command_runs(session_id=session_id, limit=limit):
         verified = command.get("verified") or {}
         summary = str(verified.get("summary") or "")
@@ -192,8 +206,6 @@ def quality_history(session_id: str | None = None, limit: int = 50) -> dict[str,
             continue
         gate = summary.split(" ", 1)[0].removeprefix("quality:")
         ok = bool(verified.get("passed"))
-        passed += 1 if ok else 0
-        failed += 0 if ok else 1
         rows.append(
             {
                 "gate": gate,
@@ -205,23 +217,16 @@ def quality_history(session_id: str | None = None, limit: int = 50) -> dict[str,
                 "created_at": command.get("created_at"),
             }
         )
-    return {
-        "session_id": session_id,
-        "count": len(rows),
-        "passed": passed,
-        "failed": failed,
-        "latest_failed": next((row for row in rows if not row["passed"]), None),
-        "latest": rows[:10],
-    }
+    return rows
 
 
 def quality_readiness(session_id: str | None = None) -> dict[str, object]:
     """Return whether required quality gates have recent passing evidence."""
 
     required = {gate.name: gate for gate in QUALITY_GATES if gate.required}
-    history = quality_history(session_id=session_id, limit=200)
+    rows = _quality_rows(session_id=session_id, limit=200)
     latest_by_gate: dict[str, dict[str, object]] = {}
-    for row in history["latest"]:
+    for row in rows:
         gate = str(row.get("gate") or "")
         if gate and gate not in latest_by_gate:
             latest_by_gate[gate] = row

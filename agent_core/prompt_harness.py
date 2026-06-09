@@ -176,6 +176,7 @@ def format_operational_guardrails(config: AgentConfig) -> str:
     latest_failed_command_name = (
         latest_failed_command.get("command") if isinstance(latest_failed_command, dict) else None
     )
+    top_action_label = _top_operational_action(metrics)
     failed = [
         str(result.get("name"))
         for result in audit.get("results", [])
@@ -194,6 +195,7 @@ def format_operational_guardrails(config: AgentConfig) -> str:
         f"latest failed: `{latest_failed_gate or 'none'}`\n"
         f"- Command Action: `{commands.get('failures', 0)}` failed command(s); "
         f"latest failed: `{latest_failed_command_name or 'none'}`\n"
+        f"- Top Operational Action: `{top_action_label}`\n"
         "- Command Sandbox: `read-only allowlist` with blocked shell metacharacters and destructive/network commands.\n"
         f"- Allowed Command Prefixes: `{', '.join(sandbox.allowed_commands()[:12])}`\n"
         f"- Blocked Command Patterns: `{', '.join(sandbox.BLOCKED_PATTERNS[:12])}`\n"
@@ -202,6 +204,42 @@ def format_operational_guardrails(config: AgentConfig) -> str:
         "- Route Confidence Policy: if planner metadata marks a route ambiguous or below 0.75 confidence, state the routing assumption, use at most one selected tool, and avoid inventing extra tool calls.\n"
         "- Verification Rule: every tool, command, and generated change should have an explicit verifier result or stated validation gap."
     )
+
+
+def _compact_text(text: str, limit: int) -> str:
+    """Keep dynamic guardrail snippets short and single-line."""
+
+    normalized = " ".join(text.split())
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: max(0, limit - 3)].rstrip() + "..."
+
+
+def _top_operational_action(metrics: dict[str, object]) -> str:
+    """Return a non-recursive compact action summary for provider prompts."""
+
+    quality = metrics.get("quality_history", {})
+    if isinstance(quality, dict) and int(quality.get("failed") or 0):
+        latest_failed = quality.get("latest_failed") or {}
+        gate = latest_failed.get("gate") if isinstance(latest_failed, dict) else None
+        return f"quality/medium: fix latest failed gate {gate or 'unknown'}, then rerun required gates"
+
+    commands = metrics.get("commands", {})
+    if isinstance(commands, dict) and int(commands.get("failures") or 0):
+        latest_failed = commands.get("latest_failed") or {}
+        command = latest_failed.get("command") if isinstance(latest_failed, dict) else None
+        detail = f" {command}" if command else ""
+        return _compact_text(f"commands/medium: inspect latest failed command{detail} and convert repeats into fixes", 140)
+
+    runs = metrics.get("runs", {})
+    if isinstance(runs, dict) and int(runs.get("low_confidence_routes") or 0):
+        return "routing/medium: review low-confidence routes and tighten router probes"
+
+    memory = metrics.get("memory", {})
+    if isinstance(memory, dict) and int(memory.get("message_count") or 0) > 0 and not memory.get("has_summary"):
+        return "memory/low: refresh memory summarization for compact future prompts"
+
+    return "general/low: continue expanding tests, tool coverage, and verifier recovery rules"
 
 
 def build_system_prompt(config: AgentConfig) -> str:

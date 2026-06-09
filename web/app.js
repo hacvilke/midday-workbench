@@ -709,11 +709,22 @@ async function showStatus() {
     });
     const healthResponse = await fetch("/api/health");
     const health = await healthResponse.json();
-    healthStatus.textContent = health.passed ? `${health.checks.length}/OK` : "Review";
+    const failedChecks = (health.checks || []).filter((check) => !check.passed);
+    const frontendSyntax = (health.checks || []).find((check) => check.name === "frontend_syntax_gate");
+    healthStatus.textContent = health.passed ? `${health.checks.length}/OK` : `${failedChecks.length} review`;
     healthStatus.className = health.passed ? "ok" : "warn";
+    healthStatus.title = [
+      `checks: ${(health.checks || []).length}`,
+      `failed: ${failedChecks.map((check) => check.name).join(", ") || "none"}`,
+      `frontend: ${frontendSyntax?.passed ? "ok" : "review"}`,
+    ].join("\n");
     const okTools = (health.tools || []).filter((tool) => tool.status === "ok").length;
     toolHealthStatus.textContent = `${okTools}/${(health.tools || []).length || 0} OK`;
     toolHealthStatus.className = okTools === (health.tools || []).length ? "ok" : "warn";
+    toolHealthStatus.title = (health.tools || [])
+      .filter((tool) => tool.status !== "ok")
+      .map((tool) => `${tool.tool}: ${tool.detail}`)
+      .join("\n") || "all tool probes ok";
     addMessage("agent", `Ready. Provider: ${provider}. ${status.tools.length} OSS tools, streaming enabled.`);
   } catch {
     addMessage("agent", "Ready.");

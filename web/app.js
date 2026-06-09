@@ -1228,7 +1228,12 @@ writeFileButton.addEventListener("click", async () => {
       fileEditorStatus.textContent = `Error: ${data.error}`;
       return;
     }
-    fileEditorStatus.textContent = data.message;
+    const write = data.write || {};
+    const checksum = write.sha256 ? `sha256 ${String(write.sha256).slice(0, 12)}` : "sha256 unavailable";
+    fileEditorStatus.textContent = [
+      data.message,
+      `${Number(write.bytes_written || 0).toLocaleString()} bytes - ${Number(write.lines || 0).toLocaleString()} lines - ${checksum}`,
+    ].join("\n");
   } catch (err) {
     fileEditorStatus.textContent = `Write failed: ${err}`;
   }

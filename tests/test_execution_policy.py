@@ -1,8 +1,11 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 from agent_core.agent import Agent
 from agent_core.oss_tools import ToolResult
 from agent_core.execution_policy import decide, policy_manifest
+from agent_core.file_editor import FileEditorTool
 
 
 class ExecutionPolicyTests(unittest.TestCase):
@@ -47,6 +50,19 @@ class ExecutionPolicyTests(unittest.TestCase):
             answer,
         )
         self.assertIn("not applied", guarded)
+
+    def test_file_write_metadata_includes_checksum(self):
+        """Verify file writes expose audit metadata."""
+
+        with tempfile.TemporaryDirectory() as tmp:
+            editor = FileEditorTool(Path(tmp))
+            result = editor.write_file_with_metadata("hello.txt", "hello\n")
+            self.assertTrue(result.created)
+            self.assertEqual(result.bytes_written, 6)
+            self.assertEqual(result.lines, 2)
+            self.assertEqual(len(result.sha256), 64)
+            metadata = editor.file_metadata("hello.txt")
+            self.assertEqual(metadata.sha256, result.sha256)
 
 
 if __name__ == "__main__":

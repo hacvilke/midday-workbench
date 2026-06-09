@@ -47,3 +47,5 @@
 2026-06-09: [UPGRADE] Added search-index observability with index stats, `/api/index`, control-plane inclusion, health coverage, sidebar display, and tests for repo-context readiness.
 2026-06-09: [UPGRADE] Added search-index readiness scoring to operational review, including empty/stale index risks, rebuild recommendations, precomputed index reuse, and API tests.
 2026-06-09: [HARDENING] Made JSON responses tolerate aborted/reset clients so long-running control-plane probes do not leave noisy server exceptions or flaky API tests.
+2026-06-09: [UPGRADE] Added structured file-write audit metadata with bytes, lines, sha256, created/overwritten status, API exposure, UI display, and regression tests.
+2026-06-09: [HARDENING] Added lightweight health mode for `/api/control-plane` so the control plane remains responsive while `/api/health` keeps full per-tool probes.

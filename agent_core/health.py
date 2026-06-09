@@ -183,11 +183,11 @@ def run_health_checks() -> list[HealthCheck]:
     return checks
 
 
-def health_report() -> dict[str, object]:
+def health_report(include_tools: bool = True) -> dict[str, object]:
     """Build a structured health report for API/UI consumers.
 
     Args:
-        None.
+        include_tools: Whether to run per-tool health probes.
 
     Returns:
         JSON-compatible health report.
@@ -197,7 +197,8 @@ def health_report() -> dict[str, object]:
     return {
         "passed": all(check.passed for check in checks),
         "checks": [asdict(check) for check in checks],
-        "tools": [asdict(tool) for tool in run_tool_health_checks()],
+        "tools": [asdict(tool) for tool in run_tool_health_checks()] if include_tools else [],
+        "tool_health_included": include_tools,
     }
 
 

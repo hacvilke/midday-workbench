@@ -89,7 +89,7 @@ class Handler(BaseHTTPRequestHandler):
             config = get_config()
             registry = OssToolRegistry(config)
             prompts = prompt_registry()
-            health = health_report()
+            health = health_report(include_tools=False)
             metrics = operational_metrics(session_id=session_id)
             index = index_stats(config.index_path)
             return self.send_json(
@@ -371,8 +371,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": "path required"}, status=400)
             editor = FileEditorTool(get_config().workspace_root)
             try:
-                msg = editor.write_file(path, content)
-                return self.send_json({"ok": True, "message": msg})
+                result = editor.write_file_with_metadata(path, content)
+                return self.send_json({"ok": True, "message": result.message, "write": result.to_dict()})
             except (ValueError, OSError) as exc:
                 return self.send_json({"error": str(exc)}, status=400)
 
@@ -400,7 +400,8 @@ class Handler(BaseHTTPRequestHandler):
             editor = FileEditorTool(get_config().workspace_root)
             try:
                 msg = editor.patch_file(path, search, replace)
-                return self.send_json({"ok": True, "message": msg})
+                result = editor.file_metadata(path, message=msg)
+                return self.send_json({"ok": True, "message": msg, "write": result.to_dict()})
             except (FileNotFoundError, ValueError, OSError) as exc:
                 return self.send_json({"error": str(exc)}, status=400)
 

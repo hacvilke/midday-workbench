@@ -266,6 +266,7 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("coordinator", data["prompts"]["names"])
         self.assertIn("parallel_candidate", data["delegation"]["modes"])
         self.assertTrue(data["routing_audit"]["passed"])
+        self.assertFalse(data["health"]["tool_health_included"])
 
 
 class IndexEndpointTests(unittest.TestCase):
@@ -373,6 +374,22 @@ class FilePolicyEndpointTests(unittest.TestCase):
         self.assertEqual(status, 409)
         self.assertEqual(data["error"], "confirmation required")
         self.assertTrue(data["policy"]["requires_confirmation"])
+
+    def test_confirmed_file_write_returns_metadata(self):
+        status, data = _post(
+            "/api/files/write",
+            {"path": "tmp_policy_test.txt", "content": "x\n", "confirmed": True},
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(data["ok"])
+        self.assertIn("write", data)
+        self.assertEqual(data["write"]["path"], "tmp_policy_test.txt")
+        self.assertEqual(data["write"]["bytes_written"], 2)
+        self.assertEqual(len(data["write"]["sha256"]), 64)
+        try:
+            os.remove(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tmp_policy_test.txt"))
+        except FileNotFoundError:
+            pass
 
 
 if __name__ == "__main__":

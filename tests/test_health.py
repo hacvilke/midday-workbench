@@ -14,12 +14,21 @@ class HealthTests(unittest.TestCase):
         """Verify per-tool health returns structured JSON fields."""
 
         report = health_report()
+        self.assertTrue(report["tool_health_included"])
         self.assertGreaterEqual(len(report["tools"]), 9)
         first = report["tools"][0]
         self.assertIn("tool", first)
         self.assertIn("status", first)
         self.assertIn("latency_ms", first)
         self.assertIn("last_ok_at", first)
+
+    def test_lightweight_health_skips_tool_probes(self):
+        """Verify control-plane callers can request fast platform health."""
+
+        report = health_report(include_tools=False)
+        self.assertFalse(report["tool_health_included"])
+        self.assertEqual(report["tools"], [])
+        self.assertGreater(len(report["checks"]), 1)
 
     def test_control_plane_health_checks_exist(self):
         """Verify health checks cover policy and quality gates."""

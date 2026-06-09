@@ -91,6 +91,16 @@ def operational_review(
         risks.append(f"Average attached context is high ({average_context_chars} chars)")
         recommendations.append("Reduce retrieval limits or improve context ranking before provider calls.")
 
+    memory = metrics.get("memory", {})
+    if int(memory.get("message_count") or 0) > 0 and not memory.get("has_summary"):
+        score -= 6
+        risks.append("Conversation memory exists without a condensed summary")
+        recommendations.append("Run a chat turn or refresh memory summarization so future prompts get compact context.")
+    if int(memory.get("summary_chars") or 0) > 1600:
+        score -= 6
+        risks.append("Condensed memory summary is large")
+        recommendations.append("Tighten summary compaction to keep long-running sessions lightweight.")
+
     chunk_count = int(index.get("chunk_count") or 0)
     age_seconds = index.get("age_seconds")
     if chunk_count <= 0:

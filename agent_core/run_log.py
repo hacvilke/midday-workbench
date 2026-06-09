@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+
+from .memory import memory_stats
 from pathlib import Path
 
 from .agent import AgentRun
@@ -757,6 +759,7 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
             "failed": provider_route_failed,
             "degraded": provider_route_degraded,
         },
+        "memory": memory_stats(session_id=session_id),
         "commands": {
             "count": len(commands),
             "failures": command_failures,

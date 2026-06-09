@@ -89,6 +89,42 @@ def get_session_summary(session_id: str) -> dict[str, object]:
     return {"summary": row[0], "updated_at": row[1]}
 
 
+def memory_stats(session_id: str | None = None) -> dict[str, object]:
+    """Return compact memory telemetry for control-plane and metrics APIs."""
+
+    con = connect()
+    if session_id:
+        message_count = con.execute(
+            "SELECT COUNT(*) FROM messages WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()[0]
+        summary_row = con.execute(
+            "SELECT summary, updated_at FROM session_summaries WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+        session_count = 1 if message_count or summary_row else 0
+    else:
+        message_count = con.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
+        summary_row = con.execute(
+            "SELECT summary, updated_at FROM session_summaries ORDER BY updated_at DESC LIMIT 1"
+        ).fetchone()
+        session_count = con.execute(
+            "SELECT COUNT(DISTINCT session_id) FROM messages"
+        ).fetchone()[0]
+    con.close()
+
+    summary = summary_row[0] if summary_row else ""
+    updated_at = summary_row[1] if summary_row else None
+    return {
+        "session_id": session_id,
+        "message_count": int(message_count),
+        "session_count": int(session_count),
+        "has_summary": bool(summary),
+        "summary_chars": len(str(summary)),
+        "summary_updated_at": updated_at,
+    }
+
+
 def update_session_summary(session_id: str, user_message: str, agent_answer: str) -> dict[str, object]:
     """Update deterministic condensed memory for a session.
 

@@ -151,6 +151,7 @@ class RunLogTests(unittest.TestCase):
         self.assertIn("decisions", metrics)
         self.assertIn("verifier", metrics)
         self.assertIn("provider_routes", metrics)
+        self.assertIn("memory", metrics)
         self.assertEqual(metrics["runs"]["count"], 1)
         self.assertEqual(metrics["runs"]["ambiguous_routes"], 1)
         self.assertEqual(metrics["runs"]["low_confidence_routes"], 1)

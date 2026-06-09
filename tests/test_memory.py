@@ -3,6 +3,8 @@ import unittest
 from agent_core.memory import (
     clear_session,
     get_session_summary,
+    add_message,
+    memory_stats,
     summarize_exchange,
     update_session_summary,
 )
@@ -26,6 +28,21 @@ class MemorySummaryTests(unittest.TestCase):
         self.assertEqual(loaded["summary"], updated["summary"])
         clear_session(session_id)
         self.assertEqual(get_session_summary(session_id)["summary"], "")
+
+    def test_memory_stats_reports_counts_and_summary_state(self):
+        """Verify memory telemetry exposes session message and summary state."""
+
+        session_id = "memory-stats-test"
+        clear_session(session_id)
+        add_message(session_id, "user", "remember this")
+        stats = memory_stats(session_id=session_id)
+        self.assertEqual(stats["message_count"], 1)
+        self.assertFalse(stats["has_summary"])
+        update_session_summary(session_id, "remember this", "Stored.")
+        stats = memory_stats(session_id=session_id)
+        self.assertTrue(stats["has_summary"])
+        self.assertGreater(stats["summary_chars"], 0)
+        clear_session(session_id)
 
 
 if __name__ == "__main__":

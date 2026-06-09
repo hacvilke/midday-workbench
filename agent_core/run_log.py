@@ -816,6 +816,7 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
                     "gate": gate,
                     "command": command.get("command"),
                     "summary": summary,
+                    "policy_decision": command.get("policy_decision") or {},
                     "duration_ms": command.get("duration_ms"),
                     "created_at": command.get("created_at"),
                 }

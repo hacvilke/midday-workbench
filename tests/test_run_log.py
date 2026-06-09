@@ -189,7 +189,7 @@ class RunLogTests(unittest.TestCase):
             "SyntaxError",
             {"passed": False, "issues": ["exit=1"], "summary": "quality:frontend_syntax exit=1"},
             5,
-            {"allowed": True},
+            {"allowed": True, "matched_prefix": "node --check"},
         )
         metrics = operational_metrics(session_id=session_id)
         self.assertIn("runs", metrics)
@@ -210,6 +210,7 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(metrics["route_decisions"]["low_confidence"], 1)
         self.assertEqual(metrics["route_decisions"]["intents"]["visualize"], 1)
         self.assertEqual(metrics["quality_history"]["latest_failed"]["gate"], "frontend_syntax")
+        self.assertEqual(metrics["quality_history"]["latest_failed"]["policy_decision"]["matched_prefix"], "node --check")
         self.assertEqual(metrics["usage"]["average_prompt_chars"], 0)
         clear_runs(session_id)
         clear_decisions(session_id)

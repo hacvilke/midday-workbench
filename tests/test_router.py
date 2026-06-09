@@ -89,6 +89,8 @@ class RouterTests(unittest.TestCase):
         self.assertFalse(run.plan["ambiguous"])
         self.assertEqual(run.usage["prompt_chars"], 2)
         self.assertGreater(run.usage["answer_chars"], 0)
+        self.assertTrue(run.completion_evidence["provider_verified"])
+        self.assertTrue(run.completion_evidence["tools_verified"])
 
     def test_agent_streaming_greeting_has_plan_metadata(self):
         """Verify streaming greetings finish with structured plan metadata."""
@@ -102,6 +104,8 @@ class RouterTests(unittest.TestCase):
         self.assertIn("confidence", done["metadata"]["plan"])
         self.assertIn("usage", done["metadata"])
         self.assertEqual(done["metadata"]["usage"]["prompt_chars"], 2)
+        self.assertIn("completion_evidence", done["metadata"])
+        self.assertTrue(done["metadata"]["completion_evidence"]["provider_verified"])
 
     def test_agent_streaming_general_has_provider_attempts(self):
         """Verify streamed general runs expose provider attempt metadata."""
@@ -112,6 +116,7 @@ class RouterTests(unittest.TestCase):
         self.assertGreaterEqual(len(done["metadata"]["provider_attempts"]), 1)
         self.assertIn("provider", done["metadata"]["provider_attempts"][0])
         self.assertIn("ok", done["metadata"]["provider_attempts"][0])
+        self.assertIn("completion_evidence", done["metadata"])
 
     def test_agent_visual_answer_is_mermaid_only(self):
         """Verify visual requests return a single Mermaid fence."""
@@ -131,6 +136,7 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(run.provider, "local")
         self.assertFalse(run.context_attached)
         self.assertGreater(run.usage["tool_result_chars"], 0)
+        self.assertTrue(run.completion_evidence["tools_verified"])
         self.assertIn("xychart-beta", run.answer)
         self.assertIn("Potential Energy", run.answer)
 

@@ -53,6 +53,7 @@ class AgentRun:
     plan: dict | None = None
     file_writes: list[dict[str, object]] = field(default_factory=list)
     usage: dict[str, int] = field(default_factory=dict)
+    completion_evidence: dict[str, object] = field(default_factory=dict)
 
 
 class Agent:
@@ -106,6 +107,7 @@ class Agent:
                 verifier_reports=[],
                 plan=plan,
                 usage=self._usage(prompt, direct, history=history or []),
+                completion_evidence=self._completion_evidence([], [], [], direct=True),
             )
 
         route = self.router.classify(prompt)
@@ -130,6 +132,7 @@ class Agent:
                     verifier_reports=[asdict(r) for r in v_reports],
                     plan=plan,
                     usage=self._usage(prompt, visual, tool_results=tool_results, history=history or []),
+                    completion_evidence=self._completion_evidence(tool_results, v_reports, [], direct=True),
                 )
 
         # General path
@@ -153,6 +156,7 @@ class Agent:
                 verifier_reports=[asdict(r) for r in v_reports],
                 plan=plan,
                 usage=self._usage(prompt, visual, context=context, tool_results=tool_results, history=history or []),
+                completion_evidence=self._completion_evidence(tool_results, v_reports, [], direct=True),
             )
 
         messages = self._build_messages(prompt, context, react_steps, tool_results, v_reports, history or [])
@@ -198,6 +202,7 @@ class Agent:
             plan=plan,
             file_writes=file_writes,
             usage=self._usage(prompt, answer, context=context, tool_results=tool_results, history=history or []),
+            completion_evidence=self._completion_evidence(tool_results, v_reports, file_writes),
         )
 
     def stream_with_events(
@@ -503,4 +508,54 @@ class Agent:
             "plan": plan,
             "file_writes": file_writes or [],
             "usage": usage or self._usage("", answer),
+            "completion_evidence": self._completion_evidence_from_metadata(
+                tools_used, verifier_reports, file_writes or [], provider_attempts, direct=provider_name == "local"
+            ),
+        }
+
+    def _completion_evidence(
+        self,
+        tool_results,
+        verifier_reports,
+        file_writes: list[dict[str, object]] | None = None,
+        direct: bool = False,
+    ) -> dict[str, object]:
+        """Build compact evidence flags for run completion claims."""
+
+        reports = [asdict(report) for report in verifier_reports]
+        return self._completion_evidence_from_metadata(
+            [result.name for result in tool_results],
+            reports,
+            file_writes or [],
+            [],
+            direct=direct,
+        )
+
+    def _completion_evidence_from_metadata(
+        self,
+        tools_used: list[str],
+        verifier_reports: list[dict[str, object]],
+        file_writes: list[dict[str, object]],
+        provider_attempts: list[dict[str, object]],
+        direct: bool = False,
+    ) -> dict[str, object]:
+        """Summarize whether a run has observable completion evidence."""
+
+        from .quality import quality_readiness
+
+        readiness = quality_readiness()
+        failed_verifiers = [report for report in verifier_reports if not report.get("passed")]
+        provider_verified = bool(direct or any(attempt.get("ok") for attempt in provider_attempts))
+        tools_verified = not tools_used or (
+            len([report for report in verifier_reports if report.get("action") in tools_used]) >= len(tools_used)
+            and not failed_verifiers
+        )
+        return {
+            "provider_verified": provider_verified,
+            "tools_verified": tools_verified,
+            "failed_verifier_count": len(failed_verifiers),
+            "file_write_count": len(file_writes),
+            "quality_ready": bool(readiness.get("ready")),
+            "quality_missing_required": len(readiness.get("missing_required", [])),
+            "quality_failed_required": len(readiness.get("failed_required", [])),
         }

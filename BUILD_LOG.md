@@ -34,6 +34,7 @@
 2026-06-09: [UPGRADE] Added quality readiness summaries, `/api/quality/readiness`, control-plane exposure, and UI readiness counts for required gate coverage.
 2026-06-09: [UPGRADE] Added quality readiness status to provider guardrails so final answers can distinguish verified readiness from missing gate evidence.
 2026-06-09: [FIX] Made quality readiness evaluate the full scanned quality-gate history instead of the 10-row UI display slice.
+2026-06-09: [UPGRADE] Added per-run completion evidence metadata with provider/tool verification, file-write counts, and quality readiness flags persisted in SQLite and rendered in run details.
 2026-06-09: [UPGRADE] Added single-run detail lookup with `get_run(run_id)` and `/api/runs/{run_id}` so plan/delegation/verifier metadata can be inspected directly by UI and external agents.
 2026-06-09: [UPGRADE] Added Recent Runs UI detail inspection: run rows are clickable/keyboard accessible and fetch `/api/runs/{run_id}` to show intent, tool, provider, delegation, and verifier summary.
 2026-06-09: [UPGRADE] Added ReAct context-window observability with snapshot/clear helpers, `/api/context-window`, `/api/context-window/clear`, control-plane inclusion, tests, and a sidebar panel for inspecting chained tool observations.

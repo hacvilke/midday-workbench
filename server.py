@@ -575,6 +575,7 @@ class Handler(BaseHTTPRequestHandler):
                         plan=metadata.get("plan"),
                         file_writes=metadata.get("file_writes", []),
                         usage=metadata.get("usage", {}),
+                        completion_evidence=metadata.get("completion_evidence", {}),
                     )
                     add_run(session_id, prompt, run)
                     for write in run.file_writes:
@@ -618,6 +619,7 @@ class Handler(BaseHTTPRequestHandler):
                     "plan": run.plan,
                     "file_writes": run.file_writes,
                     "usage": run.usage,
+                    "completion_evidence": run.completion_evidence,
                 },
             }
         )

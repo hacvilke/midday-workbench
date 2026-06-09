@@ -42,6 +42,7 @@ class RunLogTests(unittest.TestCase):
             plan={"intent": "test", "tool": None},
             file_writes=[{"path": "tmp.py", "sha256": "c" * 64, "bytes_written": 3, "lines": 1, "created": True}],
             usage={"prompt_chars": 6, "answer_chars": 6, "context_chars": 0},
+            completion_evidence={"provider_verified": True, "tools_verified": True, "quality_ready": False},
         )
         session_id = "run-log-test"
         clear_runs(session_id)
@@ -52,11 +53,13 @@ class RunLogTests(unittest.TestCase):
         self.assertEqual(rows[0]["plan"]["intent"], "test")
         self.assertEqual(rows[0]["file_writes"][0]["path"], "tmp.py")
         self.assertEqual(rows[0]["usage"]["prompt_chars"], 6)
+        self.assertTrue(rows[0]["completion_evidence"]["provider_verified"])
         detail = get_run("run-test")
         self.assertIsNotNone(detail)
         self.assertEqual(detail["prompt"], "prompt")
         self.assertEqual(detail["file_writes"][0]["sha256"], "c" * 64)
         self.assertEqual(detail["usage"]["answer_chars"], 6)
+        self.assertTrue(detail["completion_evidence"]["tools_verified"])
         clear_runs(session_id)
 
     def test_get_run_missing_returns_none(self):

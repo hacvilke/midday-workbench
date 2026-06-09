@@ -106,6 +106,7 @@ function renderRunMetadata(metadata) {
   const verifierReports = metadata.verifier_reports || [];
   const fileWrites = metadata.file_writes || [];
   const usage = metadata.usage || {};
+  const completionEvidence = metadata.completion_evidence || {};
   const routeAlternatives = plan?.alternatives || [];
   const routeConfidence = plan?.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
   const stepHtml = steps.length
@@ -131,6 +132,8 @@ function renderRunMetadata(metadata) {
         <div><span>Prompt</span><strong>${Number(usage.prompt_chars || 0).toLocaleString()} chars</strong></div>
         <div><span>Answer</span><strong>${Number(usage.answer_chars || 0).toLocaleString()} chars</strong></div>
         <div><span>Tool Context</span><strong>${Number(usage.tool_result_chars || 0).toLocaleString()} chars</strong></div>
+        <div><span>Evidence</span><strong>${completionEvidence.provider_verified ? "provider" : "unverified"} / ${completionEvidence.tools_verified ? "tools" : "review"}</strong></div>
+        <div><span>Quality</span><strong>${completionEvidence.quality_ready ? "ready" : `${Number(completionEvidence.quality_missing_required || 0)} missing`}</strong></div>
       </div>
       <div class="attempt-list">
         ${attempts

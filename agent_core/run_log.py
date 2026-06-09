@@ -45,7 +45,8 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
             verifier_reports TEXT DEFAULT '[]',
             plan TEXT DEFAULT '{}',
             file_writes TEXT DEFAULT '[]',
-            usage TEXT DEFAULT '{}'
+            usage TEXT DEFAULT '{}',
+            completion_evidence TEXT DEFAULT '{}'
         )
         """
     )
@@ -67,6 +68,11 @@ def connect(path: Path = RUN_LOG_PATH) -> sqlite3.Connection:
         pass  # Column already present
     try:
         con.execute("ALTER TABLE runs ADD COLUMN usage TEXT DEFAULT '{}'")
+        con.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already present
+    try:
+        con.execute("ALTER TABLE runs ADD COLUMN completion_evidence TEXT DEFAULT '{}'")
         con.commit()
     except sqlite3.OperationalError:
         pass  # Column already present
@@ -144,9 +150,9 @@ def add_run(session_id: str, prompt: str, run: AgentRun) -> None:
         INSERT INTO runs(
             run_id, session_id, prompt, provider, tools_used, react_steps,
             provider_attempts, duration_ms, fallback_used, error, created_at,
-            verifier_reports, plan, file_writes, usage
+            verifier_reports, plan, file_writes, usage, completion_evidence
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             run.run_id,
@@ -164,6 +170,7 @@ def add_run(session_id: str, prompt: str, run: AgentRun) -> None:
             json.dumps(run.plan or {}),
             json.dumps(run.file_writes or []),
             json.dumps(run.usage or {}),
+            json.dumps(run.completion_evidence or {}),
         ),
     )
     con.commit()
@@ -186,7 +193,7 @@ def recent_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str
             """
             SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
                    provider_attempts, duration_ms, fallback_used, error, created_at,
-                   verifier_reports, plan, file_writes, usage
+                   verifier_reports, plan, file_writes, usage, completion_evidence
             FROM runs WHERE session_id = ? ORDER BY id DESC LIMIT ?
             """,
             (session_id, limit),
@@ -196,7 +203,7 @@ def recent_runs(session_id: str | None = None, limit: int = 20) -> list[dict[str
             """
             SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
                    provider_attempts, duration_ms, fallback_used, error, created_at,
-                   verifier_reports, plan, file_writes, usage
+                   verifier_reports, plan, file_writes, usage, completion_evidence
             FROM runs ORDER BY id DESC LIMIT ?
             """,
             (limit,),
@@ -219,8 +226,8 @@ def get_run(run_id: str) -> dict[str, object] | None:
     row = con.execute(
         """
         SELECT run_id, session_id, prompt, provider, tools_used, react_steps,
-               provider_attempts, duration_ms, fallback_used, error, created_at,
-               verifier_reports, plan, file_writes, usage
+           provider_attempts, duration_ms, fallback_used, error, created_at,
+           verifier_reports, plan, file_writes, usage, completion_evidence
         FROM runs WHERE run_id = ? ORDER BY id DESC LIMIT 1
         """,
         (run_id,),
@@ -281,6 +288,7 @@ def row_to_dict(row: tuple[object, ...]) -> dict[str, object]:
         "plan": json.loads(row[12]) if len(row) > 12 and row[12] else {},
         "file_writes": json.loads(row[13]) if len(row) > 13 and row[13] else [],
         "usage": json.loads(row[14]) if len(row) > 14 and row[14] else {},
+        "completion_evidence": json.loads(row[15]) if len(row) > 15 and row[15] else {},
     }
 
 

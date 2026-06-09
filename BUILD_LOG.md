@@ -17,3 +17,4 @@
 2026-06-09: [UPGRADE] Added bounded verifier-driven recovery: failed recoverable tool outputs can receive one corrective retry with stricter instructions, with both reports retained for audit traces.
 2026-06-09: [UPGRADE] Added deterministic session memory condensation with SQLite `session_summaries`, `/api/memory` summary payloads, prompt injection of condensed memory, and tests for summary update/clear behavior.
 2026-06-09: [UPGRADE] Added quality gate definitions and `/api/quality`, with compile/test/eval/git checks exposed to the UI as clickable safe sandbox commands.
+2026-06-09: [UPGRADE] Added `/api/route` routing diagnostics, fixed URL query decoding, and added a UI route inspector for checking tool selection without running a full agent turn.

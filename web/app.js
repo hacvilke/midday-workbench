@@ -11,6 +11,8 @@ const toolSelect = document.querySelector("#toolSelect");
 const toolQuery = document.querySelector("#toolQuery");
 const runToolButton = document.querySelector("#runTool");
 const toolOutput = document.querySelector("#toolOutput");
+const inspectRouteButton = document.querySelector("#inspectRoute");
+const routeOutput = document.querySelector("#routeOutput");
 const commandInput = document.querySelector("#commandInput");
 const runCommandButton = document.querySelector("#runCommand");
 const commandPolicy = document.querySelector("#commandPolicy");
@@ -777,6 +779,18 @@ runToolButton.addEventListener("click", async () => {
     toolOutput.textContent = `${data.name}\n${data.summary}\n\n${data.content}`;
   } catch (error) {
     toolOutput.textContent = `Tool request failed: ${error}`;
+  }
+});
+
+inspectRouteButton.addEventListener("click", async () => {
+  const query = toolQuery.value.trim() || promptInput.value.trim() || "hi";
+  routeOutput.textContent = "Inspecting route...";
+  try {
+    const response = await fetch(`/api/route?message=${encodeURIComponent(query)}`);
+    const data = await response.json();
+    routeOutput.textContent = `intent: ${data.intent}\ntools: ${(data.tools || []).join(", ") || "none"}\nconfidence: ${Number(data.confidence || 0).toFixed(2)}\nreason: ${data.rationale}`;
+  } catch {
+    routeOutput.textContent = "Route inspector unavailable.";
   }
 });
 

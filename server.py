@@ -6,7 +6,7 @@ import os
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote_plus, urlparse
 
 from agent_core.agent import Agent, AgentRun
 from agent_core.config import PROJECT_ROOT, get_config
@@ -37,6 +37,7 @@ from agent_core.run_log import (
 )
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.verifier import ReActVerifier
+from agent_core.router import IntentRouter
 
 
 WEB_ROOT = PROJECT_ROOT / "web"
@@ -82,6 +83,18 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/quality":
             return self.send_json({"gates": quality_gate_manifest()})
+
+        if parsed.path == "/api/route":
+            message = _query_param(parsed.query, "message") or ""
+            route = IntentRouter().classify(message)
+            return self.send_json(
+                {
+                    "intent": route.intent,
+                    "tools": route.tools,
+                    "confidence": route.confidence,
+                    "rationale": route.rationale,
+                }
+            )
 
         if parsed.path == "/api/graph":
             return self.send_json(build_repo_graph(get_config().workspace_root).to_dict())
@@ -350,7 +363,7 @@ def _query_param(query_string: str, key: str) -> str | None:
         if "=" in part:
             k, v = part.split("=", 1)
             if k == key:
-                return v
+                return unquote_plus(v)
     return None
 
 

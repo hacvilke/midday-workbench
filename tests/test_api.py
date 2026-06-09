@@ -89,6 +89,14 @@ class QualityEndpointTests(unittest.TestCase):
         self.assertGreater(len(data["gates"]), 0)
 
 
+class RouteEndpointTests(unittest.TestCase):
+    def test_route_endpoint_returns_decision(self):
+        data = _get("/api/route?message=show%20graph")
+        self.assertEqual(data["intent"], "visualize")
+        self.assertEqual(data["tools"], ["rich_output_template_tool"])
+        self.assertIn("confidence", data)
+
+
 class SandboxEndpointTests(unittest.TestCase):
     def test_allowed_commands_returned(self):
         data = _get("/api/sandbox")

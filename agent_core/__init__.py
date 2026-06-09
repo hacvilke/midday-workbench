@@ -1,3 +1,3 @@
-"""OSS Agent Workbench core package."""
+"""Midday Workbench core package."""
 
 __version__ = "0.1.0"

@@ -24,3 +24,4 @@
 2026-06-09: [UPGRADE] Added operational metrics aggregation with `/api/metrics`, run/command/decision/verifier summaries, API/run-log tests, and a sidebar metrics panel that refreshes after agent, command, and route activity.
 2026-06-09: [UPGRADE] Added a Sessions sidebar panel backed by `/api/sessions`, showing current and recent work contexts with run counts and last-active timestamps.
 2026-06-09: [FIX] Fixed streaming fast paths to build planner metadata before greeting/visual responses, with regression tests for streaming plan metadata.
+2026-06-09: [UPGRADE] Aligned internal coordinator prompt, package docstring, and CLI description with the Midday Workbench name, with prompt-harness tests for identity/context.

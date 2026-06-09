@@ -11,6 +11,8 @@ class UiStaticTests(unittest.TestCase):
 
         app_js = (ROOT / "web" / "app.js").read_text(encoding="utf-8")
         self.assertIn("function formatRouteAlternatives", app_js)
+        self.assertIn("function formatRouteDecisionSummary", app_js)
+        self.assertIn("formatRouteDecisionSummary(decision)", app_js)
         self.assertIn("formatRouteAlternatives(data.alternatives || [])", app_js)
         self.assertIn("const alternatives = plan.alternatives || []", app_js)
         self.assertIn("async function loadRoutingAudit", app_js)

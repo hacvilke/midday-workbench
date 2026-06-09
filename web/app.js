@@ -228,6 +228,17 @@ function formatRouteAlternatives(alternatives) {
     .join(" | ")}`;
 }
 
+function formatRouteDecisionSummary(decision) {
+  const tools = decision.tools?.length ? decision.tools.join(", ") : "direct";
+  const confidence = decision.confidence == null ? "n/a" : `${Math.round(Number(decision.confidence || 0) * 100)}%`;
+  const review = decision.alternatives?.length > 1 || Number(decision.confidence || 0) < 0.75;
+  return [
+    `${decision.intent || "route"} -> ${tools}`,
+    `confidence ${confidence}${review ? " - review" : ""}`,
+    formatRouteAlternatives(decision.alternatives || []),
+  ].join("\n");
+}
+
 function renderInline(value) {
   return escapeHtml(value)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
@@ -1046,10 +1057,13 @@ async function loadRecentDecisions() {
     data.decisions.slice(0, 5).forEach((entry) => {
       const row = document.createElement("div");
       const decision = entry.decision || {};
+      const isRoute = entry.kind === "route";
+      const routeSummary = isRoute ? formatRouteDecisionSummary(decision) : "";
       row.innerHTML = `
         <strong>${escapeHtml(entry.kind)}</strong>
         <span>${escapeHtml(entry.input)}</span>
         <em>${escapeHtml(decision.intent || decision.action_type || "decision")}</em>
+        ${isRoute ? `<small>${escapeHtml(routeSummary)}</small>` : ""}
       `;
       recentDecisions.appendChild(row);
     });

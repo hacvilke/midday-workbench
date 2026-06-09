@@ -94,6 +94,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/control-plane":
             session_id = _query_param(parsed.query, "session_id")
+            light = (_query_param(parsed.query, "light") or "").lower() in {"1", "true", "yes"}
             config = get_config()
             registry = OssToolRegistry(config)
             prompts = prompt_registry()
@@ -101,29 +102,37 @@ class Handler(BaseHTTPRequestHandler):
             metrics = operational_metrics(session_id=session_id)
             index = index_stats(config.index_path)
             providers = provider_diagnostics(config)
-            return self.send_json(
+            payload = {
+                "provider": config.provider,
+                "provider_route": providers["route"],
+                "provider_diagnostics": providers,
+                "tools": registry.tool_records(),
+                "health": health,
+                "metrics": metrics,
+                "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics, index=index),
+                "index": index,
+                "policy": policy_manifest(),
+                "quality_gates": quality_gate_manifest(),
+                "routing_audit": routing_audit(),
+                "delegation": DelegationPlanner().manifest(),
+                "prompts": {
+                    "names": sorted(prompts.keys()),
+                    "count": len(prompts),
+                },
+                "light": light,
+            }
+            if light:
+                return self.send_json(payload)
+            payload.update(
                 {
-                    "provider": config.provider,
-                    "provider_route": providers["route"],
-                    "provider_diagnostics": providers,
-                    "tools": registry.tool_records(),
-                    "health": health,
-                    "metrics": metrics,
-                    "operational_review": operational_review(session_id=session_id, health=health, metrics=metrics, index=index),
                     "timeline": activity_timeline(session_id=session_id, limit=10),
                     "sessions": get_sessions(limit=10),
-                    "index": index,
-                    "policy": policy_manifest(),
-                    "quality_gates": quality_gate_manifest(),
                     "quality_history": quality_history(session_id=session_id),
-                    "routing_audit": routing_audit(),
-                    "delegation": DelegationPlanner().manifest(),
                     "context_window": session_state_snapshot(),
-                    "prompts": {
-                        "names": sorted(prompts.keys()),
-                        "count": len(prompts),
-                    },
                 }
+            )
+            return self.send_json(
+                payload
             )
 
         if parsed.path == "/api/delegation":

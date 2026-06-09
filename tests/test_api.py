@@ -334,6 +334,16 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertTrue(data["routing_audit"]["passed"])
         self.assertFalse(data["health"]["tool_health_included"])
 
+    def test_light_control_plane_skips_heavy_history(self):
+        data = _get("/api/control-plane?session_id=nonexistent-session-xyz&light=1")
+        self.assertTrue(data["light"])
+        self.assertIn("health", data)
+        self.assertIn("metrics", data)
+        self.assertIn("operational_review", data)
+        self.assertNotIn("timeline", data)
+        self.assertNotIn("sessions", data)
+        self.assertNotIn("context_window", data)
+
 
 class IndexEndpointTests(unittest.TestCase):
     def test_index_endpoint_shape(self):

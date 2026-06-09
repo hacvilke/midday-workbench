@@ -12,6 +12,7 @@ from agent_core.agent import Agent, AgentRun
 from agent_core.config import PROJECT_ROOT, get_config
 from agent_core.file_editor import FileEditorTool
 from agent_core.execution_policy import decide, policy_manifest
+from agent_core.delegation import DelegationPlanner
 from agent_core.health import health_report
 from agent_core.memory import (
     add_message,
@@ -92,12 +93,18 @@ class Handler(BaseHTTPRequestHandler):
                     "sessions": get_sessions(limit=10),
                     "policy": policy_manifest(),
                     "quality_gates": quality_gate_manifest(),
+                    "delegation": DelegationPlanner().manifest(),
                     "prompts": {
                         "names": sorted(prompts.keys()),
                         "count": len(prompts),
                     },
                 }
             )
+
+        if parsed.path == "/api/delegation":
+            message = _query_param(parsed.query, "message") or ""
+            planner = DelegationPlanner()
+            return self.send_json({"assignments": planner.as_dicts(message), "manifest": planner.manifest()})
 
         if parsed.path == "/api/prompts":
             return self.send_json(prompt_registry())

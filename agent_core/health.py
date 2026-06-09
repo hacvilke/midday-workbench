@@ -6,6 +6,7 @@ import time
 
 from .config import get_config
 from .agent import AgentRun
+from .delegation import DelegationPlanner
 from .oss_tools import TOOLS, OssToolRegistry
 from .output_templates import TEMPLATES
 from .prompt_harness import build_system_prompt, prompt_registry
@@ -101,6 +102,11 @@ def run_health_checks() -> list[HealthCheck]:
                 "plan",
             },
             "AgentRun metadata contract available",
+        ),
+        HealthCheck(
+            "delegation_contract",
+            bool(DelegationPlanner().as_dicts("fix code")) and "parallel_candidate" in DelegationPlanner().manifest()["modes"],
+            "manager/executor/verifier delegation manifest is available",
         ),
         HealthCheck(
             "direct_tool_execution",

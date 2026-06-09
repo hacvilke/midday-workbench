@@ -14,6 +14,7 @@ const runToolButton = document.querySelector("#runTool");
 const toolOutput = document.querySelector("#toolOutput");
 const inspectRouteButton = document.querySelector("#inspectRoute");
 const routeOutput = document.querySelector("#routeOutput");
+const delegationOutput = document.querySelector("#delegationOutput");
 const recentDecisions = document.querySelector("#recentDecisions");
 const commandInput = document.querySelector("#commandInput");
 const runCommandButton = document.querySelector("#runCommand");
@@ -894,14 +895,31 @@ runToolButton.addEventListener("click", async () => {
 inspectRouteButton.addEventListener("click", async () => {
   const query = toolQuery.value.trim() || promptInput.value.trim() || "hi";
   routeOutput.textContent = "Inspecting route...";
+  delegationOutput.textContent = "Inspecting delegation...";
   try {
     const response = await fetch(`/api/route?message=${encodeURIComponent(query)}&session_id=${encodeURIComponent(sessionId)}`);
     const data = await response.json();
     routeOutput.textContent = `intent: ${data.intent}\ntools: ${(data.tools || []).join(", ") || "none"}\nconfidence: ${Number(data.confidence || 0).toFixed(2)}\nreason: ${data.rationale}`;
+    const delegationResponse = await fetch(`/api/delegation?message=${encodeURIComponent(query)}`);
+    const delegation = await delegationResponse.json();
+    delegationOutput.innerHTML = "";
+    (delegation.assignments || []).forEach((assignment) => {
+      const row = document.createElement("div");
+      row.innerHTML = `
+        <strong>${escapeHtml(assignment.role)}</strong>
+        <span>${escapeHtml(assignment.mode)} - ${escapeHtml(assignment.objective)}</span>
+        <em>${escapeHtml((assignment.tools || []).join(", ") || "no tools")}</em>
+      `;
+      delegationOutput.appendChild(row);
+    });
+    if (!delegationOutput.children.length) {
+      delegationOutput.textContent = "No delegation assignments.";
+    }
     loadRecentDecisions();
     loadMetrics();
   } catch {
     routeOutput.textContent = "Route inspector unavailable.";
+    delegationOutput.textContent = "Delegation unavailable.";
   }
 });
 

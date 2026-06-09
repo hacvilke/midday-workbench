@@ -203,9 +203,20 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("sessions", data)
         self.assertIn("policy", data)
         self.assertIn("quality_gates", data)
+        self.assertIn("delegation", data)
         self.assertIn("prompts", data)
         self.assertIn("tools", data)
         self.assertIn("coordinator", data["prompts"]["names"])
+        self.assertIn("parallel_candidate", data["delegation"]["modes"])
+
+
+class DelegationEndpointTests(unittest.TestCase):
+    def test_delegation_endpoint_returns_assignments(self):
+        data = _get("/api/delegation?message=fix%20web/app.js")
+        self.assertIn("assignments", data)
+        self.assertIn("manifest", data)
+        self.assertIn("manager", [assignment["agent_id"] for assignment in data["assignments"]])
+        self.assertIn("reviewer", [assignment["agent_id"] for assignment in data["assignments"]])
 
 
 class SessionsEndpointTests(unittest.TestCase):

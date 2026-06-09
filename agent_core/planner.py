@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .delegation import DelegationPlanner
 from .router import IntentRoute, IntentRouter
 
 
@@ -35,6 +36,7 @@ class AgentPlan:
         steps: Ordered planning steps.
         verification: Verification action the agent should perform.
         stop_condition: Concrete condition that completes the turn.
+        delegations: Role assignments for future parallel/sub-agent execution.
 
     Returns:
         Immutable JSON-serializable plan metadata through asdict().
@@ -46,6 +48,7 @@ class AgentPlan:
     steps: list[PlanStep]
     verification: str
     stop_condition: str
+    delegations: list[dict[str, object]]
 
 
 class AgentPlanner:
@@ -53,6 +56,7 @@ class AgentPlanner:
 
     def __init__(self):
         self.router = IntentRouter()
+        self.delegation = DelegationPlanner()
 
     def build_plan(self, prompt: str) -> AgentPlan:
         """Create a plan for a prompt before tool execution.
@@ -73,6 +77,7 @@ class AgentPlanner:
             steps=self._steps_for_route(route, tool),
             verification=self._verification_for_route(route, tool),
             stop_condition=self._stop_condition_for_route(route),
+            delegations=self.delegation.as_dicts(prompt),
         )
 
     def _steps_for_route(self, route: IntentRoute, tool: str | None) -> list[PlanStep]:

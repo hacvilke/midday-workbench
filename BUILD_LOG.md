@@ -76,3 +76,4 @@
 2026-06-09: [UPGRADE] Added redacted provider diagnostics to health reports and API tests so provider route readiness is observable from `/api/health` without exposing secrets.
 2026-06-09: [UPGRADE] Added context-window telemetry with item counts, retained content size, tool distribution, metrics/sidebar exposure, scorecard bloat risks, and regression tests.
 2026-06-09: [UPGRADE] Added context-window pruning with newest-item retention, `/api/context-window/prune`, sidebar prune control, metrics refresh, and regression tests.
+2026-06-09: [UPGRADE] Added route-decision telemetry with intent/tool breakdowns, ambiguous and low-confidence inspected-route counts, metrics API exposure, sidebar counter, and regression tests.

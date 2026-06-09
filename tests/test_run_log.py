@@ -143,6 +143,17 @@ class RunLogTests(unittest.TestCase):
             plan={"intent": "general", "confidence": 0.5, "ambiguous": True},
         )
         add_run(session_id, "unclear request", run)
+        add_decision(
+            session_id,
+            "route",
+            "show graph",
+            {
+                "intent": "visualize",
+                "tools": ["rich_output_template_tool"],
+                "confidence": 0.7,
+                "alternatives": [{"intent": "visualize"}, {"intent": "system_design"}],
+            },
+        )
         metrics = operational_metrics(session_id=session_id)
         self.assertIn("runs", metrics)
         self.assertIn("commands", metrics)
@@ -154,11 +165,16 @@ class RunLogTests(unittest.TestCase):
         self.assertIn("memory", metrics)
         self.assertIn("quality_history", metrics)
         self.assertIn("context_window", metrics)
+        self.assertIn("route_decisions", metrics)
         self.assertEqual(metrics["runs"]["count"], 1)
         self.assertEqual(metrics["runs"]["ambiguous_routes"], 1)
         self.assertEqual(metrics["runs"]["low_confidence_routes"], 1)
+        self.assertEqual(metrics["route_decisions"]["ambiguous"], 1)
+        self.assertEqual(metrics["route_decisions"]["low_confidence"], 1)
+        self.assertEqual(metrics["route_decisions"]["intents"]["visualize"], 1)
         self.assertEqual(metrics["usage"]["average_prompt_chars"], 0)
         clear_runs(session_id)
+        clear_decisions(session_id)
 
     def test_activity_timeline_merges_events(self):
         """Verify runs, commands, and decisions merge into one activity stream."""

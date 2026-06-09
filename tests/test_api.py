@@ -271,6 +271,7 @@ class MetricsEndpointTests(unittest.TestCase):
         self.assertIn("memory", data)
         self.assertIn("quality_history", data)
         self.assertIn("context_window", data)
+        self.assertIn("route_decisions", data)
 
 
 class RetentionEndpointTests(unittest.TestCase):

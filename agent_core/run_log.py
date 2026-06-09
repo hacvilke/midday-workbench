@@ -741,9 +741,29 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
         else:
             quality_failed += 1
     decision_counts: dict[str, int] = {}
+    route_decision_count = 0
+    route_decision_ambiguous = 0
+    route_decision_low_confidence = 0
+    route_intents: dict[str, int] = {}
+    route_tools: dict[str, int] = {}
     for decision in decisions:
         kind = str(decision.get("kind", "unknown"))
         decision_counts[kind] = decision_counts.get(kind, 0) + 1
+        payload = decision.get("decision") or {}
+        if kind == "route" and isinstance(payload, dict):
+            route_decision_count += 1
+            intent = str(payload.get("intent") or "unknown")
+            route_intents[intent] = route_intents.get(intent, 0) + 1
+            tools = payload.get("tools") or []
+            for tool in tools:
+                name = str(tool)
+                route_tools[name] = route_tools.get(name, 0) + 1
+            alternatives = payload.get("alternatives") or []
+            if len(alternatives) > 1:
+                route_decision_ambiguous += 1
+            confidence = payload.get("confidence")
+            if isinstance(confidence, (int, float)) and confidence < 0.75:
+                route_decision_low_confidence += 1
 
     return {
         "session_id": session_id,
@@ -794,6 +814,13 @@ def operational_metrics(session_id: str | None = None) -> dict[str, object]:
         "decisions": {
             "count": len(decisions),
             "kinds": decision_counts,
+        },
+        "route_decisions": {
+            "count": route_decision_count,
+            "ambiguous": route_decision_ambiguous,
+            "low_confidence": route_decision_low_confidence,
+            "intents": route_intents,
+            "tools": route_tools,
         },
     }
 

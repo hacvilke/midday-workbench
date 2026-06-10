@@ -4,6 +4,7 @@ const messages = document.querySelector("#messages");
 const providerStatus = document.querySelector("#providerStatus");
 const providerPanel = document.querySelector("#providerPanel");
 const toolList = document.querySelector("#toolList");
+const skillProfiles = document.querySelector("#skillProfiles");
 const topbarBadge = document.querySelector("#topbarBadge");
 const healthStatus = document.querySelector("#healthStatus");
 const toolHealthStatus = document.querySelector("#toolHealthStatus");
@@ -107,6 +108,7 @@ function renderRunMetadata(metadata) {
   const fileWrites = metadata.file_writes || [];
   const usage = metadata.usage || {};
   const completionEvidence = metadata.completion_evidence || {};
+  const specialist = plan?.specialist || {};
   const routeAlternatives = plan?.alternatives || [];
   const routeConfidence = plan?.confidence == null ? "n/a" : `${Math.round(Number(plan.confidence) * 100)}%`;
   const stepHtml = steps.length
@@ -134,6 +136,7 @@ function renderRunMetadata(metadata) {
         <div><span>Tool Context</span><strong>${Number(usage.tool_result_chars || 0).toLocaleString()} chars</strong></div>
         <div><span>Evidence</span><strong>${completionEvidence.provider_verified ? "provider" : "unverified"} / ${completionEvidence.tools_verified ? "tools" : "review"}</strong></div>
         <div><span>Quality</span><strong>${completionEvidence.quality_ready ? "ready" : `${Number(completionEvidence.quality_missing_required || 0)} missing`}</strong></div>
+        <div><span>Specialist</span><strong>${escapeHtml(specialist.role || "Direct Responder")}</strong></div>
       </div>
       <div class="attempt-list">
         ${attempts
@@ -172,6 +175,7 @@ function renderRunMetadata(metadata) {
           ? `<div class="plan-card">
               <strong>${escapeHtml(plan.intent || "plan")}</strong>
               <span>${escapeHtml(plan.tool || "direct response")} - confidence ${escapeHtml(routeConfidence)}</span>
+              <span>${escapeHtml(specialist.system_focus || "")}</span>
               <em>${escapeHtml(plan.stop_condition || "")}</em>
               ${plan.ambiguous ? `<small>ambiguous route - review alternatives</small>` : ""}
               ${
@@ -241,6 +245,11 @@ function formatRouteDecisionSummary(decision) {
     `confidence ${confidence}${review ? " - review" : ""}`,
     formatRouteAlternatives(decision.alternatives || []),
   ].join("\n");
+}
+
+function formatPermissions(permissions) {
+  if (!permissions?.length) return "no extra permissions";
+  return permissions.slice(0, 4).join(", ");
 }
 
 function renderInline(value) {
@@ -746,6 +755,29 @@ async function loadMemory() {
   }
 }
 
+async function loadSkillProfiles() {
+  try {
+    const response = await fetch("/api/skills");
+    const data = await response.json();
+    skillProfiles.innerHTML = "";
+    (data.skills || []).forEach((skill) => {
+      const row = document.createElement("div");
+      row.className = "skill-card";
+      row.innerHTML = `
+        <strong>${escapeHtml(skill.role || skill.identifier || "Skill")}</strong>
+        <span>${escapeHtml(skill.intent || "general")} - ${escapeHtml(formatPermissions(skill.permissions || []))}</span>
+        <em>${escapeHtml(skill.system_focus || "")}</em>
+      `;
+      skillProfiles.appendChild(row);
+    });
+    if (!skillProfiles.children.length) {
+      skillProfiles.textContent = "No specialist profiles configured.";
+    }
+  } catch {
+    skillProfiles.textContent = "Skill profiles unavailable.";
+  }
+}
+
 async function loadRepoGraph() {
   try {
     const response = await fetch("/api/graph");
@@ -810,6 +842,7 @@ async function loadRunDetail(runId) {
     const plan = run.plan || {};
     const delegations = plan.delegations || [];
     const concurrency = plan.concurrency || {};
+    const specialist = plan.specialist || {};
     const verifier = run.verifier_reports || [];
     const fileWrites = run.file_writes || [];
     const usage = run.usage || {};
@@ -819,6 +852,7 @@ async function loadRunDetail(runId) {
       `run ${run.run_id}`,
       `intent ${plan.intent || "unknown"}`,
       `tool ${plan.tool || "direct"}`,
+      `specialist ${specialist.role || "Direct Responder"} - ${formatPermissions(specialist.permissions || [])}`,
       `confidence ${confidence} - ambiguous ${plan.ambiguous ? "yes" : "no"}`,
       `provider ${run.provider || "unknown"} - ${Number(run.duration_ms || 0)}ms`,
       `usage prompt ${Number(usage.prompt_chars || 0)} chars - answer ${Number(usage.answer_chars || 0)} chars - context ${Number(usage.context_chars || 0)} chars`,
@@ -1172,6 +1206,7 @@ async function loadQualityHistory() {
 
 showStatus()
   .then(loadMemory)
+  .then(loadSkillProfiles)
   .then(loadRepoGraph)
   .then(loadRecentRuns)
   .then(loadSessions)

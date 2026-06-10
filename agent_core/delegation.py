@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from .router import IntentRouter
+from .skill_registry import best_skill_for_message, skill_registry
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ class DelegationPlanner:
 
         route = self.router.classify(message)
         tool = route.tools[0] if route.tools else None
+        specialist = best_skill_for_message(route.intent, message)
         assignments = [
             DelegationAssignment(
                 "manager",
@@ -62,12 +64,12 @@ class DelegationPlanner:
         if not tool:
             assignments.append(
                 DelegationAssignment(
-                    "responder",
-                    "Direct Responder",
+                    specialist.identifier,
+                    specialist.role,
                     "direct",
-                    "answer without tool execution",
-                    [],
-                    "plain response is concise and no tool/provider was required",
+                    specialist.system_focus,
+                    list(specialist.permissions),
+                    specialist.success_criteria,
                 )
             )
             return assignments
@@ -75,11 +77,11 @@ class DelegationPlanner:
         assignments.append(
             DelegationAssignment(
                 "executor",
-                self._executor_role(route.intent),
+                specialist.role,
                 "serial",
-                f"run exactly one selected tool: {tool}",
-                [tool],
-                "structured tool result is non-empty and attached to the run",
+                f"{specialist.system_focus} Run exactly one selected tool: {tool}",
+                sorted(set([tool, *specialist.permissions])),
+                specialist.success_criteria,
             )
         )
         assignments.append(
@@ -123,6 +125,7 @@ class DelegationPlanner:
                 "parallel_groups": "agent IDs that can run together after serial prerequisites",
                 "blocked_parallel": "assignments held back from parallel execution and the reason",
             },
+            "skills": skill_registry(),
         }
 
     def as_dicts(self, message: str) -> list[dict[str, object]]:

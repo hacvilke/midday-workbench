@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from .delegation import DelegationPlanner
 from .router import IntentRoute, IntentRouter
+from .skill_registry import best_skill_for_message
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,7 @@ class AgentPlan:
         confidence: Selected route confidence from 0.0 to 1.0.
         ambiguous: Whether multiple route candidates matched this prompt.
         alternatives: Other matching route candidates for audit/ambiguity review.
+        specialist: Selected bounded specialist profile for this turn.
 
     Returns:
         Immutable JSON-serializable plan metadata through asdict().
@@ -57,6 +59,7 @@ class AgentPlan:
     confidence: float
     ambiguous: bool
     alternatives: list[dict[str, object]]
+    specialist: dict[str, object]
 
 
 class AgentPlanner:
@@ -78,6 +81,7 @@ class AgentPlanner:
 
         route = self.router.classify(prompt)
         tool = route.tools[0] if route.tools else None
+        specialist = best_skill_for_message(route.intent, prompt)
         return AgentPlan(
             intent=route.intent,
             tool=tool,
@@ -90,6 +94,13 @@ class AgentPlanner:
             confidence=route.confidence,
             ambiguous=len(route.alternatives or []) > 1,
             alternatives=route.alternatives or [],
+            specialist={
+                "identifier": specialist.identifier,
+                "role": specialist.role,
+                "permissions": list(specialist.permissions),
+                "system_focus": specialist.system_focus,
+                "success_criteria": specialist.success_criteria,
+            },
         )
 
     def _steps_for_route(self, route: IntentRoute, tool: str | None) -> list[PlanStep]:
@@ -99,7 +110,7 @@ class AgentPlanner:
             PlanStep("manager", f"classify request as {route.intent}", route.rationale),
         ]
         if tool:
-            steps.append(PlanStep("planner", f"select exactly one tool: {tool}", "one focused tool call"))
+            steps.append(PlanStep("planner", f"select specialist and exactly one tool: {tool}", "one focused tool call"))
             steps.append(PlanStep("executor", f"run {tool}", "structured tool result"))
             steps.append(PlanStep("verifier", "verify result shape and usefulness", "pass/fail verifier report"))
         else:

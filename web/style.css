@@ -91,6 +91,43 @@ ul {
   margin-top: 3px;
 }
 
+.skill-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.skill-card {
+  border: 1px solid #2b3340;
+  border-radius: 8px;
+  padding: 10px;
+  background: #111720;
+}
+
+.skill-card strong,
+.skill-card span,
+.skill-card em {
+  display: block;
+}
+
+.skill-card strong {
+  color: #edf1f6;
+  font-size: 13px;
+}
+
+.skill-card span {
+  margin-top: 3px;
+  color: #8ee0c8;
+  font-size: 12px;
+}
+
+.skill-card em {
+  margin-top: 6px;
+  color: #8f9aaa;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
 .policy {
   display: flex;
   align-items: center;

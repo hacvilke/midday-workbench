@@ -14,8 +14,9 @@ class PlannerTests(unittest.TestCase):
         self.assertFalse(plan.ambiguous)
         self.assertEqual(plan.verification, "confirm no tool/provider was required")
         self.assertEqual(plan.delegations[0]["agent_id"], "manager")
-        self.assertEqual(plan.delegations[1]["agent_id"], "responder")
-        self.assertEqual(plan.concurrency["serial_order"], ["manager", "responder"])
+        self.assertEqual(plan.delegations[1]["agent_id"], "direct-responder")
+        self.assertEqual(plan.concurrency["serial_order"], ["manager", "direct-responder"])
+        self.assertEqual(plan.specialist["identifier"], "direct-responder")
 
     def test_visual_plan_selects_template_tool(self):
         """Verify visual prompts plan a single rich output tool call."""
@@ -27,6 +28,8 @@ class PlannerTests(unittest.TestCase):
         self.assertGreaterEqual(len(plan.steps), 4)
         self.assertGreaterEqual(len(plan.alternatives), 2)
         self.assertTrue(plan.ambiguous)
+        self.assertEqual(plan.specialist["identifier"], "visual-renderer")
+        self.assertIn("rich_output_template_tool", plan.specialist["permissions"])
         self.assertIn("verifier", [assignment["agent_id"] for assignment in plan.delegations])
         self.assertIn(["verifier"], plan.concurrency["parallel_groups"])
 
@@ -35,6 +38,7 @@ class PlannerTests(unittest.TestCase):
 
         plan = AgentPlanner().build_plan("fix web/app.js")
         self.assertEqual(plan.intent, "code_edit")
+        self.assertEqual(plan.specialist["identifier"], "implementation-runner")
         self.assertIn("reviewer", [assignment["agent_id"] for assignment in plan.delegations])
         self.assertIn("reviewer", [item["agent_id"] for item in plan.concurrency["blocked_parallel"]])
 

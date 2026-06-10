@@ -71,6 +71,19 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("providerPanel", app_js)
         self.assertIn("Concurrency Plan", app_js)
         self.assertIn("parallel_groups", app_js)
+        self.assertIn("skillProfiles", app_js)
+        self.assertIn("/api/skills", app_js)
+        self.assertIn("function loadSkillProfiles", app_js)
+        self.assertIn("formatPermissions", app_js)
+        self.assertIn("plan?.specialist", app_js)
+        self.assertIn("specialist.role", app_js)
+
+        index_html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("Agent Skills", index_html)
+        self.assertIn("id=\"skillProfiles\"", index_html)
+
+        css = (ROOT / "web" / "style.css").read_text(encoding="utf-8")
+        self.assertIn(".skill-card", css)
 
 
 if __name__ == "__main__":

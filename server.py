@@ -55,6 +55,7 @@ from agent_core.run_log import (
 )
 from agent_core.sandbox import ExecutionSandbox
 from agent_core.session import clear_session_state, prune_session_state, session_state_snapshot
+from agent_core.skill_registry import skill_registry
 from agent_core.verifier import ReActVerifier
 from agent_core.router import IntentRouter
 
@@ -148,6 +149,9 @@ class Handler(BaseHTTPRequestHandler):
                     "manifest": planner.manifest(),
                 }
             )
+
+        if parsed.path == "/api/skills":
+            return self.send_json({"skills": skill_registry()})
 
         if parsed.path == "/api/prompts":
             return self.send_json(prompt_registry())

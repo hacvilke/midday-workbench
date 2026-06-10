@@ -118,3 +118,4 @@
 2026-06-09: [UPGRADE] Added latest failed command telemetry to operational metrics and named the failed command in operational-review recommendations.
 2026-06-09: [UPGRADE] Surfaced command failure counts in the sidebar metrics panel with a latest-failed-command tooltip for faster operator triage.
 2026-06-09: [UPGRADE] Injected command-failure telemetry into provider prompt guardrails so model calls receive current failed-command context alongside quality status.
+2026-06-10: [UPGRADE] Added Midday-native specialist skill profiles inspired by Claude Code agent cards and UnionAI planner patterns, including `/api/skills`, planner specialist metadata, delegation permissions, run-detail display, and an Agent Skills workbench panel.

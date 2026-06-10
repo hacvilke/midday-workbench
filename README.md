@@ -9,6 +9,7 @@ A local-first AI coding agent. No SaaS. No cloud lock-in. Runs on your machine w
 - **Reads files** — provides current file content as context before editing
 - **Searches the web** via DuckDuckGo Instant Answers (no API key needed)
 - **Runs tools** for ERPNext, Julia, cuGraph, System Design, repo maps, context packing, and research
+- **Routes work through specialist skills** for direct replies, visuals, code review, implementation, research, architecture, and provider diagnostics
 - **Verifies results** with a self-verifier on every ReAct step
 - **Persists sessions** in SQLite — memory and run logs survive restarts
 - **Shows operator telemetry** for route drift, provider readiness, command history, quality gates, and control-plane health
@@ -148,6 +149,7 @@ No API key. No rate limits beyond DuckDuckGo's anonymous tier.
 | GET | `/api/health` | Platform + per-tool health checks |
 | GET | `/api/control-plane` | Aggregated health, metrics, policy, routing, provider, prompt, and tool state |
 | GET | `/api/control-plane?light=1` | Faster control-plane probe without heavy history payloads |
+| GET | `/api/skills` | Specialist skill profiles, permissions, focus, and success criteria |
 | GET | `/api/runs` | Recent run log |
 | GET | `/api/sessions` | All sessions |
 | GET | `/api/memory` | Conversation memory |

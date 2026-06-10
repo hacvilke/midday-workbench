@@ -185,6 +185,15 @@ class RouteEndpointTests(unittest.TestCase):
         self.assertIn("review_examples", data)
         self.assertGreaterEqual(data["count"], 1)
 
+    def test_skills_endpoint_returns_profiles(self):
+        data = _get("/api/skills")
+        self.assertIn("skills", data)
+        self.assertGreaterEqual(len(data["skills"]), 5)
+        identifiers = {skill["identifier"] for skill in data["skills"]}
+        self.assertIn("visual-renderer", identifiers)
+        self.assertIn("implementation-runner", identifiers)
+        self.assertIn("permissions", data["skills"][0])
+
 
 class SandboxEndpointTests(unittest.TestCase):
     def test_allowed_commands_returned(self):
@@ -370,6 +379,8 @@ class ControlPlaneEndpointTests(unittest.TestCase):
         self.assertIn("tools", data)
         self.assertIn("coordinator", data["prompts"]["names"])
         self.assertIn("parallel_candidate", data["delegation"]["modes"])
+        self.assertIn("skills", data["delegation"])
+        self.assertGreaterEqual(len(data["delegation"]["skills"]), 5)
         self.assertTrue(data["routing_audit"]["passed"])
         self.assertFalse(data["health"]["tool_health_included"])
 

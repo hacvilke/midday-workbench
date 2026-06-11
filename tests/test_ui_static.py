@@ -103,6 +103,11 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("data-inspector-pane=\"terminal\"", index_html)
         self.assertIn("id=\"inspectorArtifactList\"", index_html)
         self.assertIn("Build, inspect, run, and verify with Midday.", index_html)
+        self.assertIn("id=\"composerStatus\"", index_html)
+        self.assertIn("class=\"composer-toolbar\"", index_html)
+        self.assertIn("class=\"icon-button\"", index_html)
+        self.assertIn("class=\"send-button\"", index_html)
+        self.assertIn("Ask Midday anything", index_html)
 
         css = (ROOT / "web" / "style.css").read_text(encoding="utf-8")
         self.assertIn(".skill-card", css)
@@ -112,6 +117,10 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn(".inspector-tabs", css)
         self.assertIn(".artifact-card", css)
         self.assertIn(".terminal-card", css)
+        self.assertIn(".composer-toolbar", css)
+        self.assertIn(".icon-button", css)
+        self.assertIn(".composer-status", css)
+        self.assertIn(".send-button", css)
 
 
 if __name__ == "__main__":

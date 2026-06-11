@@ -123,3 +123,4 @@
 2026-06-10: [UI] Refreshed the Midday Workbench shell with a light workbench theme, slim navigation rail, quick agent action chips, right-side outputs/sources inspector, and static UI coverage for the new layout.
 2026-06-10: [UI] Wired the right-side inspector to live run metadata so artifacts, command output, sources/tools, and verifier safety status update after chat runs.
 2026-06-10: [UI] Upgraded the inspector into Replit-style Artifacts/Sources/Terminal tabs with generated artifact cards, auto tab switching from run metadata, and a dark terminal output surface.
+2026-06-10: [UI] Adapted the Replit Midday mockup into the live vanilla workbench composer with action icons, sandbox/context shortcuts, run status text, and guarded static coverage while restoring local runtime ignores for secrets, logs, sessions, and SQLite state.

@@ -1188,6 +1188,77 @@ select {
   outline: 0;
 }
 
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.composer-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border: 1px solid #dfe6dd;
+  border-radius: 8px;
+  padding: 0;
+  background: #ffffff;
+  color: #617066;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.icon-button:hover {
+  border-color: #b9dea6;
+  background: #eff9eb;
+  color: #26352d;
+}
+
+.composer-status {
+  overflow: hidden;
+  color: #819087;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.send-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  border-radius: 10px;
+  padding: 0 10px 0 14px;
+  background: #00b99f;
+  color: #ffffff;
+}
+
+.send-button strong {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.send-button:hover {
+  background: #009c86;
+}
+
 button {
   background: #6ecb59;
   color: #ffffff;

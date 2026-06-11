@@ -1,5 +1,6 @@
 const form = document.querySelector("#composer");
 const promptInput = document.querySelector("#prompt");
+const composerStatus = document.querySelector("#composerStatus");
 const messages = document.querySelector("#messages");
 const providerStatus = document.querySelector("#providerStatus");
 const providerPanel = document.querySelector("#providerPanel");
@@ -98,6 +99,7 @@ function addPendingMessage() {
   messages.appendChild(el);
   messages.scrollTop = messages.scrollHeight;
   const started = performance.now();
+  if (composerStatus) composerStatus.textContent = "Running";
   const timer = setInterval(() => {
     const seconds = ((performance.now() - started) / 1000).toFixed(1);
     const time = el.querySelector("time");
@@ -111,6 +113,10 @@ function submitPrompt(value) {
   if (!prompt || isStreaming) return;
   promptInput.value = prompt;
   form.requestSubmit();
+}
+
+function setComposerIdle() {
+  if (composerStatus) composerStatus.textContent = "Local workbench";
 }
 
 function updateInspector(metadata, answerText = "") {
@@ -713,7 +719,7 @@ async function streamChat(prompt) {
         } else if (event.type === "file_written") {
           const badge = document.createElement("div");
           badge.className = "file-written-badge";
-          badge.innerHTML = `✓ Written: <code>${escapeHtml(event.path)}</code>`;
+          badge.innerHTML = `Written: <code>${escapeHtml(event.path)}</code>`;
           msgEl.appendChild(badge);
         } else if (event.type === "done") {
           metadataReceived = event.metadata;
@@ -759,6 +765,7 @@ async function streamChat(prompt) {
   loadOperationalReview();
   loadActivityTimeline();
   isStreaming = false;
+  setComposerIdle();
 }
 
 // ── Status and panel loaders ───────────────────────────────────────────────────

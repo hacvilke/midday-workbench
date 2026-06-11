@@ -1,6 +1,7 @@
 """Self-verifier for ReAct tool and command runs."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from .oss_tools import ToolResult
@@ -95,9 +96,33 @@ class ReActVerifier:
             if result.content and "No GitHub URL" in result.content:
                 issues.append("no GitHub URL was found in the prompt")
 
+        if result.name == "command_runner_tool":
+            self._verify_command_tool_payload(result.content, issues)
+
         passed = len(issues) == 0
         summary = "OK" if passed else "; ".join(issues)
         return VerifierReport(step_index, action, passed, issues, summary)
+
+    def _verify_command_tool_payload(self, content: str, issues: list[str]) -> None:
+        """Validate command-runner tool JSON payload."""
+
+        try:
+            payload = json.loads(content)
+        except json.JSONDecodeError:
+            issues.append("command runner did not return structured JSON")
+            return
+        if "allowed" not in payload:
+            issues.append("command runner payload missing allowed field")
+            return
+        if not payload.get("allowed"):
+            issues.append(f"command blocked: {payload.get('reason', 'unknown policy reason')}")
+            return
+        if "exit_code" not in payload:
+            issues.append("command runner payload missing exit code")
+        elif payload.get("exit_code") != 0:
+            issues.append(f"command exited with code {payload.get('exit_code')}")
+        if "output" not in payload:
+            issues.append("command runner payload missing output")
 
     def verify_command_result(
         self,

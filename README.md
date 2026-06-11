@@ -10,6 +10,7 @@ A local-first AI coding agent. No SaaS. No cloud lock-in. Runs on your machine w
 - **Searches the web** via DuckDuckGo Instant Answers (no API key needed)
 - **Runs tools** for ERPNext, Julia, cuGraph, System Design, repo maps, context packing, and research
 - **Routes work through specialist skills** for direct replies, visuals, code review, implementation, research, architecture, and provider diagnostics
+- **Runs safe commands from chat** through an allowlisted sandbox for tests, git status, compile checks, and health probes
 - **Verifies results** with a self-verifier on every ReAct step
 - **Persists sessions** in SQLite — memory and run logs survive restarts
 - **Shows operator telemetry** for route drift, provider readiness, command history, quality gates, and control-plane health
@@ -53,11 +54,12 @@ If the provider reports prompt/context limits, lower `AGENT_CONTEXT_CHAR_BUDGET`
 
 No keys = offline mode. Local tools and repo context still work.
 
-## Active Tools (11)
+## Active Tools (12)
 
 | Tool | What it does |
 |---|---|
 | `file_edit_tool` | Read, write, create, patch files in the workspace |
+| `command_runner_tool` | Allowlisted sandbox command execution for tests, git status, compile checks, and health probes |
 | `web_search_tool` | DuckDuckGo Instant Answers — no API key |
 | `erpnext_business_tool` | ERP, accounting, inventory, Frappe doctypes |
 | `julia_language_tool` | Julia language, runtime, compiler reasoning |

@@ -74,7 +74,7 @@ class ReactPlanner:
 
             chained_prompt = (
                 prompt
-                if route.intent == "visualize"
+                if route.intent in {"visualize", "command_run"}
                 else context_window.chained_query(prompt)
             )
             result = self.registry.run_tool(tool, chained_prompt)

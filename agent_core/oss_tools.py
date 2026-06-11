@@ -7,11 +7,12 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import AgentConfig
+from .config import AgentConfig, PROJECT_ROOT
 from .indexer import search
 from .output_templates import TEMPLATES, template_manifest
 from .repo_graph import build_repo_graph
 from .rich_output_template_tool.render import normalize_mermaid_output
+from .sandbox import ExecutionSandbox
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,12 @@ TOOLS: tuple[OssTool, ...] = (
         "Web search via DuckDuckGo Instant Answers. Returns summaries and related topics for research queries. No API key required.",
         ("search for", "look up", "find online", "google", "web search", "search the web", "find information"),
     ),
+    OssTool(
+        "command_runner_tool",
+        "local",
+        "Safe command execution through the allowlisted Midday sandbox for tests, compile checks, git status, repo search, and health probes.",
+        ("run command", "run tests", "run test", "git status", "run git", "check command", "execute command", "pytest", "unittest", "compileall"),
+    ),
 )
 
 
@@ -158,6 +165,8 @@ class OssToolRegistry:
             return self.file_context_tool(prompt)
         if tool.name == "web_search_tool":
             return self.web_search_tool(prompt)
+        if tool.name == "command_runner_tool":
+            return self.command_runner_tool(prompt)
         return self.scoped_search_tool(tool, prompt)
 
     def _wants_repo_graph(self, prompt: str) -> bool:
@@ -362,6 +371,70 @@ class OssToolRegistry:
             f"Web search: {query[:60]}",
             content,
         )
+
+    def command_runner_tool(self, prompt: str) -> ToolResult:
+        """Run one safe command inferred from the prompt through the sandbox."""
+
+        command = self._extract_command(prompt)
+        sandbox = ExecutionSandbox(PROJECT_ROOT)
+        decision = sandbox.decide(command, timeout=20)
+        if not decision.allowed:
+            payload = {
+                "command": command,
+                "allowed": False,
+                "reason": decision.reason,
+                "matched_prefix": decision.matched_prefix,
+                "blocked_pattern": decision.blocked_pattern,
+                "allowed_examples": sandbox.allowed_commands()[:12],
+            }
+            return ToolResult(
+                "command_runner_tool",
+                "Command was blocked by the sandbox policy.",
+                json.dumps(payload, indent=2),
+            )
+
+        result = sandbox.run_read_only(command, timeout=20)
+        payload = {
+            "command": result.command,
+            "allowed": True,
+            "exit_code": result.exit_code,
+            "output": result.output,
+        }
+        return ToolResult(
+            "command_runner_tool",
+            f"Ran sandbox command `{command}` with exit code {result.exit_code}.",
+            json.dumps(payload, indent=2),
+        )
+
+    def _extract_command(self, prompt: str) -> str:
+        """Extract a portable sandbox command from a natural-language request."""
+
+        fenced = re.search(r"`([^`]+)`", prompt)
+        if fenced:
+            return fenced.group(1).strip()
+
+        normalized = prompt.lower().strip()
+        if "git status" in normalized:
+            return "git status"
+        if "git diff" in normalized:
+            return "git diff --stat"
+        if "secret scan" in normalized:
+            return "python -m agent_core.secret_scan"
+        if "eval" in normalized:
+            return "python -m agent_core.evals"
+        if "frontend" in normalized or "javascript" in normalized or "js syntax" in normalized:
+            return "node --check web/app.js"
+        if "compile" in normalized:
+            return "python -m compileall agent_core"
+        if "pytest" in normalized:
+            return "python -m pytest tests/ -v"
+        if "unittest" in normalized or "test" in normalized:
+            return "python -m unittest tests.test_router tests.test_tools"
+        if normalized.startswith("run "):
+            return prompt[4:].strip()
+        if normalized.startswith("execute "):
+            return prompt[8:].strip()
+        return prompt.strip()
 
     def _interesting_paths(self, prompt: str, limit: int) -> list[str]:
         hits = search(self.config.index_path, prompt, limit=limit)

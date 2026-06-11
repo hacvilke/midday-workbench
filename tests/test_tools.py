@@ -4,6 +4,7 @@ from __future__ import annotations
 import sys
 import os
 import unittest
+import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -72,6 +73,21 @@ class OssToolRegistryTests(unittest.TestCase):
     def test_select_tools_returns_list(self):
         selected = self.registry.select_tools("show me an architecture diagram")
         self.assertIsInstance(selected, list)
+
+    def test_command_runner_runs_git_status(self):
+        result = self.registry.run_tool_by_name("command_runner_tool", "run git status")
+        self.assertEqual(result.name, "command_runner_tool")
+        payload = json.loads(result.content)
+        self.assertTrue(payload["allowed"])
+        self.assertEqual(payload["command"], "git status")
+        self.assertIn("exit_code", payload)
+
+    def test_command_runner_blocks_unsafe_command(self):
+        result = self.registry.run_tool_by_name("command_runner_tool", "run `rm -rf /`")
+        self.assertEqual(result.name, "command_runner_tool")
+        payload = json.loads(result.content)
+        self.assertFalse(payload["allowed"])
+        self.assertIn("blocked", result.summary.lower())
 
 
 class SandboxTests(unittest.TestCase):
@@ -240,6 +256,25 @@ class VerifierTests(unittest.TestCase):
         report = self.verifier.verify_provider_attempts([])
         self.assertFalse(report.passed)
         self.assertIn("no provider attempts recorded", report.summary)
+
+    def test_command_runner_tool_payload_passes(self):
+        result = ToolResult(
+            "command_runner_tool",
+            "summary",
+            json.dumps({"allowed": True, "exit_code": 0, "output": "ok"}),
+        )
+        report = self.verifier.verify_tool_result(0, "command_runner_tool", result)
+        self.assertTrue(report.passed)
+
+    def test_blocked_command_runner_tool_payload_fails(self):
+        result = ToolResult(
+            "command_runner_tool",
+            "summary",
+            json.dumps({"allowed": False, "reason": "blocked"}),
+        )
+        report = self.verifier.verify_tool_result(0, "command_runner_tool", result)
+        self.assertFalse(report.passed)
+        self.assertIn("command blocked", report.summary)
 
     def test_verify_all_length_matches(self):
         steps_actions = ["tool_a", "tool_b"]

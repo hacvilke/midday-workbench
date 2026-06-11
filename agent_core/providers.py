@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import time
+import http.client
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -152,6 +153,8 @@ class OpenAICompatibleProvider(ChatProvider):
             detail = exc.read().decode("utf-8", errors="replace")
             raise ProviderError(f"Stream HTTP {exc.code}: {detail}") from exc
         except urllib.error.URLError as exc:
+            raise ProviderError(f"Stream connection failed: {exc}") from exc
+        except (http.client.RemoteDisconnected, TimeoutError, OSError) as exc:
             raise ProviderError(f"Stream connection failed: {exc}") from exc
 
 

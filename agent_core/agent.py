@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import json
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -136,6 +137,28 @@ class Agent:
                     completion_evidence=self._completion_evidence(tool_results, v_reports, [], direct=True),
                 )
 
+        if route.intent == "command_run":
+            react_steps, tool_results, v_reports = self.react.run(prompt)
+            command_answer = self.command_tool_answer(tool_results)
+            if command_answer is not None:
+                return AgentRun(
+                    run_id=run_id,
+                    answer=command_answer,
+                    tools_used=[r.name for r in tool_results],
+                    react_steps=[asdict(s) for s in react_steps],
+                    context_attached=False,
+                    memory_items=len(history or []),
+                    provider="local",
+                    duration_ms=int((time.perf_counter() - started) * 1000),
+                    fallback_used=False,
+                    error=None,
+                    provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                    verifier_reports=[asdict(r) for r in v_reports],
+                    plan=plan,
+                    usage=self._usage(prompt, command_answer, tool_results=tool_results, history=history or []),
+                    completion_evidence=self._completion_evidence(tool_results, v_reports, [], direct=True),
+                )
+
         # General path
         context = self.retrieve_context(prompt)
         react_steps, tool_results, v_reports = self.react.run(prompt)
@@ -265,6 +288,26 @@ class Agent:
                         [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
                         "local", started, [asdict(r) for r in v_reports], plan,
                         usage=self._usage(prompt, visual, tool_results=tool_results, history=history or []),
+                    ),
+                }
+                return
+
+        if route.intent == "command_run":
+            react_steps, tool_results, v_reports = self.react.run(prompt)
+            for r in tool_results:
+                yield {"type": "tool", "tool": r.name, "summary": r.summary}
+            command_answer = self.command_tool_answer(tool_results)
+            if command_answer is not None:
+                for word in command_answer.split(" "):
+                    yield {"type": "token", "token": word + " "}
+                yield {
+                    "type": "done",
+                    "metadata": self._make_stream_metadata(
+                        run_id, command_answer, [r.name for r in tool_results],
+                        [asdict(s) for s in react_steps], False, False, None,
+                        [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                        "local", started, [asdict(r) for r in v_reports], plan,
+                        usage=self._usage(prompt, command_answer, tool_results=tool_results, history=history or []),
                     ),
                 }
                 return
@@ -403,6 +446,22 @@ class Agent:
         if not blocks:
             return None
         return f"```mermaid\n{blocks[0]}\n```"
+
+    def command_tool_answer(self, tool_results) -> str | None:
+        if len(tool_results) != 1 or tool_results[0].name != "command_runner_tool":
+            return None
+        try:
+            payload = json.loads(tool_results[0].content)
+        except json.JSONDecodeError:
+            return self.format_tool_results(tool_results)
+        command = str(payload.get("command", ""))
+        if not payload.get("allowed"):
+            reason = payload.get("reason", "blocked by sandbox policy")
+            pattern = payload.get("blocked_pattern") or "none"
+            return f"Command blocked: `{command}`\n\nReason: {reason}\nBlocked pattern: `{pattern}`"
+        output = str(payload.get("output", "")).strip() or "(no output)"
+        exit_code = int(payload.get("exit_code", -1))
+        return f"Command: `{command}`\nExit code: `{exit_code}`\n\n```text\n{output}\n```"
 
     def format_tool_results(self, tool_results) -> str:
         return "\n\n".join(

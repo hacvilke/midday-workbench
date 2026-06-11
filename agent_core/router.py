@@ -81,6 +81,14 @@ class IntentRouter:
                 "File write, create, or edit request: read file context and let the model generate new content.",
                 alternatives,
             )
+        if is_command_request(text):
+            return IntentRoute(
+                "command_run",
+                ["command_runner_tool"],
+                0.9,
+                "Command/test/status request: run one allowlisted sandbox command.",
+                alternatives,
+            )
         if is_web_search_request(text):
             return IntentRoute(
                 "web_search",
@@ -178,6 +186,20 @@ def is_web_search_request(text: str) -> bool:
     return contains_any(text, search_patterns)
 
 
+def is_command_request(text: str) -> bool:
+    """Detect safe command execution requests."""
+
+    command_patterns = (
+        "run command", "execute command", "run tests", "run test",
+        "run unittest", "run pytest", "run eval", "run secret scan",
+        "git status", "git diff", "node --check", "compileall",
+        "check frontend syntax", "run health check",
+    )
+    if contains_any(text, command_patterns):
+        return True
+    return bool(re.search(r"\b(run|execute)\b\s+`[^`]+`", text))
+
+
 def route_alternatives(text: str) -> list[dict[str, object]]:
     """Return matching route candidates for audit and ambiguity display."""
 
@@ -185,6 +207,7 @@ def route_alternatives(text: str) -> list[dict[str, object]]:
         ("plain_chat", [], 0.96, is_greeting_or_identity(text)),
         ("visualize", ["rich_output_template_tool"], 0.92, is_visual_request(text)),
         ("code_edit", ["file_edit_tool"], 0.91, is_file_edit_request(text)),
+        ("command_run", ["command_runner_tool"], 0.9, is_command_request(text)),
         ("analyze_graph", ["cugraph_graph_tool"], 0.9, is_graph_algorithm_request(text)),
         ("code_edit", ["aider_git_native_tool"], 0.88, contains_any(text, ("fix", "refactor", "commit", "diff", "patch", "write code"))),
         ("business_workflow", ["erpnext_business_tool"], 0.86, contains_any(text, ("purchase order", "invoice", "erp", "frappe", "doctype", "payroll", "stock"))),

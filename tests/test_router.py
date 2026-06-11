@@ -67,6 +67,7 @@ class RouterTests(unittest.TestCase):
 
         cases = {
             "purchase order invoice": "erpnext_business_tool",
+            "run git status": "command_runner_tool",
             "fix code and commit patch": "aider_git_native_tool",
             "pack repo context": "repomix_context_pack_tool",
             "https://github.com/Aider-AI/aider ingest repo": "gitingest_remote_context_tool",
@@ -126,6 +127,24 @@ class RouterTests(unittest.TestCase):
         self.assertIn("provider", done["metadata"]["provider_attempts"][0])
         self.assertIn("ok", done["metadata"]["provider_attempts"][0])
         self.assertIn("completion_evidence", done["metadata"])
+
+    def test_agent_command_run_uses_sandbox_tool(self):
+        """Verify chat-level command requests run through the sandbox tool."""
+
+        run = Agent().run_with_metadata("run git status")
+        self.assertEqual(run.tools_used, ["command_runner_tool"])
+        self.assertEqual(run.plan["intent"], "command_run")
+        self.assertEqual(run.plan["specialist"]["identifier"], "sandbox-operator")
+        self.assertTrue(run.completion_evidence["tools_verified"])
+        self.assertIn("git status", run.answer)
+
+    def test_command_run_ignores_prior_context_window_mermaid(self):
+        """Verify exact commands do not inherit stale chained tool context."""
+
+        Agent().run_with_metadata("show me a graph")
+        run = Agent().run_with_metadata("run git status")
+        self.assertIn("git status", run.answer)
+        self.assertNotIn("graph TD", run.answer)
 
     def test_agent_visual_answer_is_mermaid_only(self):
         """Verify visual requests return a single Mermaid fence."""

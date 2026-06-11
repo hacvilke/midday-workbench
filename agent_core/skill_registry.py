@@ -68,6 +68,15 @@ SKILL_PROFILES: tuple[SkillProfile, ...] = (
         "Changed files are recorded with verification evidence and no unrelated churn.",
     ),
     SkillProfile(
+        "sandbox-operator",
+        "Sandbox Operator",
+        "command_run",
+        ("run tests", "run command", "git status", "pytest", "unittest", "compileall"),
+        ("command_runner_tool", "sandbox_readonly", "quality_gate"),
+        "Run exactly one allowlisted command and report exit status plus verifier evidence.",
+        "The command is policy-allowed, output is captured, and failures are clearly marked.",
+    ),
+    SkillProfile(
         "research-synthesizer",
         "Research Synthesizer",
         "research",

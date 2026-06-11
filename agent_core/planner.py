@@ -122,6 +122,8 @@ class AgentPlanner:
 
         if route.intent == "visualize":
             return "confirm exactly one valid Mermaid block and no provider call"
+        if route.intent == "command_run":
+            return "confirm sandbox policy allowed the command and exit status is recorded"
         if tool:
             return "confirm non-empty structured tool output and record verifier report"
         return "confirm no tool/provider was required"
@@ -133,4 +135,6 @@ class AgentPlanner:
             return "return renderable visual output"
         if route.intent == "plain_chat":
             return "return concise plain text"
+        if route.intent == "command_run":
+            return "return sandbox command output with exit status and verifier summary"
         return "return answer grounded in selected tool result and verifier status"

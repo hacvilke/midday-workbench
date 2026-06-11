@@ -42,6 +42,15 @@ class PlannerTests(unittest.TestCase):
         self.assertIn("reviewer", [assignment["agent_id"] for assignment in plan.delegations])
         self.assertIn("reviewer", [item["agent_id"] for item in plan.concurrency["blocked_parallel"]])
 
+    def test_command_plan_uses_sandbox_operator(self):
+        """Verify command requests expose sandbox-specific specialist metadata."""
+
+        plan = AgentPlanner().build_plan("run git status")
+        self.assertEqual(plan.intent, "command_run")
+        self.assertEqual(plan.tool, "command_runner_tool")
+        self.assertEqual(plan.specialist["identifier"], "sandbox-operator")
+        self.assertIn("exit status", plan.verification)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -184,6 +184,8 @@ class DelegationPlanner:
             return "Visual Renderer"
         if intent == "code_edit":
             return "Code Tool Executor"
+        if intent == "command_run":
+            return "Sandbox Operator"
         if intent == "research":
             return "Research Synthesizer"
         if intent == "system_design":

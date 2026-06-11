@@ -8,6 +8,15 @@
   </head>
   <body>
     <main class="shell">
+      <nav class="rail" aria-label="Workbench navigation">
+        <div class="rail-mark">M</div>
+        <button class="rail-button active" type="button" title="Chat">C</button>
+        <button class="rail-button" type="button" title="Files">F</button>
+        <button class="rail-button" type="button" title="Tools">T</button>
+        <button class="rail-button" type="button" title="Runs">R</button>
+        <button class="rail-button" type="button" title="Memory">M</button>
+        <button class="rail-button" type="button" title="Settings">S</button>
+      </nav>
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">MW</div>
@@ -136,17 +145,50 @@
       <section class="chat">
         <header class="topbar">
           <div>
-            <div class="eyebrow">Local-first AI agent · streaming</div>
-            <h2>Ask, inspect, build, and reason across your OSS stack.</h2>
+            <div class="eyebrow">Local-first agent workbench</div>
+            <h2>Build, inspect, run, and verify with Midday.</h2>
           </div>
           <div class="topbar-badge" id="topbarBadge">Connecting...</div>
         </header>
+        <div class="action-strip" aria-label="Agent quick actions">
+          <button type="button" data-prompt="run git status">Run status</button>
+          <button type="button" data-prompt="run frontend syntax check">Check UI</button>
+          <button type="button" data-prompt="show graph of Midday Workbench agent architecture">Draw diagram</button>
+          <button type="button" data-prompt="pack repo context for agent_core/router.py and agent_core/agent.py">Pack context</button>
+        </div>
         <div id="messages" class="messages"></div>
         <form id="composer" class="composer">
           <textarea id="prompt" placeholder="Ask the agent — edit files, search the web, run tools... (Ctrl+Enter to send)" rows="3"></textarea>
           <button type="submit" aria-label="Run agent">Run</button>
         </form>
       </section>
+      <aside class="inspector" aria-label="Outputs and sources">
+        <section>
+          <h2>Outputs</h2>
+          <div class="inspector-card">
+            <strong>Artifacts</strong>
+            <span>Diagrams, file writes, and generated outputs appear in run metadata.</span>
+          </div>
+          <div class="inspector-card">
+            <strong>Command Output</strong>
+            <span>Ask `run git status` or use the Command Runner panel.</span>
+          </div>
+        </section>
+        <section>
+          <h2>Sources</h2>
+          <div class="inspector-card">
+            <strong>OSS Context</strong>
+            <span>Midday routes to local tools, repo packs, web search, and sandbox checks when relevant.</span>
+          </div>
+        </section>
+        <section>
+          <h2>Workbench</h2>
+          <div class="inspector-card accent">
+            <strong>Safe by default</strong>
+            <span>One tool per turn, verifier reports, and allowlisted commands.</span>
+          </div>
+        </section>
+      </aside>
     </main>
     <script type="module">
       import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";

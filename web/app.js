@@ -47,6 +47,7 @@ const fileEditorContent = document.querySelector("#fileEditorContent");
 const fileEditorStatus = document.querySelector("#fileEditorStatus");
 const readFileButton = document.querySelector("#readFileButton");
 const writeFileButton = document.querySelector("#writeFileButton");
+const actionButtons = document.querySelectorAll("[data-prompt]");
 const sessionId = getSessionId();
 
 let isStreaming = false;
@@ -96,6 +97,13 @@ function addPendingMessage() {
     if (time) time.textContent = `${seconds}s`;
   }, 100);
   return { el, timer };
+}
+
+function submitPrompt(value) {
+  const prompt = value.trim();
+  if (!prompt || isStreaming) return;
+  promptInput.value = prompt;
+  form.requestSubmit();
 }
 
 function renderRunMetadata(metadata) {
@@ -1467,6 +1475,12 @@ writeFileButton.addEventListener("click", async () => {
   } catch (err) {
     fileEditorStatus.textContent = `Write failed: ${err}`;
   }
+});
+
+actionButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    submitPrompt(button.dataset.prompt || "");
+  });
 });
 
 // Keyboard shortcut: Ctrl+Enter to submit

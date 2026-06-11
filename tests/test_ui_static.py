@@ -75,15 +75,26 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("/api/skills", app_js)
         self.assertIn("function loadSkillProfiles", app_js)
         self.assertIn("formatPermissions", app_js)
+        self.assertIn("actionButtons", app_js)
+        self.assertIn("function submitPrompt", app_js)
+        self.assertIn("button.dataset.prompt", app_js)
         self.assertIn("plan?.specialist", app_js)
         self.assertIn("specialist.role", app_js)
 
         index_html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
         self.assertIn("Agent Skills", index_html)
         self.assertIn("id=\"skillProfiles\"", index_html)
+        self.assertIn("class=\"rail\"", index_html)
+        self.assertIn("class=\"inspector\"", index_html)
+        self.assertIn("class=\"action-strip\"", index_html)
+        self.assertIn("data-prompt=\"run git status\"", index_html)
+        self.assertIn("Build, inspect, run, and verify with Midday.", index_html)
 
         css = (ROOT / "web" / "style.css").read_text(encoding="utf-8")
         self.assertIn(".skill-card", css)
+        self.assertIn(".rail-button", css)
+        self.assertIn(".inspector-card", css)
+        self.assertIn(".action-strip", css)
 
 
 if __name__ == "__main__":

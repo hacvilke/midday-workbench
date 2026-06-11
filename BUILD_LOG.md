@@ -122,3 +122,4 @@
 2026-06-10: [UPGRADE] Added chat-routed safe command execution with `command_runner_tool`, `command_run` routing, Sandbox Operator skill metadata, structured sandbox payload verification, and tests for allowed and blocked command requests.
 2026-06-10: [UI] Refreshed the Midday Workbench shell with a light workbench theme, slim navigation rail, quick agent action chips, right-side outputs/sources inspector, and static UI coverage for the new layout.
 2026-06-10: [UI] Wired the right-side inspector to live run metadata so artifacts, command output, sources/tools, and verifier safety status update after chat runs.
+2026-06-10: [UI] Upgraded the inspector into Replit-style Artifacts/Sources/Terminal tabs with generated artifact cards, auto tab switching from run metadata, and a dark terminal output surface.

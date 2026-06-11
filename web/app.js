@@ -49,9 +49,12 @@ const readFileButton = document.querySelector("#readFileButton");
 const writeFileButton = document.querySelector("#writeFileButton");
 const actionButtons = document.querySelectorAll("[data-prompt]");
 const inspectorArtifacts = document.querySelector("#inspectorArtifacts");
+const inspectorArtifactList = document.querySelector("#inspectorArtifactList");
 const inspectorCommand = document.querySelector("#inspectorCommand");
 const inspectorSources = document.querySelector("#inspectorSources");
 const inspectorSafety = document.querySelector("#inspectorSafety");
+const inspectorTabButtons = document.querySelectorAll("[data-inspector-tab]");
+const inspectorPanes = document.querySelectorAll("[data-inspector-pane]");
 const sessionId = getSessionId();
 
 let isStreaming = false;
@@ -122,9 +125,23 @@ function updateInspector(metadata, answerText = "") {
     if (writes.length) artifactParts.push(`${writes.length} file write${writes.length === 1 ? "" : "s"}`);
     inspectorArtifacts.textContent = artifactParts.length ? artifactParts.join(" · ") : `Run ${metadata.run_id || "complete"} produced a chat answer.`;
   }
+  if (inspectorArtifactList) {
+    inspectorArtifactList.innerHTML = "";
+    if (/```mermaid/.test(answerText)) {
+      inspectorArtifactList.appendChild(createArtifactCard("diagram.mmd", "Mermaid diagram · latest run", "diagram"));
+    }
+    writes.forEach((write) => {
+      const path = write.path || "workspace file";
+      const detail = `${write.created ? "new file" : "modified"} · ${Number(write.lines || 0).toLocaleString()} lines`;
+      inspectorArtifactList.appendChild(createArtifactCard(path, detail, write.created ? "new" : "modified"));
+    });
+    if (!inspectorArtifactList.children.length) {
+      inspectorArtifactList.appendChild(createArtifactCard("No artifacts yet", "Generated files, diagrams, and outputs will appear here.", "muted"));
+    }
+  }
   if (inspectorCommand) {
     inspectorCommand.textContent = tools.includes("command_runner_tool")
-      ? answerText.split("\n").slice(0, 4).join(" ")
+      ? answerText.replace(/^Command:\s*/m, "$ ")
       : "No command output in the latest run.";
   }
   if (inspectorSources) {
@@ -135,6 +152,35 @@ function updateInspector(metadata, answerText = "") {
     const verifierState = failed ? `${failed} verifier issue${failed === 1 ? "" : "s"}` : "verifier clean";
     inspectorSafety.textContent = `${metadata.provider || "local"} · ${evidence.tools_verified ? "tools verified" : "review needed"} · ${verifierState} · ${verifierReports.length} report(s)`;
   }
+  if (tools.includes("command_runner_tool")) {
+    setInspectorTab("terminal");
+  } else if (writes.length || /```mermaid/.test(answerText)) {
+    setInspectorTab("artifacts");
+  } else if (tools.length) {
+    setInspectorTab("sources");
+  }
+}
+
+function createArtifactCard(title, detail, kind) {
+  const card = document.createElement("div");
+  card.className = `artifact-card ${kind || ""}`;
+  card.innerHTML = `
+    <span class="artifact-icon">${kind === "new" ? "+" : kind === "modified" ? "~" : kind === "diagram" ? "#" : "-"}</span>
+    <div>
+      <strong>${escapeHtml(title)}</strong>
+      <span>${escapeHtml(detail)}</span>
+    </div>
+  `;
+  return card;
+}
+
+function setInspectorTab(name) {
+  inspectorTabButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.inspectorTab === name);
+  });
+  inspectorPanes.forEach((pane) => {
+    pane.classList.toggle("active", pane.dataset.inspectorPane === name);
+  });
 }
 
 function renderRunMetadata(metadata) {
@@ -1512,6 +1558,12 @@ writeFileButton.addEventListener("click", async () => {
 actionButtons.forEach((button) => {
   button.addEventListener("click", () => {
     submitPrompt(button.dataset.prompt || "");
+  });
+});
+
+inspectorTabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setInspectorTab(button.dataset.inspectorTab || "artifacts");
   });
 });
 

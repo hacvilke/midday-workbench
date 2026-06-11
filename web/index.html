@@ -163,29 +163,44 @@
         </form>
       </section>
       <aside class="inspector" aria-label="Outputs and sources">
-        <section>
+        <div class="inspector-tabs" role="tablist" aria-label="Inspector sections">
+          <button class="active" type="button" data-inspector-tab="artifacts">Artifacts</button>
+          <button type="button" data-inspector-tab="sources">Sources</button>
+          <button type="button" data-inspector-tab="terminal">Terminal</button>
+        </div>
+        <section class="inspector-pane active" data-inspector-pane="artifacts">
           <h2>Outputs</h2>
+          <div id="inspectorArtifactList" class="artifact-list">
+            <div class="artifact-card muted">
+              <strong>No artifacts yet</strong>
+              <span>Generated files, diagrams, and outputs will appear here.</span>
+            </div>
+          </div>
           <div class="inspector-card">
             <strong>Artifacts</strong>
             <span id="inspectorArtifacts">No artifacts yet.</span>
           </div>
-          <div class="inspector-card">
-            <strong>Command Output</strong>
-            <span id="inspectorCommand">No command output yet.</span>
-          </div>
         </section>
-        <section>
+        <section class="inspector-pane" data-inspector-pane="sources">
           <h2>Sources</h2>
           <div class="inspector-card">
             <strong>OSS Context</strong>
             <span id="inspectorSources">No sources yet.</span>
           </div>
-        </section>
-        <section>
           <h2>Workbench</h2>
           <div class="inspector-card accent">
             <strong>Safe by default</strong>
             <span id="inspectorSafety">One tool per turn, verifier reports, and allowlisted commands.</span>
+          </div>
+        </section>
+        <section class="inspector-pane" data-inspector-pane="terminal">
+          <h2>Terminal</h2>
+          <div class="terminal-card">
+            <div class="terminal-title">
+              <span>&gt;_ Command Output</span>
+              <button type="button" data-prompt="run git status" title="Run git status">Run</button>
+            </div>
+            <pre id="inspectorCommand">No command output yet.</pre>
           </div>
         </section>
       </aside>

@@ -79,7 +79,11 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("function submitPrompt", app_js)
         self.assertIn("button.dataset.prompt", app_js)
         self.assertIn("function updateInspector", app_js)
+        self.assertIn("function createArtifactCard", app_js)
+        self.assertIn("function setInspectorTab", app_js)
         self.assertIn("inspectorArtifacts", app_js)
+        self.assertIn("inspectorArtifactList", app_js)
+        self.assertIn("inspectorTabButtons", app_js)
         self.assertIn("command_runner_tool", app_js)
         self.assertIn("plan?.specialist", app_js)
         self.assertIn("specialist.role", app_js)
@@ -95,6 +99,9 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("id=\"inspectorCommand\"", index_html)
         self.assertIn("id=\"inspectorSources\"", index_html)
         self.assertIn("id=\"inspectorSafety\"", index_html)
+        self.assertIn("data-inspector-tab=\"artifacts\"", index_html)
+        self.assertIn("data-inspector-pane=\"terminal\"", index_html)
+        self.assertIn("id=\"inspectorArtifactList\"", index_html)
         self.assertIn("Build, inspect, run, and verify with Midday.", index_html)
 
         css = (ROOT / "web" / "style.css").read_text(encoding="utf-8")
@@ -102,6 +109,9 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn(".rail-button", css)
         self.assertIn(".inspector-card", css)
         self.assertIn(".action-strip", css)
+        self.assertIn(".inspector-tabs", css)
+        self.assertIn(".artifact-card", css)
+        self.assertIn(".terminal-card", css)
 
 
 if __name__ == "__main__":

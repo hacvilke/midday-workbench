@@ -78,6 +78,9 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("actionButtons", app_js)
         self.assertIn("function submitPrompt", app_js)
         self.assertIn("button.dataset.prompt", app_js)
+        self.assertIn("function updateInspector", app_js)
+        self.assertIn("inspectorArtifacts", app_js)
+        self.assertIn("command_runner_tool", app_js)
         self.assertIn("plan?.specialist", app_js)
         self.assertIn("specialist.role", app_js)
 
@@ -88,6 +91,10 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("class=\"inspector\"", index_html)
         self.assertIn("class=\"action-strip\"", index_html)
         self.assertIn("data-prompt=\"run git status\"", index_html)
+        self.assertIn("id=\"inspectorArtifacts\"", index_html)
+        self.assertIn("id=\"inspectorCommand\"", index_html)
+        self.assertIn("id=\"inspectorSources\"", index_html)
+        self.assertIn("id=\"inspectorSafety\"", index_html)
         self.assertIn("Build, inspect, run, and verify with Midday.", index_html)
 
         css = (ROOT / "web" / "style.css").read_text(encoding="utf-8")

@@ -121,3 +121,4 @@
 2026-06-10: [UPGRADE] Added Midday-native specialist skill profiles inspired by Claude Code agent cards and UnionAI planner patterns, including `/api/skills`, planner specialist metadata, delegation permissions, run-detail display, and an Agent Skills workbench panel.
 2026-06-10: [UPGRADE] Added chat-routed safe command execution with `command_runner_tool`, `command_run` routing, Sandbox Operator skill metadata, structured sandbox payload verification, and tests for allowed and blocked command requests.
 2026-06-10: [UI] Refreshed the Midday Workbench shell with a light workbench theme, slim navigation rail, quick agent action chips, right-side outputs/sources inspector, and static UI coverage for the new layout.
+2026-06-10: [UI] Wired the right-side inspector to live run metadata so artifacts, command output, sources/tools, and verifier safety status update after chat runs.

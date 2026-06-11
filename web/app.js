@@ -48,6 +48,10 @@ const fileEditorStatus = document.querySelector("#fileEditorStatus");
 const readFileButton = document.querySelector("#readFileButton");
 const writeFileButton = document.querySelector("#writeFileButton");
 const actionButtons = document.querySelectorAll("[data-prompt]");
+const inspectorArtifacts = document.querySelector("#inspectorArtifacts");
+const inspectorCommand = document.querySelector("#inspectorCommand");
+const inspectorSources = document.querySelector("#inspectorSources");
+const inspectorSafety = document.querySelector("#inspectorSafety");
 const sessionId = getSessionId();
 
 let isStreaming = false;
@@ -104,6 +108,33 @@ function submitPrompt(value) {
   if (!prompt || isStreaming) return;
   promptInput.value = prompt;
   form.requestSubmit();
+}
+
+function updateInspector(metadata, answerText = "") {
+  if (!metadata) return;
+  const tools = metadata.tools_used || [];
+  const writes = metadata.file_writes || [];
+  const evidence = metadata.completion_evidence || {};
+  const verifierReports = metadata.verifier_reports || [];
+  if (inspectorArtifacts) {
+    const artifactParts = [];
+    if (/```mermaid/.test(answerText)) artifactParts.push("Mermaid diagram");
+    if (writes.length) artifactParts.push(`${writes.length} file write${writes.length === 1 ? "" : "s"}`);
+    inspectorArtifacts.textContent = artifactParts.length ? artifactParts.join(" · ") : `Run ${metadata.run_id || "complete"} produced a chat answer.`;
+  }
+  if (inspectorCommand) {
+    inspectorCommand.textContent = tools.includes("command_runner_tool")
+      ? answerText.split("\n").slice(0, 4).join(" ")
+      : "No command output in the latest run.";
+  }
+  if (inspectorSources) {
+    inspectorSources.textContent = tools.length ? tools.join(", ") : "Direct response, no OSS tool used.";
+  }
+  if (inspectorSafety) {
+    const failed = Number(evidence.failed_verifier_count || 0);
+    const verifierState = failed ? `${failed} verifier issue${failed === 1 ? "" : "s"}` : "verifier clean";
+    inspectorSafety.textContent = `${metadata.provider || "local"} · ${evidence.tools_verified ? "tools verified" : "review needed"} · ${verifierState} · ${verifierReports.length} report(s)`;
+  }
 }
 
 function renderRunMetadata(metadata) {
@@ -669,6 +700,7 @@ async function streamChat(prompt) {
   renderMermaidBlocks(msgEl);
   if (metadataReceived) {
     msgEl.insertAdjacentHTML("beforeend", renderRunMetadata(metadataReceived));
+    updateInspector(metadataReceived, rawText);
   }
   messages.scrollTop = messages.scrollHeight;
 

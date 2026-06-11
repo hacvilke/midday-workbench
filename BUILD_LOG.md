@@ -125,3 +125,4 @@
 2026-06-10: [UI] Upgraded the inspector into Replit-style Artifacts/Sources/Terminal tabs with generated artifact cards, auto tab switching from run metadata, and a dark terminal output surface.
 2026-06-10: [UI] Adapted the Replit Midday mockup into the live vanilla workbench composer with action icons, sandbox/context shortcuts, run status text, and guarded static coverage while restoring local runtime ignores for secrets, logs, sessions, and SQLite state.
 2026-06-10: [UI] Fixed screenshot-reported inspector crowding by giving empty artifact cards the same icon/content structure as real artifacts, tightening inspector tabs, and reserving bottom chat space so the composer does not cover recent output.
+2026-06-10: [UI] Corrected the chat grid to four explicit rows for topbar, quick actions, messages, and composer so the bottom composer occupies its own lane instead of overlaying scrolled output.

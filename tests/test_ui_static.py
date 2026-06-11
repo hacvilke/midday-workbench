@@ -121,6 +121,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn(".icon-button", css)
         self.assertIn(".composer-status", css)
         self.assertIn(".send-button", css)
+        self.assertIn("grid-template-rows: auto auto minmax(0, 1fr) auto", css)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiBase, getSessionId } from "@/lib/api";
-import { Activity, Terminal, FileCode2, RefreshCw, ChevronDown, ChevronRight, Clock, Zap, GitMerge } from "lucide-react";
+import { Activity, Terminal, FileCode2, RefreshCw, ChevronDown, ChevronRight, Clock, Zap } from "lucide-react";
 
 type Run = {
   run_id: string;

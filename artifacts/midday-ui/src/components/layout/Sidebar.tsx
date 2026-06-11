@@ -31,8 +31,8 @@ const SKILL_ICONS: Record<string, React.ReactNode> = {
   db: <Database className="w-4 h-4 text-primary" />,
 };
 
-function skillIcon(name: string): React.ReactNode {
-  const lower = name.toLowerCase();
+function skillIcon(name: string | undefined): React.ReactNode {
+  const lower = (name ?? "").toLowerCase();
   if (lower.includes("file")) return SKILL_ICONS.file;
   if (lower.includes("command") || lower.includes("container") || lower.includes("sandbox")) return SKILL_ICONS.command;
   if (lower.includes("web") || lower.includes("search")) return SKILL_ICONS.web;
@@ -73,8 +73,18 @@ export default function Sidebar() {
         ]);
         const s = statusRes.status === "fulfilled" ? statusRes.value : null;
         const m = metricsRes.status === "fulfilled" ? metricsRes.value : null;
+        const rawSkills = s?.skills ?? s?.tool_schemas ?? null;
+        const normalizedSkills: Skill[] | undefined = rawSkills
+          ? rawSkills
+              .map((sk: any): Skill | null => {
+                if (sk?.name) return { name: sk.name, description: sk.description ?? "" };
+                if (sk?.function?.name) return { name: sk.function.name, description: sk.function.description ?? "" };
+                return null;
+              })
+              .filter(Boolean) as Skill[]
+          : undefined;
         setStatus({
-          skills: s?.skills ?? s?.tool_schemas ?? null,
+          skills: normalizedSkills,
           workspace: s?.workspace ?? null,
           metrics: m ?? s?.metrics ?? null,
         });

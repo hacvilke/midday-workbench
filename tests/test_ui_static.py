@@ -94,6 +94,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("class=\"rail\"", index_html)
         self.assertIn("class=\"inspector\"", index_html)
         self.assertIn("class=\"action-strip\"", index_html)
+        self.assertIn("hidden>", index_html)
         self.assertIn("data-prompt=\"run git status\"", index_html)
         self.assertIn("id=\"inspectorArtifacts\"", index_html)
         self.assertIn("id=\"inspectorCommand\"", index_html)
@@ -102,12 +103,12 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("data-inspector-tab=\"artifacts\"", index_html)
         self.assertIn("data-inspector-pane=\"terminal\"", index_html)
         self.assertIn("id=\"inspectorArtifactList\"", index_html)
-        self.assertIn("Ask, build, run, and verify.", index_html)
+        self.assertIn("Chat with your AI assistant.", index_html)
         self.assertIn("id=\"composerStatus\"", index_html)
         self.assertIn("class=\"composer-toolbar\"", index_html)
         self.assertIn("class=\"icon-button\"", index_html)
         self.assertIn("class=\"send-button\"", index_html)
-        self.assertIn("Ask Midday anything", index_html)
+        self.assertIn("Message Midday", index_html)
 
         css = (ROOT / "web" / "style.css").read_text(encoding="utf-8")
         self.assertIn(".skill-card", css)
@@ -122,9 +123,9 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn(".composer-status", css)
         self.assertIn(".send-button", css)
         self.assertIn("grid-template-rows: auto auto minmax(0, 1fr) auto", css)
-        self.assertIn("grid-template-columns: minmax(560px, 1fr) 300px", css)
+        self.assertIn("grid-template-columns: minmax(0, 1fr)", css)
         self.assertIn("display: none", css)
-        self.assertIn("padding: 34px clamp(42px, 9vw, 156px) 28px", css)
+        self.assertIn("width: min(920px, 100%)", css)
 
 
 if __name__ == "__main__":

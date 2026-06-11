@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Midday Workbench</title>
+    <title>Midday Chat</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
@@ -146,11 +146,11 @@
         <header class="topbar">
           <div>
             <div class="eyebrow">Midday</div>
-            <h2>Ask, build, run, and verify.</h2>
+            <h2>Chat with your AI assistant.</h2>
           </div>
           <div class="topbar-badge" id="topbarBadge">Connecting...</div>
         </header>
-        <div class="action-strip" aria-label="Agent quick actions">
+        <div class="action-strip" aria-label="Agent quick actions" hidden>
           <button type="button" data-prompt="run git status">Run status</button>
           <button type="button" data-prompt="run frontend syntax check">Check UI</button>
           <button type="button" data-prompt="show graph of Midday Workbench agent architecture">Draw diagram</button>
@@ -158,16 +158,16 @@
         </div>
         <div id="messages" class="messages"></div>
         <form id="composer" class="composer">
-          <textarea id="prompt" placeholder="Ask Midday anything - describe a task, paste an error, or request a command..." rows="3"></textarea>
+          <textarea id="prompt" placeholder="Message Midday..." rows="3"></textarea>
           <div class="composer-toolbar" aria-label="Composer controls">
-            <div class="composer-tools">
+            <div class="composer-tools" hidden>
               <button class="icon-button" type="button" data-prompt="pack repo context for the current task" title="Attach repo context" aria-label="Attach repo context">@</button>
               <button class="icon-button" type="button" data-prompt="run git status" title="Run sandbox status" aria-label="Run sandbox status">&gt;_</button>
               <button class="icon-button" type="button" data-prompt="show graph of Midday Workbench agent architecture" title="Create diagram" aria-label="Create diagram">#</button>
-              <span id="composerStatus" class="composer-status">Local workbench</span>
+              <span id="composerStatus" class="composer-status">Ready</span>
             </div>
             <button class="send-button" type="submit" aria-label="Run agent">
-              <span>Run</span>
+              <span>Send</span>
               <strong>&uarr;</strong>
             </button>
           </div>

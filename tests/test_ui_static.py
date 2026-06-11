@@ -102,7 +102,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("data-inspector-tab=\"artifacts\"", index_html)
         self.assertIn("data-inspector-pane=\"terminal\"", index_html)
         self.assertIn("id=\"inspectorArtifactList\"", index_html)
-        self.assertIn("Build, inspect, run, and verify with Midday.", index_html)
+        self.assertIn("Ask, build, run, and verify.", index_html)
         self.assertIn("id=\"composerStatus\"", index_html)
         self.assertIn("class=\"composer-toolbar\"", index_html)
         self.assertIn("class=\"icon-button\"", index_html)
@@ -122,6 +122,9 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn(".composer-status", css)
         self.assertIn(".send-button", css)
         self.assertIn("grid-template-rows: auto auto minmax(0, 1fr) auto", css)
+        self.assertIn("grid-template-columns: 50px minmax(520px, 1fr) 300px", css)
+        self.assertIn("display: none", css)
+        self.assertIn("padding: 34px clamp(42px, 9vw, 156px) 28px", css)
 
 
 if __name__ == "__main__":

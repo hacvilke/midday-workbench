@@ -959,7 +959,7 @@ button:disabled {
   }
 }
 
-/* Workbench UX refresh: light shell, slim rail, inspector, and action chips. */
+/* Minimal workbench shell: chat first, quiet inspector, hidden control panels. */
 :root {
   color-scheme: light;
   background: #eef5ef;
@@ -967,16 +967,13 @@ button:disabled {
 }
 
 body {
-  background:
-    radial-gradient(circle at 12% 8%, rgba(191, 235, 126, 0.36), transparent 30%),
-    radial-gradient(circle at 88% 82%, rgba(53, 178, 164, 0.28), transparent 34%),
-    #f6f8f5;
+  background: #f7f8f7;
 }
 
 .shell {
-  grid-template-columns: 54px 300px minmax(0, 1fr) 292px;
+  grid-template-columns: 50px minmax(520px, 1fr) 300px;
   gap: 0;
-  padding: 14px;
+  padding: 0;
   background: transparent;
 }
 
@@ -985,9 +982,9 @@ body {
 .chat,
 .inspector {
   border: 1px solid rgba(29, 41, 35, 0.1);
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 18px 48px rgba(35, 51, 43, 0.1);
-  backdrop-filter: blur(18px);
+  background: #ffffff;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .rail {
@@ -995,9 +992,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 14px 8px;
-  border-right: 0;
-  border-radius: 20px 0 0 20px;
+  padding: 18px 7px;
+  border-width: 0 1px 0 0;
+  border-radius: 0;
+  background: #fbfcfb;
 }
 
 .rail-mark,
@@ -1012,7 +1010,7 @@ body {
 }
 
 .rail-mark {
-  background: #6ecb59;
+  background: #00b99f;
   color: #ffffff;
 }
 
@@ -1029,24 +1027,22 @@ body {
 }
 
 .sidebar {
-  border-radius: 0;
-  border-right: 0;
-  padding: 18px;
-  background: rgba(250, 252, 249, 0.92);
+  display: none;
 }
 
 .chat {
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.74);
+  border: 0;
+  background: #ffffff;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
 .inspector {
   overflow: auto;
-  padding: 18px;
-  border-left: 0;
-  border-radius: 0 20px 20px 0;
-  background: rgba(253, 254, 252, 0.92);
+  padding: 22px 16px;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  background: #fbfcfb;
   min-width: 0;
 }
 
@@ -1101,7 +1097,8 @@ h2,
 
 .topbar {
   border-bottom: 1px solid #e1e8e0;
-  background: rgba(255, 255, 255, 0.72);
+  background: #ffffff;
+  padding: 18px clamp(22px, 5vw, 56px);
 }
 
 .eyebrow,
@@ -1115,9 +1112,9 @@ h2,
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 12px 28px;
+  padding: 12px clamp(22px, 5vw, 56px);
   border-bottom: 1px solid #e7ede7;
-  background: rgba(250, 252, 249, 0.76);
+  background: #fbfcfb;
 }
 
 .action-strip button {
@@ -1137,7 +1134,7 @@ h2,
 }
 
 .messages {
-  padding: 28px clamp(28px, 6vw, 92px) 24px;
+  padding: 34px clamp(42px, 9vw, 156px) 28px;
 }
 
 .message {
@@ -1149,26 +1146,27 @@ h2,
 
 .message.user {
   width: fit-content;
-  max-width: min(760px, 86%);
+  max-width: min(720px, 82%);
   margin-left: auto;
   border: 1px solid #e3e8e1;
-  background: #f4f5f1;
+  border-radius: 14px;
+  background: #f4f5f2;
 }
 
 .message.agent {
-  max-width: 860px;
-  padding-left: 28px;
-  border-left: 2px solid #dce8d5;
+  max-width: 880px;
+  padding-left: 0;
+  border-left: 0;
 }
 
 .composer {
-  width: min(760px, calc(100% - 48px));
-  margin: 0 auto 18px;
+  width: min(760px, calc(100% - 84px));
+  margin: 0 auto 20px;
   border: 1px solid #dfe6dd;
-  border-radius: 22px;
+  border-radius: 18px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 18px 42px rgba(31, 44, 37, 0.13);
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(31, 44, 37, 0.09);
   align-self: end;
   position: relative;
   bottom: auto;
@@ -1446,7 +1444,7 @@ button:hover {
 
 @media (max-width: 1120px) {
   .shell {
-    grid-template-columns: 54px 292px minmax(0, 1fr);
+    grid-template-columns: 50px minmax(0, 1fr);
   }
 
   .inspector {
@@ -1464,8 +1462,15 @@ button:hover {
     display: none;
   }
 
-  .sidebar,
   .chat {
     border-radius: 0;
+  }
+
+  .messages {
+    padding: 24px 18px;
+  }
+
+  .composer {
+    width: calc(100% - 24px);
   }
 }

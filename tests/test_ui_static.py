@@ -122,7 +122,7 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn(".composer-status", css)
         self.assertIn(".send-button", css)
         self.assertIn("grid-template-rows: auto auto minmax(0, 1fr) auto", css)
-        self.assertIn("grid-template-columns: 50px minmax(520px, 1fr) 300px", css)
+        self.assertIn("grid-template-columns: minmax(560px, 1fr) 300px", css)
         self.assertIn("display: none", css)
         self.assertIn("padding: 34px clamp(42px, 9vw, 156px) 28px", css)
 

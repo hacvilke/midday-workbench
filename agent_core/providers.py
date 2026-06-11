@@ -43,11 +43,7 @@ class OfflineProvider(ChatProvider):
         request = latest.split("User request:\n", 1)[-1].split("\n\n", 1)[0].strip()
         if request.lower() in {"hi", "hello", "hey"}:
             return "Hello. I am ready."
-        return (
-            "Offline mode: no model provider is active. "
-            "I can still use local tools and repository context when the request needs it.\n\n"
-            f"{latest}"
-        )
+        return "I need a working model provider to answer that fully. I can still help with local tools when your request needs them."
 
     def stream(self, messages: list[Message]) -> Iterator[str]:
         response = self.complete(messages)

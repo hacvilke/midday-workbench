@@ -751,7 +751,6 @@ async function streamChat(prompt) {
   answerEl.innerHTML = renderMarkdown(rawText);
   renderMermaidBlocks(msgEl);
   if (metadataReceived) {
-    msgEl.insertAdjacentHTML("beforeend", renderRunMetadata(metadataReceived));
     updateInspector(metadataReceived, rawText);
   }
   messages.scrollTop = messages.scrollHeight;
@@ -774,12 +773,11 @@ async function showStatus() {
   try {
     const response = await fetch("/api/status");
     const status = await response.json();
-    const provider = status.provider === "offline" ? "offline retrieval" : status.provider;
+    const provider = status.provider === "offline" ? "offline" : status.provider;
     const providerDiag = status.provider_diagnostics || {};
-    const providerRoute = status.provider_route?.join(" -> ") || provider;
-    const providerReadiness = providerDiag.remote_ready ? "remote ready" : "local/offline";
+    const providerReadiness = providerDiag.remote_ready ? "Online" : "Local";
     providerStatus.textContent = `Provider: ${provider} (${providerReadiness})`;
-    topbarBadge.textContent = `${status.tools.length} tools · ${providerRoute} · ${providerReadiness}`;
+    topbarBadge.textContent = providerReadiness;
     providerPanel.innerHTML = "";
     (providerDiag.providers || []).forEach((entry) => {
       const row = document.createElement("div");

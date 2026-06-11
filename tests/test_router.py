@@ -193,6 +193,16 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(run.provider, "local")
         self.assertFalse(run.context_attached)
 
+    def test_agent_casual_status_is_local(self):
+        """Verify casual chat does not expose provider/tool context."""
+
+        run = Agent().run_with_metadata("how are you")
+        self.assertEqual(run.tools_used, [])
+        self.assertEqual(run.provider, "local")
+        self.assertFalse(run.context_attached)
+        self.assertNotIn("Available OSS tool schemas", run.answer)
+        self.assertIn("ready to help", run.answer)
+
     def test_vague_file_create_asks_for_path(self):
         """Verify vague file creation does not retrieve unrelated OSS context."""
 

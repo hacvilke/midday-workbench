@@ -130,3 +130,4 @@
 2026-06-10: [UI] Simplified the workbench into a minimal chat-first layout by hiding the heavy left control sidebar, widening the conversation pane, quieting the topbar, and keeping outputs/sources as a restrained right inspector.
 2026-06-10: [UI] Removed the confusing letter-only navigation rail from the visible shell so the workbench opens directly into the chat and right-side outputs panel.
 2026-06-11: [UI] Converted the visible app from an operator workbench into a public chatbot room by hiding workbench prep panels, quick action chips, and the right inspector while keeping backend tool use available to the agent.
+2026-06-11: [HARDENING] Removed public chat exposure of run metadata and provider/tool chains, added local handling for casual status prompts, and made offline fallback return a short user-safe message instead of echoing internal context.

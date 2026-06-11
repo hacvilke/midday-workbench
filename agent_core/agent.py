@@ -458,6 +458,8 @@ class Agent:
         arithmetic = self._simple_arithmetic_answer(normalized)
         if arithmetic is not None:
             return arithmetic
+        if normalized in {"how are you", "how are you?", "how's it going", "hows it going"}:
+            return "I am good and ready to help. What would you like to do?"
         route = self.router.classify(prompt)
         if route.intent != "plain_chat":
             return None

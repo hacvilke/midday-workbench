@@ -87,6 +87,8 @@ class UiStaticTests(unittest.TestCase):
         self.assertIn("command_runner_tool", app_js)
         self.assertIn("plan?.specialist", app_js)
         self.assertIn("specialist.role", app_js)
+        self.assertNotIn("msgEl.insertAdjacentHTML(\"beforeend\", renderRunMetadata", app_js)
+        self.assertIn("topbarBadge.textContent = providerReadiness", app_js)
 
         index_html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
         self.assertIn("Agent Skills", index_html)

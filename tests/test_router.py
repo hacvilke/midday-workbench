@@ -184,6 +184,27 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(run.provider, "local")
         self.assertIn("Midday Workbench", run.answer)
 
+    def test_agent_simple_math_is_local(self):
+        """Verify tiny arithmetic prompts answer directly without context dumps."""
+
+        run = Agent().run_with_metadata("whats 1 plus 1")
+        self.assertEqual(run.answer, "2")
+        self.assertEqual(run.tools_used, [])
+        self.assertEqual(run.provider, "local")
+        self.assertFalse(run.context_attached)
+
+    def test_vague_file_create_asks_for_path(self):
+        """Verify vague file creation does not retrieve unrelated OSS context."""
+
+        route = IntentRouter().classify("make 1 file")
+        self.assertEqual(route.intent, "code_edit")
+        self.assertEqual(route.tools, ["file_edit_tool"])
+        run = Agent().run_with_metadata("make 1 file")
+        self.assertEqual(run.tools_used, [])
+        self.assertEqual(run.provider, "local")
+        self.assertFalse(run.context_attached)
+        self.assertIn("What file path", run.answer)
+
     def test_agent_no_tools_request_is_local(self):
         """Verify guide-only requests do not invoke providers or tools."""
 

@@ -163,6 +163,8 @@ def is_file_edit_request(text: str) -> bool:
     )
     if contains_any(text, explicit_patterns):
         return True
+    if re.search(r"\b(?:make|create|write)\s+\d+\s+files?\b", text):
+        return True
     # Match "edit <filename>" or "update <filename.ext>"
     if re.search(r"(?:edit|update|modify|fix|create|write)\s+[\w./-]+\.\w+", text):
         return True

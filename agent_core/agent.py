@@ -113,6 +113,25 @@ class Agent:
             )
 
         route = self.router.classify(prompt)
+        missing_file_target = self._missing_file_target_answer(prompt, route.intent)
+        if missing_file_target is not None:
+            return AgentRun(
+                run_id=run_id,
+                answer=missing_file_target,
+                tools_used=[],
+                react_steps=[],
+                context_attached=False,
+                memory_items=len(history or []),
+                provider="local",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                fallback_used=False,
+                error=None,
+                provider_attempts=[{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                verifier_reports=[],
+                plan=plan,
+                usage=self._usage(prompt, missing_file_target, history=history or []),
+                completion_evidence=self._completion_evidence([], [], [], direct=True),
+            )
 
         # Fast path: visual diagram — Mermaid only, no provider call
         if route.intent == "visualize":
@@ -270,6 +289,19 @@ class Agent:
             return
 
         route = self.router.classify(prompt)
+        missing_file_target = self._missing_file_target_answer(prompt, route.intent)
+        if missing_file_target is not None:
+            for word in missing_file_target.split(" "):
+                yield {"type": "token", "token": word + " "}
+            yield {
+                "type": "done",
+                "metadata": self._make_stream_metadata(
+                    run_id, missing_file_target, [], [], False, False, None,
+                    [{"provider": "local", "ok": True, "duration_ms": 0, "error": None}],
+                    "local", started, [], plan, usage=self._usage(prompt, missing_file_target, history=history or []),
+                ),
+            }
+            return
 
         # Fast path: visual
         if route.intent == "visualize":
@@ -422,10 +454,13 @@ class Agent:
         return context
 
     def direct_answer(self, prompt: str) -> str | None:
+        normalized = re.sub(r"\s+", " ", prompt.strip().lower())
+        arithmetic = self._simple_arithmetic_answer(normalized)
+        if arithmetic is not None:
+            return arithmetic
         route = self.router.classify(prompt)
         if route.intent != "plain_chat":
             return None
-        normalized = re.sub(r"\s+", " ", prompt.strip().lower())
         policy = classify_turn_policy(prompt)
         if policy.block_tools and not any(word in normalized for word in ("hi", "hello", "thanks", "thank you")):
             return "I will answer directly without tools for this turn. Tell me the specific question or task you want handled in guide-only mode."
@@ -438,6 +473,35 @@ class Agent:
         if "thank" in normalized:
             return "You are welcome. I am ready to keep building."
         return "Hi. I am Midday Workbench, ready to help."
+
+    def _simple_arithmetic_answer(self, normalized: str) -> str | None:
+        """Answer tiny arithmetic prompts locally instead of invoking providers."""
+
+        compact = normalized.rstrip(" ?.")
+        patterns = (
+            (r"^(?:what'?s|what is)\s+(-?\d+)\s+plus\s+(-?\d+)$", "+"),
+            (r"^(?:what'?s|what is)\s+(-?\d+)\s+minus\s+(-?\d+)$", "-"),
+            (r"^(?:what'?s|what is)\s+(-?\d+)\s*(?:\+)\s*(-?\d+)$", "+"),
+            (r"^(?:what'?s|what is)\s+(-?\d+)\s*(?:-)\s*(-?\d+)$", "-"),
+        )
+        for pattern, op in patterns:
+            match = re.match(pattern, compact)
+            if not match:
+                continue
+            left = int(match.group(1))
+            right = int(match.group(2))
+            result = left + right if op == "+" else left - right
+            return str(result)
+        return None
+
+    def _missing_file_target_answer(self, prompt: str, intent: str) -> str | None:
+        """Ask for a target path when a file-write request is too vague."""
+
+        if intent != "code_edit":
+            return None
+        if self.editor.extract_filename_from_prompt(prompt):
+            return None
+        return "What file path should I create or edit? For example: `create notes/todo.md`."
 
     def visual_tool_answer(self, tool_results) -> str | None:
         if len(tool_results) != 1 or tool_results[0].name != "rich_output_template_tool":

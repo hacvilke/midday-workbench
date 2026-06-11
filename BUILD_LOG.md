@@ -126,3 +126,4 @@
 2026-06-10: [UI] Adapted the Replit Midday mockup into the live vanilla workbench composer with action icons, sandbox/context shortcuts, run status text, and guarded static coverage while restoring local runtime ignores for secrets, logs, sessions, and SQLite state.
 2026-06-10: [UI] Fixed screenshot-reported inspector crowding by giving empty artifact cards the same icon/content structure as real artifacts, tightening inspector tabs, and reserving bottom chat space so the composer does not cover recent output.
 2026-06-10: [UI] Corrected the chat grid to four explicit rows for topbar, quick actions, messages, and composer so the bottom composer occupies its own lane instead of overlaying scrolled output.
+2026-06-10: [LOGIC] Added local direct-answer handling for tiny arithmetic prompts and guarded vague file-create requests so Midday answers simple questions directly and asks for a target path instead of dumping offline provider context.

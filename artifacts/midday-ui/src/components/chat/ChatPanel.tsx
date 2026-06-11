@@ -4,6 +4,7 @@ import { apiBase, getSessionId } from "@/lib/api";
 import Message, { ChatMessage } from "./Message";
 import Composer from "./Composer";
 import { WifiOff, Zap, GitBranch, Archive } from "lucide-react";
+import { useWorkbench } from "@/context/WorkbenchContext";
 
 const QUICK_ACTIONS = [
   { label: "Run status", prompt: "run git status" },
@@ -19,6 +20,7 @@ type StreamEvent =
   | { type: "done"; metadata: any };
 
 export default function ChatPanel() {
+  const { addArtifact } = useWorkbench();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -129,6 +131,7 @@ export default function ChatPanel() {
               )
             );
           } else if (event.type === "file_written") {
+            addArtifact(event.path);
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === agentId
